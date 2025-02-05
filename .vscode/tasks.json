@@ -1,0 +1,33 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "cabal: test",
+      "command": "cabal test spec",
+      "type": "shell",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "cabal: build",
+      "command": "cabal build",
+      "type": "shell",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "nix: build",
+      "command": "nix build",
+      "type": "shell",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

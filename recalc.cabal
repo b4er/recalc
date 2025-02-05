@@ -1,0 +1,58 @@
+cabal-version:      3.0
+name:               recalc
+version:            0.0.0.0
+-- synopsis:
+-- description:
+license:            MIT
+license-file:       LICENSE
+author:             b4er
+maintainer:         basil.fuerer@protonmail.com
+category:           Language
+build-type:         Simple
+
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+common common
+    ghc-options: -Wall
+
+    build-depends:
+        base ^>= 4.18.2.1,
+        containers,
+        mtl,
+        text
+
+    default-language:   GHC2021
+    default-extensions: LambdaCase RecordWildCards
+
+library recalc-engine
+    import: common
+    hs-source-dirs: lib
+
+    exposed-modules:
+        Recalc.Engine
+
+    other-modules:
+        Recalc.Engine.Internal
+
+    build-depends:
+        build
+
+test-suite spec
+    import: common
+
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     spec
+    main-is:            Spec.hs
+    build-tool-depends: hspec-discover:hspec-discover == 2.*
+
+    other-modules:
+        Recalc.EngineSpec
+
+    build-depends:
+        hspec >= 2.7,
+        QuickCheck,
+        recalc-engine
+
