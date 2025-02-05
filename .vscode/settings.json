@@ -9,6 +9,7 @@
         "**/.ghc.environment.*": true,
         "**/*.o-boot": true,
         "**/*.hi-boot": true,
+        "flake.lock": true,
         "result": true
     },
     "files.trimTrailingWhitespace": true,
