@@ -6,7 +6,6 @@ module Recalc.EngineSpec where
 
 import Control.Arrow (Arrow (first))
 import Control.Monad (foldM)
-import Data.Char (isDigit, isUpper, ord, toLower)
 import Data.List (sortOn)
 import Data.Maybe (fromJust, catMaybes)
 import Data.Set qualified as Set
@@ -18,6 +17,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 
 import Recalc.Engine
+import Recalc.Syntax.Parser (readExcel)
 
 data Term = Num Int | Add Term Term | Ref CellAddr | Sum CellRange
  deriving Show
@@ -101,29 +101,6 @@ termP = space *> term <* eof
 
     oneOf' cs = satisfy (`elem` cs)
     someOf = some . oneOf'
-
--- | read an spreadsheet address of the form column-row
--- (columns are labelled "A..Z, AA..", and rows enumerated)
-readExcel :: Text -> Maybe CellAddr
-readExcel txt = go . (`Text.splitAt` txt) =<< alg 0 False (Text.unpack txt)
- where
-  go (letters, digits)
-    | j >= 0 = Just (j, readExcel26 letters - 1)
-    | otherwise = Nothing
-   where
-    j = read (Text.unpack digits) - 1
-
-  alg k b (c : cs)
-    | not b, isUpper c = alg (k + 1) b cs
-    | not b, isDigit c = alg k True cs
-    | b, isDigit c = alg k True cs
-    | otherwise = Nothing
-  alg k True [] = Just k
-  alg _ _ _ = Nothing
-
-  readExcel26 :: Text -> Int
-  readExcel26 = Text.foldl' (\a c -> 26 * a + ord (toLower c) - 96) 0
-
 
 type Value = Maybe Int
 

@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.1.0.0
+version:            0.2.0.0
 synopsis:           functional spreadsheet programming
 -- description:
 license:            MIT
@@ -15,7 +15,7 @@ extra-doc-files:
     README.md
 
 common common
-    ghc-options: -Wall -Werror
+    ghc-options: -Wall -Werror -fno-warn-missing-home-modules
 
     build-depends:
         base ^>= 4.18.2.1,
@@ -29,7 +29,7 @@ common common
 
 library recalc-engine
     import: common
-    hs-source-dirs: lib
+    hs-source-dirs: lib/engine
 
     exposed-modules:
         Recalc.Engine
@@ -42,7 +42,23 @@ library recalc-engine
 
     build-depends:
         build,
-        network-uri
+        network-uri,
+        prettyprinter
+
+library recalc-lang
+    import: common
+    hs-source-dirs: lib/lang
+
+    exposed-modules:
+        Recalc.Syntax.Parser
+        Recalc.Syntax.Term
+
+    build-depends:
+        build,
+        network-uri,
+        parser-combinators,
+        prettyprinter,
+        recalc-engine
 
 test-suite spec
     import: common
@@ -54,9 +70,14 @@ test-suite spec
 
     other-modules:
         Recalc.EngineSpec
+        Recalc.Syntax.ParserSpec
+        Recalc.Syntax.Test
 
     build-depends:
         hspec >= 2.7,
+        hspec-megaparsec,
         QuickCheck,
         network-uri,
-        recalc-engine
+        prettyprinter,
+        recalc-engine,
+        recalc-lang

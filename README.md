@@ -4,10 +4,14 @@
 
 ## Project Organization
 
-- **[`recalc-engine/`](./lib/Recalc/Engine.hs)** (Haskell):
+- **[`recalc-engine`](./lib/engine/Recalc/Engine.hs)** (Haskell):
   The core recalculation engine based on [*Build Systems à la Carte*][build]. It handles
   incremental computations and dependency tracking for arbitrary (dependently typed)
   languages implementing the `Language` interface.
+
+- **[`recalc-lang`](./lib/lang/Recalc)** (Haskell): The language implementation, a very basic
+  dependently typed lambda calculus based on
+  [*A tutorial implementation of a dependently typed lambda calculus*][lambdaPi].
 
 ## Building the Project
 
@@ -43,3 +47,4 @@ This project uses Nix for a reproducible development environment and Cabal for b
 <!-- References -->
 
   [build]: https://dl.acm.org/doi/10.1145/3236774
+  [lambdaPi]: https://www.andres-loeh.de/LambdaPi/LambdaPi.pdf
