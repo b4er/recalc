@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.2.0.0 -- 2025-02-05
+## 0.3.0.0 -- 2025-02-05
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -9,3 +9,4 @@
 
   Add [`README.md`](./README.md) and document the project organisation a bit.
 * Add Syntax for the term language (simple dependently typed lambda calculus).
+* Add support for operators with precedences.
