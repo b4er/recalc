@@ -4,7 +4,7 @@ Description : A dependency map interface for managing cell dependencies.
 
 Simple (slow but fast enough) implementation.
 -}
-module Recalc.Engine.DependencyMap (DependencyMap(..), Slow) where
+module Recalc.Engine.DependencyMap (DependencyMap (..), Slow) where
 
 import Control.Arrow (second)
 import Data.Functor.Classes (Show1 (..))

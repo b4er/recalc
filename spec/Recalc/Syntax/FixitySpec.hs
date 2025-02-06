@@ -115,6 +115,6 @@ spec = do
 -- | test a list of examples, enumerating them 1, 2, ..
 manyIt :: String -> [a] -> (a -> Expectation) -> Spec
 manyIt verb cases prop =
-    zipWithM_ (\ex i -> it (message i) (prop ex)) cases [1 :: Int ..]
-  where
-    message i = verb <> " example-" <> show i
+  zipWithM_ (\ex i -> it (message i) (prop ex)) cases [1 :: Int ..]
+ where
+  message i = verb <> " example-" <> show i

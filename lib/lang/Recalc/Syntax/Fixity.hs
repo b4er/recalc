@@ -41,7 +41,6 @@ termP = makeOpsParser
   (error "no unary operators") -- skip (since there are no Prefix, or Postfix operators)
   Op                           -- build expression from binary operator
 @
-
 -}
 module Recalc.Syntax.Fixity
   ( Fixity (Prefix, Postfix, Infixl, Infixr, Infix)
@@ -74,11 +73,16 @@ isBinary = not . isUnary
 -- | construct a parser from operator table
 makeOpsParser
   :: MonadPlus f
-  => (String -> f ())      -- ^ operator symbol parser
-  -> f a                   -- ^ "atomic" term parser (must not accept ε)
-  -> (op1 -> a -> a)       -- ^ constructor for unary operators
-  -> (op2 -> a -> a -> a)  -- ^ constructor for binary operators
-  -> [[Fixity op1 op2]]    -- ^ fixity declaration (precedence list)
+  => (String -> f ())
+  -- ^ operator symbol parser
+  -> f a
+  -- ^ "atomic" term parser (must not accept ε)
+  -> (op1 -> a -> a)
+  -- ^ constructor for unary operators
+  -> (op2 -> a -> a -> a)
+  -- ^ constructor for binary operators
+  -> [[Fixity op1 op2]]
+  -- ^ fixity declaration (precedence list)
   -> f a
 makeOpsParser symbol p unary binary opss =
   makeExprParser p $ (`map` opss) $ \ops -> (`map` ops) $ \case

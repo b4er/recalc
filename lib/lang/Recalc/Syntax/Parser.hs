@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 {-|
 Module      : Recalc.Syntax.Parser
 Description : Parser definitions for the term language.
@@ -9,8 +10,10 @@ Simple Megaparsec-based parser for the Term language.
 -}
 module Recalc.Syntax.Parser
   ( -- * Term Parser
-    Parser, termP
-  -- * Exported as Testing Utilities
+    Parser
+  , termP
+
+    -- * Exported as Testing Utilities
   , decimal
   , parens
   , readExcel
@@ -48,10 +51,11 @@ string = lexeme . Char.string
 
 -- | parse (signed) integers
 decimal :: Parser Int
-decimal = choice
-  [ lexeme Lexer.decimal
-  , negate <$> (symbol "-" *> lexeme Lexer.decimal)
-  ]
+decimal =
+  choice
+    [ lexeme Lexer.decimal
+    , negate <$> (symbol "-" *> lexeme Lexer.decimal)
+    ]
 
 braces, parens :: Parser a -> Parser a
 braces = between (symbol "{") (symbol "}")
@@ -110,7 +114,8 @@ termP :: Parser (Term Infer)
 termP = resolve <$> termI
 
 resolve :: Term m -> Term m
-resolve = go [] where
+resolve = go []
+ where
   go :: [Maybe Name] -> Term m -> Term m
   go env = \case
     Inf x -> Inf (go env x)
@@ -123,29 +128,35 @@ resolve = go [] where
     x :$ y -> go env x :$ go env y
 
 termI :: Parser (Term Infer)
-termI = (do x <- top; maybe x (Ann (Inf x)) <$> optional (symbol ":" *> termI))
-    <|> Ann <$> parens lambda <*> (symbol ":" *> termI)
-  where
-    top =
-      (do
+termI =
+  (do x <- top; maybe x (Ann (Inf x)) <$> optional (symbol ":" *> termI))
+    <|> Ann
+    <$> parens lambda
+    <*> (symbol ":" *> termI)
+ where
+  top =
+    ( do
         (n, t) <- parens ((,) <$> (identifier <* symbol ":") <*> termC)
         void (symbol "->")
         Pi (Just n) t <$> termC
+    )
+      <|> try
+        ( do
+            x <- ops
+            optional (symbol "->" *> termC) >>= \case
+              Nothing -> pure x
+              Just y -> pure (Pi Nothing (Inf x) y)
         )
-      <|>
-      try (do
-        x <- ops
-        optional (symbol "->" *> termC) >>= \case
-          Nothing -> pure x
-          Just y -> pure (Pi Nothing (Inf x) y))
-      <|>
-      Pi Nothing <$> lambda <*> (symbol "->" *> termC)
+      <|> Pi Nothing
+      <$> lambda
+      <*> (symbol "->" *> termC)
 
-    ops = app <|> parens termI
+  ops = app <|> parens termI
 
-    app = foldl (:$) <$> atom <*> (parens (sepEndBy1 termC (symbol ",")) <|> pure [])
+  app = foldl (:$) <$> atom <*> (parens (sepEndBy1 termC (symbol ",")) <|> pure [])
 
-    atom = choice
+  atom =
+    choice
       [ Free . Global <$> identifier
       , parens termI
       , Univ 0 <$ symbol "*"
@@ -153,14 +164,14 @@ termI = (do x <- top; maybe x (Ann (Inf x)) <$> optional (symbol ":" *> termI))
 
 termC, lambda :: Parser (Term Check)
 termC = lambda <|> (Inf <$> termI)
-
-lambda = lams
+lambda =
+  lams
     <$> (symbol "\\" *> some binderP)
     <*> (symbol "->" *> termC)
-  where
-    lams vars body = foldr Lam body vars
+ where
+  lams vars body = foldr Lam body vars
 
-    binderP = Just <$> identifier <|> Nothing <$ Char.string "_"
+  binderP = Just <$> identifier <|> Nothing <$ Char.string "_"
 
 fn :: Term Infer -> Term Check -> Term Infer
 fn t = Pi Nothing (Inf t)

@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+
 {-|
 Module      : Recalc.Engine.Language
 Description : Spreadsheet language interface.
@@ -19,12 +20,12 @@ import Data.Text (Text)
 import Network.URI (URI)
 
 -- | Column and row (zero-indexed)
-type CellAddr  = (Int, Int)
+type CellAddr = (Int, Int)
 
 -- | Beginning (top left) and end (bottom right) of a range
 type CellRange = (CellAddr, CellAddr)
 
-data Kind = Type | Value  deriving (Eq, Ord)
+data Kind = Type | Value deriving (Eq, Ord)
 
 -- | Spreadsheets are uniquely determined by a resource id and sheet name
 type SheetId = (URI, Text)
@@ -44,8 +45,9 @@ type FetchResult err f = ExceptT (FetchError err) f
 
 -- | Fetch callbacks can fail and have access to other cells, as well as
 -- a user-defined environment (typically used to deal with named sheets)
-type Fetch env err value a
-  = forall f. Monad f
+type Fetch env err value a =
+  forall f
+   . Monad f
   => ReaderT (Ix -> FetchResult err f value, env) (FetchResult err f) a
 
 -- | The spreadsheet language abstraction
@@ -53,11 +55,17 @@ class Language term where
   -- | Compute dependencies of a term
   deps :: term -> Set CellRange
 
-  type EnvOf term -- ^ terms must have associated 'Fetch' environment
+  type EnvOf term
+
+  -- \^ terms must have associated 'Fetch' environment
   newEnv :: SheetId -> EnvOf term
 
-  type ErrorOf term -- ^ terms must have associated 'Fetch' errors
-  type ValueOf term -- ^ terms must have associated values
+  type ErrorOf term
+
+  -- \^ terms must have associated 'Fetch' errors
+  type ValueOf term
+
+  -- \^ terms must have associated values
 
   -- | All terms can be evaluated in the 'Fetch' context
   -- (a dependently typed language is assumed: values and types coincide)

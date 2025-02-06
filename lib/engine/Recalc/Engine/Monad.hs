@@ -1,4 +1,5 @@
 {-# LANGUAGE ImpredicativeTypes #-}
+
 {-|
 Module      : Recalc.Engine.Monad
 Description : Recalculation monad for spreadsheets using terms
@@ -11,7 +12,7 @@ module Recalc.Engine.Monad where
 
 import Build.Scheduler
 import Build.Task
-import Control.Monad.Except (ExceptT(..), runExceptT)
+import Control.Monad.Except (ExceptT (..), runExceptT)
 import Control.Monad.Reader (asks, runReaderT)
 import Control.Monad.State.Strict
 
@@ -27,7 +28,6 @@ fetchValue uri sheetId ca = lift . ($ Cell Value (uri, sheetId) ca) =<< asks fst
 
 getEnv :: Fetch env err value env
 getEnv = asks snd
-
 
 -- | A spreadsheet value is a monadic task that computes a type, value
 -- or result of a volatile function
@@ -74,7 +74,7 @@ docs
   -> EngineT dm doc sheet cell term f a
 docs f = state $ \(EngineState chain documentStore depMap) ->
   let (x, documentStore') = f documentStore
-   in (x, EngineState chain documentStore' depMap)
+  in  (x, EngineState chain documentStore' depMap)
 
 modifyDocs
   :: Monad f

@@ -7,7 +7,7 @@ module Recalc.EngineSpec where
 import Control.Arrow (Arrow (first))
 import Control.Monad (foldM)
 import Data.List (sortOn)
-import Data.Maybe (fromJust, catMaybes)
+import Data.Maybe (catMaybes, fromJust)
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Void (Void)
@@ -20,7 +20,7 @@ import Recalc.Engine
 import Recalc.Syntax.Parser (readExcel)
 
 data Term = Num Int | Add Term Term | Ref CellAddr | Sum CellRange
- deriving Show
+  deriving (Show)
 
 spec :: Spec
 spec =
@@ -79,28 +79,31 @@ type Parser = Parsec Void String
 
 termP :: Parser Term
 termP = space *> term <* eof
-  where
-    term = try addP <|> atomP
+ where
+  term = try addP <|> atomP
 
-    addP = Add <$> (atomP <* char '+') <*> term
+  addP = Add <$> (atomP <* char '+') <*> term
 
-    atomP = try sumP <|> Ref <$> refP <|> numP
+  atomP = try sumP <|> Ref <$> refP <|> numP
 
-    numP = Num . read <$> digits
-    sumP = Sum <$> (string "SUM" *> between (char '(') (char ')') rangeP)
+  numP = Num . read <$> digits
+  sumP = Sum <$> (string "SUM" *> between (char '(') (char ')') rangeP)
 
-    rangeP = (,) <$> (refP <* char ':') <*> refP
+  rangeP = (,) <$> (refP <* char ':') <*> refP
 
-    refP = do
-      col <- someOf ['A'..'Z']
-      row <- digits
-      maybe (fail "Invalid cell reference") pure . readExcel $ Text.pack (col <> row)
+  refP = do
+    col <- someOf ['A' .. 'Z']
+    row <- digits
+    maybe (fail "Invalid cell reference") pure . readExcel $ Text.pack (col <> row)
 
-    digits = (:) <$> oneOf' ['1'..'9'] <*> many (oneOf' ['0'..'9'])
+  digits =
+    (:)
+      <$> oneOf' ['1' .. '9']
+      <*> many (oneOf' ['0' .. '9'])
         <|> string "0"
 
-    oneOf' cs = satisfy (`elem` cs)
-    someOf = some . oneOf'
+  oneOf' cs = satisfy (`elem` cs)
+  someOf = some . oneOf'
 
 type Value = Maybe Int
 
@@ -119,8 +122,8 @@ instance Language Term where
 
   deps = \case
     Num{} -> mempty
-    Ref r -> Set.singleton (r,r)
-    Add x y -> foldMap deps [x,y]
+    Ref r -> Set.singleton (r, r)
+    Add x y -> foldMap deps [x, y]
     Sum r -> Set.singleton r
 
   infer _ = pure (Just 42) -- just a dummy "type"
@@ -133,13 +136,15 @@ instance Language Term where
     Ref ref -> do (uri, sheetId) <- getEnv; fetchValue uri sheetId ref
     Sum (x, y) -> do
       (uri, sheetId) <- getEnv
-      Just . sum . catMaybes <$> sequence
-        [fetchValue uri sheetId (i,j) | i <- [fst x..fst y], j <- [snd x..snd y]]
+      Just . sum . catMaybes
+        <$> sequence
+          [fetchValue uri sheetId (i, j) | i <- [fst x .. fst y], j <- [snd x .. snd y]]
 
 instance Input String where
   type TermOf String = Term
-  -- | parse strings starting with @"="@ as term, else treat as value
-  exprOrValueOf fileName ('=':input) = Just (parse (Left <$> termP <* eof) fileName input)
+
+  -- \| parse strings starting with @"="@ as term, else treat as value
+  exprOrValueOf fileName ('=' : input) = Just (parse (Left <$> termP <* eof) fileName input)
   exprOrValueOf _ input = Just (Right (Right (Just (read @Int input))))
 
   type MetaOf String = ()
@@ -149,12 +154,13 @@ type Err = Either (FetchError ())
 
 runSheet :: [[(CellAddr, String)]] -> IO [(CellAddr, Err (Maybe Int))]
 runSheet inputss = fmap (concatMap (map (first snd)) . fst) . (`runEngineT` newEngineState) $ do
-    modifyDocs (insertSheet sheetId1 () . insertDocument uri1 ())
-    foldM (const go) [] inputss
-  where
-    go :: [(CellAddr, String)] -> EngineT () () () Term IO [[((SheetId, CellAddr), Err (Maybe Int))]]
-    go inputs = either (\x -> fail ("cycle: " ++ show x)) pure <$>
-      recompute @String sheetId1 (snd (validateCells @String sheetId1 inputs))
+  modifyDocs (insertSheet sheetId1 () . insertDocument uri1 ())
+  foldM (const go) [] inputss
+ where
+  go :: [(CellAddr, String)] -> EngineT () () () Term IO [[((SheetId, CellAddr), Err (Maybe Int))]]
+  go inputs =
+    either (\x -> fail ("cycle: " ++ show x)) pure
+      <$> recompute @String sheetId1 (snd (validateCells @String sheetId1 inputs))
 
 uri1 :: URI
 uri1 = fromJust (parseURI "file:///test1")

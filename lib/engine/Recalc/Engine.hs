@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+
 {-|
 Module      : Recalc.Engine
 Description : Recalculation engine for 'Spreadsheets'.
@@ -19,13 +20,23 @@ References:
 -}
 module Recalc.Engine
   ( -- * Cell-IDs
-    SheetId, URI, Text, CellAddr, CellRange
+    SheetId
+  , URI
+  , Text
+  , CellAddr
+  , CellRange
+
     -- * Generic spreadsheet language interface
-  , Language(..)
-  , module Recalc.Engine, FetchError(..)
+  , Language (..)
+  , module Recalc.Engine
+  , FetchError (..)
   , newEngineState
-  , modifyDocs, insertDocument, insertSheet
-  , fetchType, fetchValue, getEnv
+  , modifyDocs
+  , insertDocument
+  , insertSheet
+  , fetchType
+  , fetchValue
+  , getEnv
   ) where
 
 import Build.Rebuilder (dirtyBitRebuilder)
@@ -45,9 +56,9 @@ import Text.Megaparsec (ParseErrorBundle)
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
 import Recalc.Engine.DocumentStore
+import Recalc.Engine.Language
 import Recalc.Engine.Monad hiding (EngineT, runEngineT)
 import Recalc.Engine.Monad qualified
-import Recalc.Engine.Language
 
 type EngineT doc sheet cell term f =
   Recalc.Engine.Monad.EngineT Slow doc sheet cell term f
@@ -102,8 +113,8 @@ validateCells _sheetId = go [] [] [] []
 
   showExcel26 :: CellAddr -> String
   showExcel26 (r, c) = row <> show (r + 1)
-    where
-      row = concatMap sequence (tail $ iterate (['A' .. 'Z'] :) []) !! c
+   where
+    row = concatMap sequence (tail $ iterate (['A' .. 'Z'] :) []) !! c
 
 -- | recompute new store from validated new inputs
 recompute
@@ -114,8 +125,16 @@ recompute
      )
   => SheetId
   -> ChangesOf dat
-  -> EngineT doc sheet (MetaOf dat) (TermOf dat) f
-      (Either [(SheetId, CellAddr)] [((SheetId, CellAddr), Either (FetchError (ErrorOf (TermOf dat))) (ValueOf (TermOf dat)))])
+  -> EngineT
+      doc
+      sheet
+      (MetaOf dat)
+      (TermOf dat)
+      f
+      ( Either
+          [(SheetId, CellAddr)]
+          [((SheetId, CellAddr), Either (FetchError (ErrorOf (TermOf dat))) (ValueOf (TermOf dat)))]
+      )
 recompute sheetId (errors, values, formulas) = do
   EngineState chain documentStore depMap <- get
   let
@@ -152,7 +171,8 @@ recompute sheetId (errors, values, formulas) = do
     (formulas', depMap') = insertNewDeps . deleteOldDeps values $ deleteOldDeps errors depMap
 
     -- cells that need recomputation for each changed address (or circular error)
-    xrecompute = dfs (Deps.query depMap')
+    xrecompute =
+      dfs (Deps.query depMap')
         $ map (sheetId,) (map fst3 errors ++ map fst3 values ++ map fst3 formulas)
 
     {- update document store (insert updated cells, keeping track of 1dependencies) -}
@@ -181,7 +201,8 @@ recompute sheetId (errors, values, formulas) = do
           spreadsheets = spreadsheetsOf (newEnv @(TermOf dat) sheetId) documentStore'
 
           -- current store
-          store :: Store (Ix -> Bool, Chain Ix) Ix (Either (FetchError (ErrorOf (TermOf dat))) (ValueOf (TermOf dat)))
+          store
+            :: Store (Ix -> Bool, Chain Ix) Ix (Either (FetchError (ErrorOf (TermOf dat))) (ValueOf (TermOf dat)))
           store = initialise (setDirty dirty, chain) $ \case
             Cell kind sheetId' ca'
               | Just v <- (if kind == Type then lookupCellType else lookupCellValue) sheetId' ca' documentStore' ->
@@ -194,10 +215,11 @@ recompute sheetId (errors, values, formulas) = do
           tc = foldr (restarting dirtyBitRebuilder spreadsheets . uncurry (Cell Type))
           store' = store `tc` dirty
 
-          (typeErrors, newTypes) = partitionEithers
-            [ biseq (u, getValue (Cell Type s ca) store')
-            | u@(s, ca) <- dirty
-            ]
+          (typeErrors, newTypes) =
+            partitionEithers
+              [ biseq (u, getValue (Cell Type s ca) store')
+              | u@(s, ca) <- dirty
+              ]
 
           -- evaluate
           run = foldr (restarting dirtyBitRebuilder spreadsheets . uncurry (Cell Value))
@@ -216,10 +238,13 @@ recompute sheetId (errors, values, formulas) = do
           -- propagate new calc-chain and documentStore updated with new values
           ( Right newValues
           , snd (getInfo store'')
-          , foldr setDocumentStoreError
-              (foldr setDocumentStoreValue
-                (foldr setDocumentStoreType documentStore' newTypes)
-                newValues)
+          , foldr
+              setDocumentStoreError
+              ( foldr
+                  setDocumentStoreValue
+                  (foldr setDocumentStoreType documentStore' newTypes)
+                  newValues
+              )
               typeErrors
           )
       Left err -> (Left err, chain, documentStore')
@@ -236,18 +261,20 @@ recompute sheetId (errors, values, formulas) = do
   fst3 (a, _, _) = a
 
   biseq :: (a, Either b c) -> Either (a, b) (a, c)
-  biseq (x,y) = either (Left . (x,)) (Right . (x,)) y
+  biseq (x, y) = either (Left . (x,)) (Right . (x,)) y
 
-  -- | Compute a depth-first ordering, returns @Left@ when a cycle is detected
-  dfs :: Ord a
-      => (a -> [a])     -- ^ graph successors
-      -> [a]            -- ^
-      -> Either [a] [a]
+  -- \| Compute a depth-first ordering, returns @Left@ when a cycle is detected
+  dfs
+    :: Ord a
+    => (a -> [a])
+    -- \^ graph successors
+    -> [a]
+    -> Either [a] [a]
   dfs ds = fmap concat . mapM (alg mempty)
-    where
-      alg (acc, visited) x
-        | Set.member x visited = Left (x : acc)
-        | let ds' = ds x
-        , not (null ds') =
-            concat <$> mapM (alg (x : acc, Set.insert x visited)) (ds x)
-        | otherwise = Right (x : acc)
+   where
+    alg (acc, visited) x
+      | Set.member x visited = Left (x : acc)
+      | let ds' = ds x
+      , not (null ds') =
+          concat <$> mapM (alg (x : acc, Set.insert x visited)) (ds x)
+      | otherwise = Right (x : acc)

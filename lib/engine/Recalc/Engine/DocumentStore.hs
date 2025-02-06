@@ -13,12 +13,19 @@ module Recalc.Engine.DocumentStore
   ( -- * Tracking Documents
     DocumentStore
   , newDocumentStore
-  , cellError, cellTerm, cellValue
+  , cellError
+  , cellTerm
+  , cellValue
+
     -- * Setters
-  , Isn't(..)
-  , insertDocument, insertSheet
+  , Isn't (..)
+  , insertDocument
+  , insertSheet
   , setCell
-  , setCellError, setCellType, setCellValue
+  , setCellError
+  , setCellType
+  , setCellValue
+
     -- * Lookups
   , lookupCellDeps
   , lookupCellTerm
@@ -34,16 +41,16 @@ import Data.Set (Set)
 import Recalc.Engine.Language hiding (Cell)
 
 -- | The document store keeps a 'Document' for each resource id.
-newtype DocumentStore doc sheet cell term value = DocumentStore
-  (Map URI (Document doc sheet cell term value))
+newtype DocumentStore doc sheet cell term value
+  = DocumentStore
+      (Map URI (Document doc sheet cell term value))
 
 newDocumentStore :: DocumentStore doc sheet cell term value
 newDocumentStore = DocumentStore mempty
 
-
 -- | A document consists of multiple named 'Sheet's
-newtype Document doc sheet cell term value =
-    Document (Map Text (Sheet sheet cell term value), doc)
+newtype Document doc sheet cell term value
+  = Document (Map Text (Sheet sheet cell term value), doc)
   deriving (Show)
 
 -- | A sheet stores all cells
@@ -60,12 +67,17 @@ data Cell cell term value = Cell
 
 data CellContent term value
   = CellTerm
-      (Maybe value) -- ^ inferred type
-      term          -- ^ "raw" expression
-      (Maybe value) -- ^ computed value
+      (Maybe value)
+      -- ^ inferred type
+      term
+      -- ^ "raw" expression
+      (Maybe value)
+      -- ^ computed value
   | CellValue
-      (Maybe value) -- ^ inferred type
-      value         -- ^ value
+      (Maybe value)
+      -- ^ inferred type
+      value
+      -- ^ value
   | CellError
   deriving (Show)
 
@@ -87,10 +99,9 @@ cellError = Cell CellError mempty
 class Isn't cell where
   isn't :: cell -> Bool
 
-instance Isn't ()   where isn't _ = False
+instance Isn't () where isn't _ = False
 instance Isn't Bool where isn't = not
-instance Isn't Int  where isn't = (== 0)
-
+instance Isn't Int where isn't = (== 0)
 
 insertDocument
   :: URI -> doc -> DocumentStore doc sheet cell term value -> DocumentStore doc sheet cell term value
@@ -192,13 +203,14 @@ lookupCellDeps sheetId ca = fmap range . lookupCell' sheetId ca
 lookupCellTerm
   :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value -> Maybe term
 lookupCellTerm sheetId ca = unpack <=< lookupCell' sheetId ca
-  where
-    unpack = (\case CellTerm _ e _ -> Just e; _ -> Nothing) . content
+ where
+  unpack = (\case CellTerm _ e _ -> Just e; _ -> Nothing) . content
 
 lookupCellType
   :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value -> Maybe value
 lookupCellType sheetId ca = unpack <=< lookupCell' sheetId ca
- where unpack = (\case CellTerm ty _ _ -> ty; CellValue ty _ -> ty; _ -> Nothing) . content
+ where
+  unpack = (\case CellTerm ty _ _ -> ty; CellValue ty _ -> ty; _ -> Nothing) . content
 
 lookupCellValue
   :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value -> Maybe value

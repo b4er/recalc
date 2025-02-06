@@ -12,6 +12,7 @@ fixities:
   - infixl 6 ^.
   - infixl 3 =.
 haddock-style: single-line
+haddock-style-module: multi-line-compact
 in-style: left-align
 indent-wheres: false
 indentation: 2
@@ -20,4 +21,4 @@ newlines-between-decls: 1
 record-brace-space: false
 respectful: true
 single-constraint-parens: auto
-column-limit: 80
+column-limit: 100
