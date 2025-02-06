@@ -39,17 +39,17 @@ This project uses Nix for a reproducible development environment and Cabal for b
 
 2. **Build the Haskell components:**
 
-  Use the following within a dev shell:
+   Use the following within a dev shell:
 
-   ```bash
-   cabal build all
-   ```
+    ```bash
+    cabal build all
+    ```
 
-   Alternatively, you can use Nix directly:
+    Alternatively, you can use Nix directly:
 
-   ```bash
-   nix build
-   ```
+    ```bash
+    nix build
+    ```
 
 3. **Running the VSCode extension:**
 
