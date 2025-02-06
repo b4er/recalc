@@ -1,15 +1,18 @@
 {
     "files.exclude": {
+        "**/dist-newstyle": true,
         "**/*.dyn_hi": true,
         "**/*.dyn_o": true,
-        "**/*.hi": true,
-        "**/*.o": true,
-        "**/dist-newstyle": true,
-        "**/.stack-work": true,
         "**/.ghc.environment.*": true,
-        "**/*.o-boot": true,
         "**/*.hi-boot": true,
+        "**/*.hi": true,
+        "**/node_modules": true,
+        "**/*.o-boot": true,
+        "**/*.o": true,
+        "**/package-lock.json": true,
+        "**/.stack-work": true,
         "flake.lock": true,
+        "recalc-vscode/dist": true,
         "result": true
     },
     "files.trimTrailingWhitespace": true,

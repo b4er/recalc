@@ -1,0 +1,13 @@
+dist/test/**
+esbuild.js
+**/eslint.config.mjs
+.gitignore
+**/*.map
+node_modules/**
+out/**
+README.md
+src/**
+**/*.ts
+**/tsconfig.json
+.vscode/**
+.vscode-test-web/**

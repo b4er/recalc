@@ -1,0 +1,74 @@
+{
+  "name": "recalc-vscode",
+  "displayName": "recalc-vscode",
+  "description": "recalc: functional spreadsheet editor",
+  "repository": "https://github.com/b4er/recalc/recalc-vscode",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:recalc"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "recalc",
+      "properties": {}
+    },
+    "customEditors": [
+      {
+        "viewType": "recalc.editor",
+        "displayName": "recalc: Spreadsheet Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.rc"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [],
+    "languages": [
+      {
+        "id": "recalc",
+        "extensions": [
+          ".rc"
+        ],
+        "aliases": [
+          "Recalc",
+          "Spreadsheet"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "ts-defs": "cd .. && cabal v2-run ts-defs -v0 > recalc-vscode/src/common/messages.d.ts",
+    "compile": "npm run ts-defs && node esbuild.mjs",
+    "lint": "eslint .",
+    "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. .",
+    "watch-web": "npm-run-all -p watch-web:*",
+    "watch-web:esbuild": "node esbuild.js --watch",
+    "watch-web:tsc": "tsc --noEmit --watch --project tsconfig.json"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.22.0",
+    "@typescript-eslint/parser": "^8.22.0",
+    "esbuild": "0.24.2",
+    "esbuild-css-modules-plugin": "^3.1.4",
+    "esbuild-plugin-copy": "^2.1.1",
+    "eslint": "^9.19.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
+  }
+}

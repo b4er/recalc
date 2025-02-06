@@ -35,6 +35,7 @@
               haskellPackages.fourmolu
               haskellPackages.hlint
               pkgs.haskell-language-server
+              pkgs.nodejs
             ];
             inputsFrom = builtins.attrValues self.packages.${system};
           };

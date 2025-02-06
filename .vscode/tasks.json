@@ -4,6 +4,13 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "cabal: build",
+      "command": "cabal build",
+      "type": "shell",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
       "label": "cabal: test",
       "command": "cabal test spec",
       "type": "shell",
@@ -11,13 +18,6 @@
         "kind": "test",
         "isDefault": true
       }
-    },
-    {
-      "label": "cabal: build",
-      "command": "cabal build",
-      "type": "shell",
-      "problemMatcher": [],
-      "group": "build"
     },
     {
       "label": "nix: build",
@@ -28,6 +28,12 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "npm: compile",
+      "command": "npm --prefix recalc-vscode run compile",
+      "type": "shell",
+      "dependsOn": "cabal: build"
     }
   ]
 }

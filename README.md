@@ -13,6 +13,13 @@
   dependently typed lambda calculus based on
   [*A tutorial implementation of a dependently typed lambda calculus*][lambdaPi].
 
+- **[`recalc-vscode`](./recalc-vscode)** (TypeScript): A Visual Studio Code web extension
+  providing a frontend for editing and interacting with recalc sheets. The extension starts
+  a Haskell process for backend computations.
+
+- **[`src-ts`](./src-ts)** (Haskell): TypeScript code generator.
+
+
 ## Building the Project
 
 This project uses Nix for a reproducible development environment and Cabal for building Haskell.
@@ -43,6 +50,12 @@ This project uses Nix for a reproducible development environment and Cabal for b
    ```bash
    nix build
    ```
+
+3. **Running the VSCode extension:**
+
+   In a dev shell open the current directory (eg. `codium .`), launch the extension
+   development host using (F5).
+
 
 <!-- References -->
 

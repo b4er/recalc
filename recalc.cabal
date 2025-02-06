@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.3.0.1
+version:            0.3.1.1
 synopsis:           functional spreadsheet programming
 -- description:
 license:            MIT
@@ -29,7 +29,8 @@ common common
     default-extensions: LambdaCase RecordWildCards
 
 library recalc-engine
-    import: common
+    -- | Spreadsheet recalculation engine.
+    import:         common
     hs-source-dirs: lib/engine
 
     exposed-modules:
@@ -48,7 +49,8 @@ library recalc-engine
         prettyprinter
 
 library recalc-lang
-    import: common
+    -- | Dependently typed lambda calculus implementation.
+    import:         common
     hs-source-dirs: lib/lang
 
     exposed-modules:
@@ -63,8 +65,16 @@ library recalc-lang
         prettyprinter,
         recalc-engine
 
+executable ts-defs
+    -- | TypeScript code generation (RPC type definitions).
+    import:         common
+    hs-source-dirs: src-ts
+
+    main-is:        Main.hs
+
 test-suite spec
-    import: common
+    -- | Full test-suite for all libraries.
+    import:             common
 
     type:               exitcode-stdio-1.0
     hs-source-dirs:     spec
