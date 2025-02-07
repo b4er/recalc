@@ -1,5 +1,8 @@
 # recalc: functional spreadsheet programming
 
+![Lint Status](https://github.com/b4er/recalc/actions/workflows/nix-check.yaml/badge.svg?branch=main)
+![Build Status](https://github.com/b4er/recalc/actions/workflows/nix-build.yaml/badge.svg?branch=main)
+
 **recalc** is a functional programming language embedded in a spreadsheet environment.
 
 ## Project Organization

@@ -1,0 +1,32 @@
+name: Nix Build & Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: recalc-check-${{github.ref}}
+  cancel-in-progress: true
+
+jobs:
+  nix-build:
+    name: Nix Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set Up Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Build & Test
+        run: nix build

@@ -36,6 +36,7 @@
         checks.pre-commit = git-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
+            actionlint.enable = true;
             fourmolu.enable = true;
             hlint.enable = true;
             nixpkgs-fmt.enable = true;
