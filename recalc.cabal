@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.4.0.0
+version:            0.4.1.0
 synopsis:           functional spreadsheet programming
 -- description:
 license:            MIT
@@ -65,26 +65,55 @@ library recalc-lang
         prettyprinter,
         recalc-engine
 
-executable server
-    -- | Language server.
+library recalc-server
+    -- | Generic language server and protocol definition.
+    import:         common
+    hs-source-dirs: lib/server
+
+    exposed-modules:
+        Recalc.Server
+        Recalc.Server.Protocol
+
+    other-modules:
+        Recalc.Server.Generic
+        Recalc.Server.Json
+
+    build-depends:
+        aeson >= 2.2.0.0,
+        bytestring,
+        network-uri,
+        recalc-lang,
+        recalc-engine,
+        stm
+
+executable recalc-server-exe
+    -- | Implement the protocol specification from protocol definition (recalc-server).
     import:         common
     hs-source-dirs: src/server
 
     main-is:        Main.hs
 
     build-depends:
-        bytestring,
-        recalc-lang,
-        recalc-engine
+        aeson >= 2.2.0.0,
+        recalc-server
 
-executable ts-defs
+executable recalc-ts-defs
     -- | TypeScript code generation (RPC type definitions).
     import:         common
     hs-source-dirs: src/ts
 
     main-is:        Main.hs
 
-test-suite spec
+    other-modules:
+        Recalc.Server.TypeScript
+
+    build-depends:
+        recalc-server,
+        aeson-typescript,
+        network-uri,
+        template-haskell
+
+test-suite recalc-spec
     -- | Full test-suite for all libraries.
     import:             common
 

@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		protected async createMessageTransports(encoding: "utf-8" | "ascii"): Promise<MessageTransports> {
 
-			const binPath = config.serverPath || execSync("cabal list-bin server").toString('utf-8').trim();
+			const binPath = config.serverPath || execSync("cabal list-bin recalc-server-exe").toString('utf-8').trim();
 			this.log(`starting: ${binPath}`);
 			this.process = spawn("sh", ["-c", binPath]);
 

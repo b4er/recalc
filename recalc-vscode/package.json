@@ -3,7 +3,7 @@
   "displayName": "recalc-vscode",
   "description": "recalc: functional spreadsheet editor",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -58,7 +58,7 @@
     ]
   },
   "scripts": {
-    "ts-defs": "cd .. && cabal v2-run ts-defs -v0 > recalc-vscode/src/common/messages.d.ts",
+    "ts-defs": "cd .. && cabal v2-run recalc-ts-defs -v0 > recalc-vscode/src/common/messages.d.ts",
     "compile": "npm run ts-defs && node esbuild.mjs",
     "lint": "eslint .",
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. .",

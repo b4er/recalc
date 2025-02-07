@@ -1,5 +1,5 @@
 {-|
-Module      : Recalc.Core.DependencyMap
+Module      : Recalc.Engine.DependencyMap
 Description : A dependency map interface for managing cell dependencies.
 
 Simple (slow but fast enough) implementation.

@@ -27,7 +27,7 @@ module.exports = [
   },
   { files, rules: tsPlugin.configs.recommended.rules },
   {
-    ignores: ["**/dist/**/*.js"]
+    ignores: ["**/dist/**/*.js", "src/common/messages.d.ts"]
   },
   {
     rules: {

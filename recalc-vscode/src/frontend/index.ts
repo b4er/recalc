@@ -1,10 +1,14 @@
 import { WebviewApi } from 'vscode-webview';
+import { Message } from '../extension/customEditor';
 
 const vscode: WebviewApi<never> = acquireVsCodeApi();
 
+export function postMessage<M extends keyof SpreadsheetProtocol>(message: Message<M>): void {
+  return vscode.postMessage(message);
+}
+
 window.addEventListener('message',
-  (x: string) =>
-    console.log(`GOT MESSAGE: ${x}`)
+  message => console.log(`received message: ${message}`)
 );
 
-vscode.postMessage({method: "hi", params: {origin: "frontend", destination: "haskell"}});
+postMessage({method: "close", params: {}});

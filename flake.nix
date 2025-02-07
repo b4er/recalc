@@ -14,6 +14,16 @@
 
         haskellPackages = pkgs.haskellPackages.override {
           overrides = self: super: rec {
+            aeson =
+              pkgs.haskell.lib.dontCheck (
+                self.callCabal2nix "aeson"
+                  (pkgs.fetchgit {
+                    url = "https://github.com/haskell/aeson.git";
+                    rev = "7cce2034104935ffd8523677e89bde3c5cd0e136";
+                    sha256 = "sha256-ZG5nyQ+j/mGT6GuKfVZw2hcqEDhT8z2/NLj0yWThc+8=";
+                  })
+                  { }
+              );
             build =
               pkgs.haskell.lib.dontCheck (
                 self.callCabal2nix "build"
@@ -39,6 +49,7 @@
             actionlint.enable = true;
             fourmolu.enable = true;
             hlint.enable = true;
+            markdownlint.enable = true;
             nixpkgs-fmt.enable = true;
             shellcheck.enable = true;
             cabal-version-check = {

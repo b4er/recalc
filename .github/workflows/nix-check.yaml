@@ -13,7 +13,7 @@ on:
       - main
 
 concurrency:
-  group: recalc-build-${{github.ref}}
+  group: recalc-check-${{github.ref}}
   cancel-in-progress: true
 
 jobs:

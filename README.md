@@ -12,16 +12,24 @@
   incremental computations and dependency tracking for arbitrary (dependently typed)
   languages implementing the `Language` interface.
 
-- **[`recalc-lang`](./lib/lang/Recalc)** (Haskell): The language implementation, a very basic
+- **[`recalc-lang`](./lib/lang/Recalc/Syntax)** (Haskell): The language implementation, a very basic
   dependently typed lambda calculus based on
   [*A tutorial implementation of a dependently typed lambda calculus*][lambdaPi].
+
+- **[`recalc-server`](./lib/server/Recalc/Server.hs)** (Haskell): A generic implementation
+  for named handlers (from Servant-like protocol definition) of json-rpc. And the concrete
+  protocol definition.
+
+- **[`recalc-server-exe`](./src/server/Main.hs)** (Haskell): The Spreadsheet backend
+  json-rpc implementation.
+
+- **[`recalc-spec`](./spec/README.md)** (Haskell): Full test suite for all Haskell tests.
+
+- **[`recalc-ts-defs`](./src/ts/Main.hs)** (Haskell): TypeScript code generation.
 
 - **[`recalc-vscode`](./recalc-vscode)** (TypeScript): A Visual Studio Code web extension
   providing a frontend for editing and interacting with recalc sheets. The extension starts
   a Haskell process for backend computations.
-
-- **[`src-ts`](./src-ts)** (Haskell): TypeScript code generator.
-
 
 ## Building the Project
 
@@ -37,7 +45,7 @@ This project uses Nix for a reproducible development environment and Cabal for b
    test suite:
 
    ```bash
-   cabal test all
+   cabal test
    ```
 
 2. **Build the Haskell components:**
@@ -58,7 +66,6 @@ This project uses Nix for a reproducible development environment and Cabal for b
 
    In a dev shell open the current directory (eg. `codium .`), launch the extension
    development host using (F5).
-
 
 <!-- References -->
 
