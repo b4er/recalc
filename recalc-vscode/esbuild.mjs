@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import copy from 'esbuild-plugin-copy';
+// import copy from 'esbuild-plugin-copy';
 
 const defaultOptions = {
   bundle: true,
@@ -10,7 +10,7 @@ const defaultOptions = {
   },
   outdir: "dist",
   plugins: [
-    copy({assets: {from: 'media/*', to: '.'}}),
+    // copy({assets: {from: 'media/*', to: '.'}}),
   ],
 };
 

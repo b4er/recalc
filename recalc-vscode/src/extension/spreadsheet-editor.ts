@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { readFileSync } from 'fs';
 const nanoid = require("nanoid");
 
+import { Message } from '../frontend/rpc';
 import { Client, Params } from '../rpc/client';
 
 type SheetDocument = {
@@ -15,12 +16,6 @@ type SheetDocument = {
 		}
 	}
 };
-
-export type Message<M extends keyof SpreadsheetProtocol> = {
-  method: M;
-  params: Omit<SpreadsheetProtocol[M]["params"], "uri">;
-  notification?: boolean,
-}
 
 class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
   client: Client<SpreadsheetProtocol>;
@@ -186,31 +181,52 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 		// Make sure we get rid of the listener when our editor is closed.
 		webviewPanel.onDidDispose(() => changeDocumentSubscription.dispose() );
 
-    webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+    webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document);
   }
 
 	/**
 	 * Get the static html used for the editor webviews.
 	 */
-	private getHtmlForWebview(webview: vscode.Webview): string {
+	private getHtmlForWebview(webview: vscode.Webview, document: Spreadsheet): string {
 
     const nonce = `nonce-${nanoid.nanoid(32)}`;
 
     const mkUri = (...pathSegments: string[]) =>
       webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "dist", ...pathSegments));
 
+		const config = vscode.workspace.getConfiguration('spreadsheet-vscode');
+
     return /* html */`
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+        <!--meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';"-->
         <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0"/>
         <link rel="stylesheet" nonce="${nonce}" href="${mkUri("index.css")}">
+				<style>
+					html, body {
+						margin: 0;
+						padding: 0;
+
+						height: 100%;
+						width: 100%;
+					}
+
+					#app {
+						height: 100%;
+						width: 100%;
+						overflow: hidden;
+					}
+				</style>
         <title>Spreadsheet</title>
       </head>
       <body>
-        <h1>Hello, HTML!</h1>
+				<div id="app"></div>
+				<script nonce="${nonce}">
+					const config = ${JSON.stringify(config)};
+					const data = ${JSON.stringify(document.initialData)};
+				</script>
         <script type="module" nonce="${nonce}" src="${mkUri("index.js")}"></script>
       </body>
       </html>`;

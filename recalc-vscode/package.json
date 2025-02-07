@@ -3,7 +3,7 @@
   "displayName": "recalc-vscode",
   "description": "recalc: functional spreadsheet editor",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -68,6 +68,16 @@
   },
   "dependencies": {
     "@types/vscode-webview": "^1.57.5",
+    "@univerjs/core": "^0.5.5",
+    "@univerjs/design": "^0.5.5",
+    "@univerjs/docs-ui": "^0.5.5",
+    "@univerjs/engine-formula": "^0.5.5",
+    "@univerjs/engine-render": "^0.5.5",
+    "@univerjs/sheets": "^0.5.5",
+    "@univerjs/sheets-ui": "^0.5.5",
+    "@univerjs/sheets-formula": "^0.5.5",
+    "@univerjs/sheets-formula-ui": "^0.5.5",
+    "@univerjs/ui": "^0.5.5",
     "nanoid": "^5.0.9"
   },
   "devDependencies": {

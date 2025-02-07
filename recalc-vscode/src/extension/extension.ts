@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { ChildProcessWithoutNullStreams, execSync, spawn } from 'child_process';
 
 import { Client, MessageTransports } from '../rpc/client';
-import { SpreadsheetEditorProvider } from './customEditor';
+import { SpreadsheetEditorProvider } from './spreadsheet-editor';
 
 export function activate(context: vscode.ExtensionContext) {
 	// read vscode app-specific settings (as specified in package.json)
