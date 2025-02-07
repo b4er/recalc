@@ -31,6 +31,8 @@
   providing a frontend for editing and interacting with recalc sheets. The extension starts
   a Haskell process for backend computations.
 
+  The frontend UI is built using the [Univer][univer-sheet-api] Sheet API.
+
 ## Building the Project
 
 This project uses Nix for a reproducible development environment and Cabal for building Haskell.
@@ -71,3 +73,4 @@ This project uses Nix for a reproducible development environment and Cabal for b
 
   [build]: https://dl.acm.org/doi/10.1145/3236774
   [lambdaPi]: https://www.andres-loeh.de/LambdaPi/LambdaPi.pdf
+  [univer-sheet-api]: https://docs.univer.ai/en-US/guides/sheets/features/core/sheet-api
