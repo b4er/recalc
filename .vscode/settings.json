@@ -12,6 +12,7 @@
         "**/package-lock.json": true,
         "**/.stack-work": true,
         "flake.lock": true,
+        ".pre-commit-config.yaml": true,
         "recalc-vscode/dist": true,
         "result": true
     },

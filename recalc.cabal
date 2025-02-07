@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.3.1.3
+version:            0.4.0.0
 synopsis:           functional spreadsheet programming
 -- description:
 license:            MIT
@@ -65,10 +65,22 @@ library recalc-lang
         prettyprinter,
         recalc-engine
 
+executable server
+    -- | Language server.
+    import:         common
+    hs-source-dirs: src/server
+
+    main-is:        Main.hs
+
+    build-depends:
+        bytestring,
+        recalc-lang,
+        recalc-engine
+
 executable ts-defs
     -- | TypeScript code generation (RPC type definitions).
     import:         common
-    hs-source-dirs: src-ts
+    hs-source-dirs: src/ts
 
     main-is:        Main.hs
 

@@ -3,7 +3,7 @@
   "displayName": "recalc-vscode",
   "description": "recalc: functional spreadsheet editor",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -18,7 +18,18 @@
   "contributes": {
     "configuration": {
       "title": "recalc",
-      "properties": {}
+      "properties": {
+        "recalc-vscode.serverUri": {
+          "type": "string",
+          "default": "",
+          "description": "Spreadsheet server URI (resolved via PATH when \"\")."
+        },
+        "recalc-vscode.serverMaxRestartCount": {
+          "type": "number",
+          "default": "5",
+          "description": "Maxiumum number of attempts to restart server."
+        }
+      }
     },
     "customEditors": [
       {
@@ -56,6 +67,7 @@
     "watch-web:tsc": "tsc --noEmit --watch --project tsconfig.json"
   },
   "dependencies": {
+    "@types/vscode-webview": "^1.57.5",
     "nanoid": "^5.0.9"
   },
   "devDependencies": {
@@ -69,6 +81,7 @@
     "eslint": "^9.19.0",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.22.0"
+    "typescript-eslint": "^8.22.0",
+    "vscode-jsonrpc": "^8.2.1"
   }
 }

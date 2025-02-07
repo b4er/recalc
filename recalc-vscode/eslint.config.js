@@ -28,5 +28,10 @@ module.exports = [
   { files, rules: tsPlugin.configs.recommended.rules },
   {
     ignores: ["**/dist/**/*.js"]
+  },
+  {
+    rules: {
+      "@typescript-eslint/no-require-imports": 0
+    }
   }
 ];
