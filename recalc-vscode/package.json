@@ -19,6 +19,15 @@
     "configuration": {
       "title": "recalc",
       "properties": {
+				"spreadsheet-vscode.locale": {
+					"type": "string",
+					"enum": [
+						"EN_US",
+						"ZH_CN"
+					],
+					"default": "EN_US",
+					"description": "Locale setting for spreadsheet editor."
+				},
         "recalc-vscode.serverUri": {
           "type": "string",
           "default": "",
