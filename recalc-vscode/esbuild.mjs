@@ -28,6 +28,13 @@ async function buildAll() {
     platform: "node",
     external: ["vscode"],
   });
+
+  await build({
+    entryPoints: ["src/test/test.ts"],
+    platform: "node",
+    external: ["mocha"],
+    plugins: [],
+  });
 }
 
 buildAll().catch(err => {

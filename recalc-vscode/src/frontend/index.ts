@@ -23,7 +23,6 @@ import { UniverSheetsFormulaPlugin } from "@univerjs/sheets-formula";
 import { locales } from './locales';
 
 // basic example (no interaction with the backend)
-// (refer to: https://docs.univer.ai/en-US/guides/sheets/features/core/sheet-api)
 const univer = new Univer({
   theme: defaultTheme,
   locale: LocaleType[config.locale],

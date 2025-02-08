@@ -1,11 +1,12 @@
 # Revision history for recalc-vscode
 
-## 0.0.4 -- 2025-02-07
+## 0.0.5 -- 2025-02-08
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
 * Integrate type-safe json-rpc communication between client and server.
 * Add simple UI code using [Univer core/sheet-api][univer-sheet-api].
+* Add test suite runner, package the extension with Nix.
 
 <!-- References -->
 

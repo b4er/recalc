@@ -2,8 +2,10 @@
   "name": "recalc-vscode",
   "displayName": "recalc-vscode",
   "description": "recalc: functional spreadsheet editor",
+  "icon": "matrix-icon.png",
+  "publisher": "b4er",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -19,19 +21,19 @@
     "configuration": {
       "title": "recalc",
       "properties": {
-				"spreadsheet-vscode.locale": {
-					"type": "string",
-					"enum": [
-						"EN_US",
-						"ZH_CN"
-					],
-					"default": "EN_US",
-					"description": "Locale setting for spreadsheet editor."
-				},
+        "spreadsheet-vscode.locale": {
+          "type": "string",
+          "enum": [
+            "EN_US",
+            "ZH_CN"
+          ],
+          "default": "EN_US",
+          "description": "Locale setting for spreadsheet editor."
+        },
         "recalc-vscode.serverUri": {
           "type": "string",
           "default": "",
-          "description": "Spreadsheet server URI (resolved via PATH when \"\")."
+          "description": "Spreadsheet server URI (resolved via @cabal list-bin@ when not set)."
         },
         "recalc-vscode.serverMaxRestartCount": {
           "type": "number",
@@ -68,12 +70,10 @@
   },
   "scripts": {
     "ts-defs": "cd .. && cabal v2-run recalc-ts-defs -v0 > recalc-vscode/src/common/messages.d.ts",
-    "compile": "npm run ts-defs && node esbuild.mjs",
+    "build": "node esbuild.mjs",
     "lint": "eslint .",
-    "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. .",
-    "watch-web": "npm-run-all -p watch-web:*",
-    "watch-web:esbuild": "node esbuild.js --watch",
-    "watch-web:tsc": "tsc --noEmit --watch --project tsconfig.json"
+    "pretest": "npm run build",
+    "test": "mocha dist/test.js"
   },
   "dependencies": {
     "@types/vscode-webview": "^1.57.5",
@@ -83,22 +83,23 @@
     "@univerjs/engine-formula": "^0.5.5",
     "@univerjs/engine-render": "^0.5.5",
     "@univerjs/sheets": "^0.5.5",
-    "@univerjs/sheets-ui": "^0.5.5",
     "@univerjs/sheets-formula": "^0.5.5",
     "@univerjs/sheets-formula-ui": "^0.5.5",
+    "@univerjs/sheets-ui": "^0.5.5",
     "@univerjs/ui": "^0.5.5",
     "nanoid": "^5.0.9"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20",
-    "@types/vscode": "^1.96.0",
+    "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
     "esbuild": "0.24.2",
     "esbuild-css-modules-plugin": "^3.1.4",
     "esbuild-plugin-copy": "^2.1.1",
     "eslint": "^9.19.0",
-    "npm-run-all": "^4.1.5",
+    "mocha": "^11.1.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.22.0",
     "vscode-jsonrpc": "^8.2.1"

@@ -20,6 +20,16 @@
       }
     },
     {
+      "label": "nix: check",
+      "command": "nix check",
+      "type": "shell",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
+    },
+    {
       "label": "nix: build",
       "command": "nix build",
       "type": "shell",
@@ -30,10 +40,29 @@
       }
     },
     {
+      "label": "cabal: test",
+      "command": "cabal test spec",
+      "type": "shell",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
       "label": "npm: compile",
-      "command": "npm --prefix recalc-vscode run compile",
+      "command": "npm --prefix recalc-vscode run build",
       "type": "shell",
       "dependsOn": "cabal: build"
+    },
+    {
+      "label": "npm: test",
+      "command": "npm --prefix recalc-vscode test",
+      "type": "shell",
+      "dependsOn": "cabal: build",
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
     }
   ]
 }

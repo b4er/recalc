@@ -36,37 +36,72 @@
               );
           };
         };
+
+        cabalPackage = haskellPackages.callCabal2nix packageName self { };
+
+        vscodeManifest = builtins.fromJSON (builtins.readFile ./${packageName}-vscode/package.json);
+
+        vscodeExtension = pkgs.buildNpmPackage {
+          name = "${packageName}-vscode";
+          src = ./${packageName}-vscode;
+          version = vscodeManifest.version;
+
+          buildInputs = [ pkgs.nodejs pkgs.vsce cabalPackage ];
+          nativeBuildInputs = [ pkgs.nodejs pkgs.vsce ];
+
+          npmDepsHash = "sha256-d+SNslj1HPMpS1vSQk9Qo6yTy4iRJtWOfDul5J1MbBw=";
+
+          installPhase = ''
+            mkdir -p $out bin/
+            cp ${cabalPackage}/bin/${packageName}-server-exe bin/
+            vsce package -o $out/
+          '';
+
+          checkPhase = "npm test";
+          doCheck = true;
+        };
       in
       {
         packages = {
-          ${packageName} = haskellPackages.callCabal2nix packageName self { };
-          default = self.packages.${system}.${packageName};
+          recalc-lib = cabalPackage;
+          recalc-vscode = vscodeExtension;
+
+          default = self.packages.${system}.recalc-vscode;
         };
 
-        checks.pre-commit = git-hooks.lib.${system}.run {
-          src = ./.;
-          hooks = {
-            actionlint.enable = true;
-            fourmolu.enable = true;
-            hlint.enable = true;
-            markdownlint.enable = true;
-            nixpkgs-fmt.enable = true;
-            shellcheck.enable = true;
-            cabal-version-check = {
-              name = "Check Version and Changelog (cabal)";
-              enable = true;
-              entry = "./scripts/version-check.sh cabal";
-              files = "^(CHANGELOG\\.md|recalc\\.cabal)$";
-              language = "system";
-            };
-            vscode-version-check = {
-              name = "Check Version and Changelog (vscode)";
-              enable = true;
-              entry = "./scripts/version-check.sh vscode";
-              files = "^recalc-vscode/(CHANGELOG\\.md|package\\.json)$";
-              language = "system";
+        checks = {
+          pre-commit = git-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              actionlint.enable = true;
+              fourmolu.enable = true;
+              hlint.enable = true;
+              markdownlint.enable = true;
+              nixpkgs-fmt.enable = true;
+              shellcheck.enable = true;
+              cabal-version-check = {
+                name = "Check Version and Changelog (cabal)";
+                enable = true;
+                entry = "./scripts/version-check.sh cabal";
+                files = "^(CHANGELOG\\.md|${packageName}\\.cabal)$";
+                language = "system";
+              };
+              vscode-version-check = {
+                name = "Check Version and Changelog (vscode)";
+                enable = true;
+                entry = "./scripts/version-check.sh vscode";
+                # extraPackages = [ pkgs.jq ];
+                files = "^${packageName}-vscode/(CHANGELOG\\.md|package\\.json)$";
+                language = "system";
+              };
             };
           };
+
+          # raises Error: Cannot find module '@typescript-eslint/eslint-plugin'
+          # pre-commit-vscode = git-hooks.lib.${system}.run {
+          #   src = ./${packageName}-vscode;
+          #   hooks.eslint.enable = true;
+          # };
         };
 
         devShells = {
@@ -77,6 +112,7 @@
               pkgs.haskell-language-server
               pkgs.jq
               pkgs.nodejs
+              pkgs.vsce
               self.checks.${system}.pre-commit.enabledPackages
             ];
 

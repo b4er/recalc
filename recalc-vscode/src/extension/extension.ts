@@ -5,6 +5,7 @@ import { ChildProcessWithoutNullStreams, execSync, spawn } from 'child_process';
 
 import { Client, MessageTransports } from '../rpc/client';
 import { SpreadsheetEditorProvider } from './spreadsheet-editor';
+import { existsSync } from 'fs';
 
 export function activate(context: vscode.ExtensionContext) {
 	// read vscode app-specific settings (as specified in package.json)
@@ -18,7 +19,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 		protected async createMessageTransports(encoding: "utf-8" | "ascii"): Promise<MessageTransports> {
 
-			const binPath = config.serverPath || execSync("cabal list-bin recalc-server-exe").toString('utf-8').trim();
+			// vsix is bundled with the -server-exe here:
+			const defaultBinPath = `${context.extensionPath}/bin/${this.name}-server-exe`;
+
+			// guess the location for the -server-exe
+			const binPath = config.serverPath
+				|| existsSync(defaultBinPath)
+						? defaultBinPath
+						: execSync("cabal list-bin recalc-server-exe").toString('utf-8').trim();
+
+			// spawn and hook up message transports
 			this.log(`starting: ${binPath}`);
 			this.process = spawn("sh", ["-c", binPath]);
 

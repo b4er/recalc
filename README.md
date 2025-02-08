@@ -25,7 +25,8 @@
 
 - **[`recalc-spec`](./spec/README.md)** (Haskell): Full test suite for all Haskell tests.
 
-- **[`recalc-ts-defs`](./src/ts/Main.hs)** (Haskell): TypeScript code generation.
+- **[`recalc-ts-defs`](./src/ts/Main.hs)** (Haskell): TypeScript code generation for json-rpc
+  and protocol type sharing with the Web Extension.
 
 - **[`recalc-vscode`](./recalc-vscode)** (TypeScript): A Visual Studio Code web extension
   providing a frontend for editing and interacting with recalc sheets. The extension starts
@@ -37,37 +38,40 @@
 
 This project uses Nix for a reproducible development environment and Cabal for building Haskell.
 
-1. **Set up the development environment:**
+If you only want to build the `.vsxi`, jump to (3):
+
+1. **Set up the Development Environment:**
+
+   Open a dev shell:
 
    ```bash
    nix develop
    ```
 
-   This will drop you into a shell with all necessary dependencies available where you can run the
-   test suite:
+   This will drop you into a shell with all necessary dependencies available where you can run
+   the test suite:
 
    ```bash
    cabal test
+   npm --prefix recalc-vscode test
    ```
 
-2. **Build the Haskell components:**
-
-   Use the following within a dev shell:
-
-    ```bash
-    cabal build all
-    ```
-
-    Alternatively, you can use Nix directly:
-
-    ```bash
-    nix build
-    ```
-
-3. **Running the VSCode extension:**
+2. **Running the Web Extension in Development:**
 
    In a dev shell open the current directory (eg. `codium .`), launch the extension
    development host using (F5).
+
+3. **Build the Web Extension:**
+
+   ```bash
+   nix build
+   ```
+
+   then to install:
+
+   ```bash
+   codium --install-extension "result/recalc-vscode-$(jq -r .version < recalc-vscode/package.json).vsix"
+   ```
 
 <!-- References -->
 
