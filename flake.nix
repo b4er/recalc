@@ -41,10 +41,12 @@
 
         vscodeManifest = builtins.fromJSON (builtins.readFile ./${packageName}-vscode/package.json);
 
-        vscodeExtension = pkgs.buildNpmPackage {
+        vscodeExtension = pkgs.buildNpmPackage rec {
           name = "${packageName}-vscode";
           src = ./${packageName}-vscode;
           version = vscodeManifest.version;
+
+          pname = "${name}-${system}-${version}";
 
           doCheck = true;
 
@@ -67,13 +69,24 @@
           '';
 
           installPhase = ''
-            mkdir -p $out bin/
-            [[ -f ${cabalPackage}/bin/${packageName}-server-exe ]] || cp ${cabalPackage}/bin/${packageName}-server-exe bin/
-            vsce package -o $out/
+            mkdir -p $out/
+            cp -r bin/ dist/ node_modules/ .vscodeignore LICENSE matrix-icon.png package.json README.md $out/
+            cd $out/
+            vsce package
           '';
         };
       in
       {
+        apps = {
+          publish = {
+            type = "app";
+            program = "${pkgs.writeShellScript "publish" ''
+              cd ${vscodeExtension}
+              ${pkgs.vsce}/bin/vsce publish
+            ''}";
+          };
+        };
+
         packages = {
           recalc-lib = cabalPackage;
           recalc-vscode = vscodeExtension;

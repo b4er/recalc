@@ -1,0 +1,30 @@
+name: Publish Extension
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: recalc-publish-${{github.ref}}
+  cancel-in-progress: false
+
+jobs:
+  nix-publish:
+    name: Publish Extension
+    runs-on: ubuntu-latest
+
+    environment: main
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set Up Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Publish Extension
+        env:
+          VSCE_PAT: ${{secrets.RECALC_VSCODE_PAT}}
+        run: nix run .#publish
