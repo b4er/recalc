@@ -50,8 +50,9 @@ import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LB
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
-import System.Exit (exitFailure)
+import System.Exit (exitFailure, exitSuccess)
 import System.IO
+import System.IO.Error (isEOFError)
 import Text.Read (readMaybe)
 
 import Recalc.Server.Generic
@@ -108,7 +109,7 @@ runHandler engine0 handlers = (`Exception.catches` failureHandlers) $ do
 
   forever $ do
     -- Content-Length: XX\n\r\n\r{....}
-    (ln0, ln1) <- (,) <$> getLine <*> getLine
+    (ln0, ln1) <- (,) <$> getLine' <*> getLine
     case (readMaybe $ drop (length @[] "Content-Length: ") ln0, ln1) of
       (Just k, "\r") -> do
         reqRaw <- LB.hGet stdin k
@@ -123,5 +124,11 @@ runHandler engine0 handlers = (`Exception.catches` failureHandlers) $ do
   -- debugOutput = "debugOutput.txt"
   failureHandlers = [Exception.Handler ioExcept, Exception.Handler someExcept]
 
-  ioExcept (e :: Exception.IOException) = print e >> exitFailure
-  someExcept (e :: Exception.SomeException) = print e >> exitFailure
+  ioExcept (e :: Exception.IOException) = hPrint stderr e >> exitFailure
+  someExcept (e :: Exception.SomeException) = hPrint stderr e >> exitFailure
+
+  getLine' =
+    getLine `Exception.catch` \case
+      err
+        | isEOFError err -> exitSuccess
+        | otherwise -> exitFailure

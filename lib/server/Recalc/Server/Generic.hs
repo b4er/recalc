@@ -201,7 +201,7 @@ instance
             <> "' (got: '"
             <> showJson request'params
             <> "')"
-    | otherwise = Left $ "no handler for method '" <> request'method <> "'"
+    | otherwise = Left $ "no handler for method '" <> request'method <> "' " <> show request'params
    where
     path = reverse (symbolVal @sym Proxy : segments)
     methodMatches = intercalate "/" path == request'method

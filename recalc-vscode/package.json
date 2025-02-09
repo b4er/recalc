@@ -5,7 +5,7 @@
   "icon": "matrix-icon.png",
   "publisher": "b4er",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -73,7 +73,7 @@
     "build": "node esbuild.mjs",
     "lint": "eslint .",
     "pretest": "npm run build",
-    "test": "mocha dist/test.js"
+    "test": "mocha 'dist/**/*.test.js'"
   },
   "dependencies": {
     "@types/vscode-webview": "^1.57.5",

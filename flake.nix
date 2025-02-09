@@ -46,19 +46,31 @@
           src = ./${packageName}-vscode;
           version = vscodeManifest.version;
 
+          doCheck = true;
+
           buildInputs = [ pkgs.nodejs pkgs.vsce cabalPackage ];
           nativeBuildInputs = [ pkgs.nodejs pkgs.vsce ];
 
           npmDepsHash = "sha256-d+SNslj1HPMpS1vSQk9Qo6yTy4iRJtWOfDul5J1MbBw=";
 
-          installPhase = ''
-            mkdir -p $out bin/
-            cp ${cabalPackage}/bin/${packageName}-server-exe bin/
-            vsce package -o $out/
+          buildPhase = ''
+            mkdir src/common/
+            ${cabalPackage}/bin/${packageName}-ts-defs > src/common/messages.d.ts
+            npm run build
           '';
 
-          checkPhase = "npm test";
-          doCheck = true;
+          checkPhase = ''
+            mkdir bin/
+            cp ${cabalPackage}/bin/${packageName}-server-exe bin/
+
+            npm test
+          '';
+
+          installPhase = ''
+            mkdir -p $out bin/
+            [[ -f ${cabalPackage}/bin/${packageName}-server-exe ]] || cp ${cabalPackage}/bin/${packageName}-server-exe bin/
+            vsce package -o $out/
+          '';
         };
       in
       {

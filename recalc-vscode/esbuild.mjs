@@ -1,5 +1,8 @@
+import { exec } from 'child_process';
 import * as esbuild from 'esbuild';
-// import copy from 'esbuild-plugin-copy';
+import util from 'util';
+
+const execPromise = util.promisify(exec);
 
 const defaultOptions = {
   bundle: true,
@@ -9,9 +12,8 @@ const defaultOptions = {
     '.js': 'js',
   },
   outdir: "dist",
-  plugins: [
-    // copy({assets: {from: 'media/*', to: '.'}}),
-  ],
+  plugins: [ ],
+  tsconfig: './tsconfig.json'
 };
 
 async function build(options) {
@@ -19,6 +21,8 @@ async function build(options) {
 }
 
 async function buildAll() {
+  await execPromise('tsc --noEmit');
+
   await build({
     entryPoints: ["src/frontend/index.ts"],
   });
@@ -30,10 +34,9 @@ async function buildAll() {
   });
 
   await build({
-    entryPoints: ["src/test/test.ts"],
+    entryPoints: ["src/test/**/*.test.ts"],
     platform: "node",
     external: ["mocha"],
-    plugins: [],
   });
 }
 

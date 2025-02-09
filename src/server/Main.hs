@@ -1,10 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Reader (liftIO, runReaderT)
 import Data.Aeson qualified as Json
 
 import Recalc.Server
 import Recalc.Server.Protocol
+import System.IO (hPutStrLn, stderr)
 
 type EngineState = ()
 
@@ -22,7 +25,9 @@ main = runHandler @SheetsApi () $ \state ->
       }
 
 rpcOpen :: (Maybe Id, OpenParams) -> Handler EngineState Json.Value
-rpcOpen _ = fail "'open' not implemented"
+rpcOpen (i, p) =
+  Json.String "ok"
+    <$ liftIO (hPutStrLn stderr $ "'open' not implemented " <> show (i, p))
 
 rpcClose :: (Maybe Id, CloseParams) -> Handler EngineState ()
 rpcClose _ = fail "'close' not implemented"

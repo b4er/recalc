@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.4.1.0 -- 2025-02-07
+## 0.4.2.0 -- 2025-02-09
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -15,3 +15,4 @@
 * Generates type-safe routing for TypeScript from Servant-like named protocols,
   implements a generic server based on the reactor pattern (single thread reads
   json-rpc messages and queues new jobs, multiple workers handle jobs).
+* Send "ok" from , gracefully terminate when the client disconnects (by eof).

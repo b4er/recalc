@@ -1,38 +1,10 @@
 import * as rpc from 'vscode-jsonrpc/node';
-import * as vscode from 'vscode';
 
-import { Loglevel } from './logging';
+import { IExtensionLogger, Loglevel, simpleLogger } from './logging';
 
 export interface MessageTransports {
 	reader: rpc.MessageReader;
 	writer: rpc.MessageWriter;
-}
-
-export type Params<Protocol, M extends keyof Protocol> =
-	Protocol[M] extends { params: infer P } ? P : never;
-
-function data2String(data: object): string {
-  if (data instanceof Error) {
-    if (typeof data.stack === 'string') {
-      return data.stack;
-    }
-    return (data as Error).message;
-  }
-  if (typeof data === 'string') {
-    return data;
-  }
-  return data.toString();
-}
-
-/**
- * Controls when the output channel is revealed.
- */
-export enum RevealOutputChannelOn {
-	Debug = 0,
-	Info = 1,
-	Warn = 2,
-	Error = 3,
-	Never = 4
 }
 
 export abstract class BaseClient {
@@ -45,34 +17,17 @@ export abstract class BaseClient {
   private _onStart?: Promise<void>;
   private _onStop?: Promise<void>;
 
-  private __logger?: rpc.Logger;
+  private extensionLogger: IExtensionLogger;
 
-  constructor(serverMaxRestartCount: number, logger?: rpc.Logger) {
+  constructor(serverMaxRestartCount: number, logger?: IExtensionLogger) {
     this._state = BaseClient.State.Initial;
     this._errorHandler = new ErrorHandler(this, serverMaxRestartCount);
-    this.__logger = logger;
+		this.extensionLogger = logger ? logger : simpleLogger;
   }
 
-  private _outputChannel?: vscode.OutputChannel;
-
-  protected get _logger(): rpc.Logger {
-    if (!this.__logger) {
-      const outputChannel = vscode.window.createOutputChannel(this.name);
-
-			function appendLog(level: string) {
-			  return (message: string) => outputChannel?.append(`[${level}] ${message.trim()}\n`)
-			}
-
-			this.__logger = {
-				error: appendLog("ERROR"),
-				warn: appendLog("WARN"),
-				info: appendLog("INFO"),
-				log: appendLog("DEBUG"),
-			};
-    }
-
-    return this.__logger;
-  };
+  public get logger(): IExtensionLogger {
+		return this.extensionLogger;
+	}
 
   public async start(): Promise<void> {
 		if (this._state === BaseClient.State.Stopping) {
@@ -92,15 +47,15 @@ export abstract class BaseClient {
 
 			connection.listen();
 			this._state = BaseClient.State.Running;
-			this.log("RPC server started and connection established.")
+			this.extensionLogger.log("RPC server started and connection established.")
 
       await this.initialize(connection);
-			this.log("Connection successfully initialized.")
+			this.extensionLogger.log("Connection successfully initialized.")
 
       resolve();
     } catch (error) {
 			this._state = BaseClient.State.StartFailed;
-			this.error(error as Error, `${this.name} client: couldn't create connection to ${this.name} server`);
+			this.extensionLogger.error(`${this.name} client: couldn't create connection to ${this.name} server`, error as Error);
 			reject(error);
     }
 
@@ -123,17 +78,17 @@ export abstract class BaseClient {
 
   private async createConnection(): Promise<rpc.MessageConnection> {
 		const transports = await this.createMessageTransports('utf-8');
-    this._connection = rpc.createMessageConnection(transports.reader, transports.writer, this._logger);
+    this._connection = rpc.createMessageConnection(transports.reader, transports.writer, this.logger);
 
     this._connection.onError((args: [Error, rpc.Message | undefined, number | undefined]) =>
       this.handleConnectionError(args[0], args[1], args[2]).catch(
-        error => this.error(error, "Could not handle connection error")
+        error => this.extensionLogger.error("Could not handle connection error", error)
       )
     );
 
     this._connection.onClose(() =>
 			this.handleConnectionClosed().catch(
-        error => this.error(error, `Handling connection close failed`)
+        error => this.extensionLogger.error(`Handling connection close failed`, error)
       )
 		);
 
@@ -206,15 +161,15 @@ export abstract class BaseClient {
 				connection.dispose();
 			} else {
         const err = new Error(`Stopping the server timed out`);
-				this.error(err, `Stopping server timed out`, false);
+				this.extensionLogger.error(`Stopping the server (timed out)`, undefined, false);
 				throw err;
 			}
 		}, (error) => {
-			this.error(error, `Stopping server failed`, false);
+			this.extensionLogger.error(`Stopping server failed`, error, false);
 			throw error;
 		}).finally(() => {
 			if (mode === ShutdownMode.DoNotRestart) {
-        this._outputChannel?.dispose();
+        this.extensionLogger.dispose?.();
       }
 
 			this._onStart = undefined;
@@ -251,13 +206,13 @@ export abstract class BaseClient {
 	private async handleConnectionError(error: Error, message: rpc.Message | undefined, count: number | undefined): Promise<void> {
 		const handlerResult: ErrorHandlerResult = await this._errorHandler.error(error, message, count);
 		if (handlerResult.action === ErrorAction.Shutdown) {
-			this.error(new Error(undefined), handlerResult.message ?? `Client ${this.name}: connection to server is erroring.\n${error.message}\nShutting down server.`, handlerResult.handled !== true);
+			this.extensionLogger.error(handlerResult.message ?? `Client ${this.name}: connection to server is erroring.\n${error.message}\nShutting down server.`, error, handlerResult.handled !== true);
 			this.stop().catch((error: Error) => {
-				this.error(error, "Stopping server failed", false);
+				this.extensionLogger.error("Stopping server failed", error, false);
 			});
 		} else {
-			this.error(new Error(undefined), handlerResult.message ??
-				`Client ${this.name}: connection to server is erroring.\n${error.message}`, handlerResult.handled !== true);
+			this.extensionLogger.error(handlerResult.message ??
+				`Client ${this.name}: connection to server is erroring.\n${error.message}`, error, handlerResult.handled !== true);
 		}
 	}
 
@@ -283,7 +238,7 @@ export abstract class BaseClient {
     this._connection = undefined;
 
 		if (handlerResult.action === ShutdownMode.DoNotRestart) {
-			this.error(new Error(undefined), handlerResult.message ?? 'Connection to server got closed. Server will not be restarted.', handlerResult.handled !== true);
+			this.extensionLogger.error(handlerResult.message ?? 'Connection to server got closed. Server will not be restarted.', undefined, handlerResult.handled !== true);
 			this.cleanUp(ShutdownMode.DoNotRestart);
 			if (this._state === BaseClient.State.Starting) {
 				this._state = BaseClient.State.StartFailed;
@@ -293,76 +248,15 @@ export abstract class BaseClient {
 			this._onStop = Promise.resolve();
 			this._onStart = undefined;
 		} else if (handlerResult.action === ShutdownMode.Restart) {
-			this.info(handlerResult.message ?? 'Connection to server got closed. Server will restart.', undefined, !handlerResult.handled);
+			this.extensionLogger.info(handlerResult.message ?? 'Connection to server got closed. Server will restart.', undefined, !handlerResult.handled);
 			this.cleanUp(ShutdownMode.Restart);
 			this._state = BaseClient.State.Initial;
 			this._onStop = Promise.resolve();
 			this._onStart = undefined;
-			this.start().catch((error) => this.error(error, `Restarting server failed`, true));
+			this.start().catch((error) => this.extensionLogger.error(`Restarting server failed`, error, true));
 		}
   }
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected error(error: Error, message: string, data?: any, showNotification: boolean = true) {
-    this.logOutputMessage(Loglevel.Error, RevealOutputChannelOn.Error, `${message} (${error})`, data, showNotification);
-  }
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	protected warn(message: string, data?: any, showNotification: boolean = true): void {
-		this.logOutputMessage(Loglevel.Warning, RevealOutputChannelOn.Warn, message, data, showNotification);
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	protected info(message: string, data?: any, showNotification: boolean = true): void {
-		this.logOutputMessage(Loglevel.Info, RevealOutputChannelOn.Info, message, data, showNotification);
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	protected log(message: string, data?: any, showNotification: boolean = true): void {
-		this.logOutputMessage(Loglevel.Debug, RevealOutputChannelOn.Debug, message, data, showNotification);
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	private logOutputMessage(type: Loglevel, _reveal: RevealOutputChannelOn, message: string, data: any | undefined, showNotification: boolean): void {
-    this._logger.info(`${message}\n`);
-    if (data !== null && data !== undefined) {
-      this._logger.info(data2String(data) + '\n');
-		}
-
-		if (showNotification) {
-			this.showNotificationMessage(type, message, data);
-		}
-	}
-
-  public get logger(): rpc.Logger {
-		return {
-			error: (message: string) =>
-				this.logOutputMessage(Loglevel.Error, RevealOutputChannelOn.Error, message, null, true),
-			warn: (message: string) =>
-				this.logOutputMessage(Loglevel.Warning, RevealOutputChannelOn.Warn, message, null, true),
-			info: (message: string) =>
-				this.logOutputMessage(Loglevel.Info, RevealOutputChannelOn.Info, message, null, false),
-			log: (message: string) =>
-				this.logOutputMessage(Loglevel.Log, RevealOutputChannelOn.Debug, message, null, false),
-		}
-	}
-
-	private showNotificationMessage(type: Loglevel, message?: string, rendered? : string ) {
-		message = message ?? 'A request has failed. See the output for more information.';
-		if (rendered) {
-			message += '\n' + rendered;
-		}
-		const messageFunc = type === Loglevel.Error
-			? vscode.window.showErrorMessage
-			: type === Loglevel.Warning
-				? vscode.window.showWarningMessage
-				: vscode.window.showInformationMessage;
-		void messageFunc(message, 'Go to output').then((selection) => {
-			if (selection !== undefined) {
-        this._outputChannel?.show(true);
-			}
-		});
-	}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -376,6 +270,9 @@ export namespace BaseClient {
     Stopped = 'stopped'
   }
 }
+
+export type Params<Protocol, M extends keyof Protocol> =
+	Protocol[M] extends { params: infer P } ? P : never;
 
 /**
  * somehow TypeScript is not able to narrow the params type based on the
