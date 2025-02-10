@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 const nanoid = require("nanoid");
 
 import { SheetDocument, openFile } from '../files';
-import { Message } from '../frontend/rpc';
 import { Client, Params } from '../rpc/client';
+import { LogMessage, Message } from '../frontend/controllers/rpc.controller';
 
 class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
   client: Client<SpreadsheetProtocol>;
@@ -110,28 +110,42 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 		});
 
     // when a webview sends a message, forward it to the server via client and pass back result
-		webviewPanel.webview.onDidReceiveMessage(<M extends keyof SpreadsheetProtocol>(message: Message<M>) => {
+		webviewPanel.webview.onDidReceiveMessage(<M extends keyof SpreadsheetProtocol>(message: LogMessage | Message<M>) => {
 
-			if (message.notification) console.warn(`message should be notification`);
+			if ("notification" in message && message.notification) {
+				vscode.window.showErrorMessage(`A webview sent an invalid message (should be notification): ${JSON.stringify(message)}`);
+			} else if (
+				typeof message === "object"
+					&& "method" in message && typeof message.method === "string"
+					&& "params" in message && typeof message.params === "object"
+					&& !("uri" in message.params)
+			) {
+				if (message.method === "log") {
+					// handle webview-logs
+					if ("level" in message.params) {
+						[
+							(m: string) => this.client.logger.error(m),
+							(m: string) => this.client.logger.warn(m),
+							(m: string) => this.client.logger.info(m),
+							(m: string) => this.client.logger.log(m),
+						][message.params.level](message.params.message);
+					} else {
+						vscode.window.showErrorMessage(`A webview sent an invalid message: ${JSON.stringify(message)}`);
+					}
+				} else {
+					// otherwise the message is for the server: forward it and post back result
+					const params = {
+						...message.params,
+						uri: document.uri.toString()
+					} as Params<SpreadsheetProtocol, M>;
 
-			this.client.logger.log(`webview(${document.uri}) sent: ${JSON.stringify(message)}`);
-
-      if (typeof message === "object"
-			&& "method" in message && typeof message.method === "string"
-			&& "params" in message && typeof message.params === "object"
-			&& !("uri" in message.params))
-			{
-				const params = {
-					...message.params,
-					uri: document.uri.toString()
-				} as Params<SpreadsheetProtocol, M>;
-
-				this.client
-					.request(message.method, params)
-					.then(result => {
-						this.client.logger.log(`webview(${document.uri}) got: ${result}`);
-						webviewPanel.webview.postMessage(result);
-					})
+					this.client
+						.request(message.method, params)
+						.then(result => {
+							this.client.logger.log(`webview(${document.uri}) got: ${result}`);
+							webviewPanel.webview.postMessage(result);
+						})
+				}
 			} else {
         vscode.window.showErrorMessage(`A webview sent an invalid message: ${JSON.stringify(message)}`);
 			}

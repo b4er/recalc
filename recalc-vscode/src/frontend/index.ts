@@ -15,12 +15,13 @@ import { UniverDocsPlugin } from "@univerjs/docs";
 import { UniverDocsUIPlugin } from "@univerjs/docs-ui";
 
 import { UniverSheetsPlugin } from "@univerjs/sheets";
-import { UniverSheetsUIPlugin } from "@univerjs/sheets-ui";
+import { AddRangeProtectionFromToolbarCommand, UniverSheetsUIPlugin } from "@univerjs/sheets-ui";
 
 import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula";
-import { UniverSheetsFormulaPlugin } from "@univerjs/sheets-formula";
 
 import { locales } from './locales';
+import { RecalcPlugin } from "./plugin";
+import { UniverSheetsFormulaUIPlugin } from "@univerjs/sheets-formula-ui";
 
 // basic example (no interaction with the backend)
 const univer = new Univer({
@@ -34,19 +35,24 @@ univer.registerPlugin(UniverRenderEnginePlugin);
 univer.registerPlugin(UniverFormulaEnginePlugin);
 
 univer.registerPlugin(UniverUIPlugin, {
-  container: 'app'
+  container: 'app',
+  menu: {
+    ['sheet.menu.sheet-frozen']: { hidden: true },
+    ['sheet.contextMenu.permission']: { hidden: true },
+    [ AddRangeProtectionFromToolbarCommand.id ]: { hidden: true },
+  }
 });
 
+/* register all necessary plugins */
 univer.registerPlugin(UniverDocsPlugin);
 univer.registerPlugin(UniverDocsUIPlugin);
 
 univer.registerPlugin(UniverSheetsPlugin);
 univer.registerPlugin(UniverSheetsUIPlugin);
+univer.registerPlugin(UniverSheetsFormulaUIPlugin);
 
-/* register the Univer formula engine */
-univer.registerPlugin(UniverSheetsFormulaPlugin);
-
-console.log(`data: ${JSON.stringify(data)}`)
+/* register the recalc-plugin */
+univer.registerPlugin(RecalcPlugin);
 
 // create univer sheet using the fresh subUnitIds
 univer.createUnit(UniverInstanceType.UNIVER_SHEET, {

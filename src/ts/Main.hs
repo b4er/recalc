@@ -5,7 +5,7 @@ module Main where
 
 import Data.Aeson.TypeScript.TH
 
--- import Language.Haskell.TH
+import Language.Haskell.TH
 import Network.URI
 
 import Recalc.Server
@@ -15,14 +15,29 @@ import Recalc.Server.TypeScript
 instance TypeScript URI where
   getTypeScriptType _ = "string"
 
--- extract all ''CallParam names and @deriveTypeScript@ on it
-$(foldMap (deriveTypeScript aesonOptions) [''OpenParams, ''CloseParams])
--- $(reify ''SheetsProtocol >>= \case
---   TyConI (DataD _ _ _ _ [RecC _ tys] _)
---     | let names = [name | (_,_,AppT _ (AppT (AppT (AppT (ConT _) _) (ConT name)) _ )) <- tys]
---     , not (null names)
---     -> foldMap (deriveTypeScript aesonOptions) names
---   _ -> error "invalid Protocol type?")
+-- extract all ''*Param and ''*Return and @deriveTypeScript@ on it
+$( reify ''SpreadsheetProtocol >>= \case
+    TyConI (DataD _ _ _ _ [RecC _ tys] _) -> do
+      let
+        isDataOrNewtype = \case
+          TyConI DataD{} -> True
+          TyConI NewtypeD{} -> True
+          _ -> False
+
+        -- this is a bit annoying since we wouldn't want to rederive eg. Json.Value
+        names =
+          concat
+            [ name : (case result of ConT r | nameModule r == Just "Recalc.Server.Protocol" -> [r]; _ -> [])
+            | (_, _, AppT _ (AppT (AppT (AppT (ConT _) _) (ConT name)) result)) <- tys
+            ]
+
+      -- derive TypeScript for all newtypes and data defs
+      foldMap (deriveTypeScript aesonOptions . fst)
+        . filter (isDataOrNewtype . snd)
+        . zip names
+        =<< mapM reify names
+    _ -> error "invalid Protocol type?"
+ )
 
 main :: IO ()
 main = do

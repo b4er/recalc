@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.4.2.0 -- 2025-02-09
+## 0.5.0.0 -- 2025-02-10
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -16,3 +16,5 @@
   implements a generic server based on the reactor pattern (single thread reads
   json-rpc messages and queues new jobs, multiple workers handle jobs).
 * Send "ok" from , gracefully terminate when the client disconnects (by eof).
+* Add more rpc routes for spreadsheet operations (set value ranges,
+  sheet insertion, sheet removal, worksheet order, work sheet name).

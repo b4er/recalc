@@ -78,7 +78,6 @@ import Data.Word
 import GHC.Generics
 import GHC.IO qualified as Unsafe (unsafePerformIO)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import System.IO (hPrint, stderr)
 
 import Recalc.Server.Json (aesonOptions)
 
@@ -190,7 +189,6 @@ instance
     | methodMatches
     , Json.Success params' <- Json.fromJSON @params request'params =
         Right $ do
-          hPrint stderr ("sendIO" :: String, request'id, params')
           sendIO . JsonRpcResponse request'id =<< f (request'id, params')
     | methodMatches =
         Left

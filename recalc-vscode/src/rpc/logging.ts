@@ -1,10 +1,10 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
 export enum Loglevel {
-  Error = 1,
-  Warning = 2,
-  Info = 3,
-  Debug = 4,
+  Error = 0,
+  Warning = 1,
+  Info = 2,
+  Debug = 3,
 }
 
 /** extends rpc.Logger (compatible) with data and flag (when set vscode will open a notification) */

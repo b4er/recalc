@@ -21,7 +21,13 @@ main = runHandler @SheetsApi () $ \state ->
   server =
     SpreadsheetProtocol
       { rpcOpen = Main.rpcOpen
+      , rpcSave = Main.rpcSave
       , rpcClose = Main.rpcClose
+      , rpcSetRangeValues = Main.rpcSetRangeValues
+      , rpcInsertSheet = Main.rpcInsertSheet
+      , rpcRemoveSheet = Main.rpcRemoveSheet
+      , rpcSetWorksheetOrder = Main.rpcSetWorksheetOrder
+      , rpcSetWorksheetName = Main.rpcSetWorksheetName
       }
 
 rpcOpen :: (Maybe Id, OpenParams) -> Handler EngineState Json.Value
@@ -29,5 +35,23 @@ rpcOpen (i, p) =
   Json.String "ok"
     <$ liftIO (hPutStrLn stderr $ "'open' not implemented " <> show (i, p))
 
+rpcSave :: (Maybe Id, SaveParams) -> Handler EngineState ()
+rpcSave _ = fail "'save' not implemented"
+
 rpcClose :: (Maybe Id, CloseParams) -> Handler EngineState ()
 rpcClose _ = fail "'close' not implemented"
+
+rpcSetRangeValues :: (Maybe Id, SetRangeValuesParams) -> Handler EngineState Cells
+rpcSetRangeValues _ = fail "'setRangeValues' not implemented"
+
+rpcInsertSheet :: (Maybe Id, InsertSheetParams) -> Handler EngineState ()
+rpcInsertSheet _ = fail "'rpcInsertSheet' not implemented"
+
+rpcRemoveSheet :: (Maybe Id, RemoveSheetParams) -> Handler EngineState ()
+rpcRemoveSheet _ = fail "'rpcRemoveSheet' not implemented"
+
+rpcSetWorksheetOrder :: (Maybe Id, SetWorksheetOrderParams) -> Handler EngineState ()
+rpcSetWorksheetOrder _ = fail "'rpcSetWorksheetOrder' not implemented"
+
+rpcSetWorksheetName :: (Maybe Id, SetWorksheetNameParams) -> Handler EngineState ()
+rpcSetWorksheetName _ = fail "'rpcSetWorksheetName' not implemented"
