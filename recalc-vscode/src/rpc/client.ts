@@ -1,6 +1,6 @@
 import * as rpc from 'vscode-jsonrpc/node';
 
-import { IExtensionLogger, Loglevel, simpleLogger } from './logging';
+import { IExtensionLogger, simpleLogger } from './logging';
 
 export interface MessageTransports {
 	reader: rpc.MessageReader;

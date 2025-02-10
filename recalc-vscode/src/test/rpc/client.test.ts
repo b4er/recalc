@@ -1,10 +1,11 @@
 import assert from "node:assert";
 import 'mocha';
-import { existsSync } from "node:fs";
+import * as fs from "node:fs";
 import * as rpc from 'vscode-jsonrpc/node';
 
 import { Client, MessageTransports } from "../../rpc/client";
 import { ChildProcessWithoutNullStreams, execSync, spawn } from "node:child_process";
+import { logger } from "../logging";
 
 const nanoid = require("nanoid")
 
@@ -15,10 +16,12 @@ class TestClient extends Client<SpreadsheetProtocol> {
 
   public process?: ChildProcessWithoutNullStreams;
 
+  constructor() { super(1, logger); }
+
   protected createMessageTransports(encoding: "utf-8" | "ascii"): Promise<MessageTransports> {
 
     const _binName = "recalc-server-exe";
-    const binPath = existsSync(`bin/recalc-server-exe`)
+    const binPath = fs.existsSync(`bin/recalc-server-exe`)
       ? `bin/${_binName}`
       : execSync(`cd .. && cabal list-bin ${_binName}`).toString('utf-8').trim()
 
@@ -44,17 +47,17 @@ describe('testClient', function () {
   this.timeout(5000);
 
   it('should successfully send a "open" request and receive a response', async () => {
-    const testClient = new TestClient(1);
+    const testClient = new TestClient();
 
-    console.info(`>>> starting TestClient`)
+    logger.info(`>>> starting TestClient`)
     await testClient.start();
 
-    console.info(`>>> send open request to TestClient`)
+    logger.info(`>>> send open request to TestClient`)
     const result = await testClient.request("open", {uri: "test://file.rc", sheetOrder: [[nanoid.nanoid(), "Sheet 1"]]})
 
     assert.deepEqual(result, "ok");
 
-    console.info(`>>> shutting down TestClient`)
+    logger.info(`>>> shutting down TestClient`)
     await testClient.stop();
     await new Promise<void>((resolve, reject) => {
       testClient.process!.on('exit', (_code) => resolve());

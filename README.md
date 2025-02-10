@@ -53,10 +53,14 @@ If you only want to build the `.vsxi`, jump to (3):
 
    ```bash
    cabal test
-   npm --prefix recalc-vscode test
+   npm --prefix recalc-vscode run tests
    ```
 
 2. **Running the Web Extension in Development:**
+
+   ```bash
+   npm --prefix recalc-vscode install
+   ```
 
    In a dev shell open the current directory (eg. `codium .`), launch the extension
    development host using (F5).

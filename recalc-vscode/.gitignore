@@ -1,3 +1,4 @@
 dist/
 node_modules/
-src/common/messages.d.ts
+recalc-vscode.test.log
+src/messages.d.ts

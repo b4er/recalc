@@ -1,21 +1,10 @@
 import * as vscode from 'vscode';
 
-import { readFileSync } from 'fs';
 const nanoid = require("nanoid");
 
+import { SheetDocument, openFile } from '../files';
 import { Message } from '../frontend/rpc';
 import { Client, Params } from '../rpc/client';
-
-type SheetDocument = {
-	id: string,
-	sheetOrder: [string, string][],
-	sheets: {
-		[sheetId: string]: {
-			id: string,
-			name: string,
-		}
-	}
-};
 
 class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
   client: Client<SpreadsheetProtocol>;
@@ -29,7 +18,11 @@ class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
 
 		switch (uri.scheme) {
 			case "file":
-				this.initialData = this.openFile(uri);
+				this.initialData = openFile(uri);
+				this.client.request("open", {
+					uri: this.uri.toString(),
+					sheetOrder: this.initialData.sheetOrder
+				});
 				break;
 			default:
 				this.initialData = {
@@ -40,40 +33,6 @@ class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
 				console.error(`cannot open file: unsupported uri-scheme '${uri.scheme}'`)
 		}
   }
-
-	private openFile(uri: vscode.Uri) {
-		let data: SheetDocument;
-
-		const path = uri.path;
-		const src = JSON.parse(readFileSync(path).toString('utf-8'));
-
-		if (src.sheetOrder !== undefined && src.sheets !== undefined) {
-			const randomIds = new Map(
-				Object.keys(src.sheets).map(k => [k, nanoid.nanoid()])
-			);
-
-			data = {
-				id: btoa(uri.toString()),
-				sheetOrder: src.sheetOrder.map((x: string) => [randomIds.get(x)!, x]),
-				sheets: Object.fromEntries(
-					Object.keys(src.sheets).map(
-						x => [randomIds.get(x), { id: randomIds.get(x), name: x }],
-					)
-				),
-			};
-		} else {
-			const defaultSheetId = nanoid.nanoid();
-			data = {
-				id: btoa(uri.toString()),
-				sheetOrder: [[defaultSheetId, "Sheet 1"]],
-				sheets: { [defaultSheetId]: { id: defaultSheetId, name: "Sheet 1" } },
-			};
-		}
-
-		this.client.request("open", {uri: this.uri.toString(), sheetOrder: data.sheetOrder});
-
-		return data;
-	}
 }
 
 export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Spreadsheet> {

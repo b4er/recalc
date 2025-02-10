@@ -46,6 +46,8 @@ univer.registerPlugin(UniverSheetsUIPlugin);
 /* register the Univer formula engine */
 univer.registerPlugin(UniverSheetsFormulaPlugin);
 
+console.log(`data: ${JSON.stringify(data)}`)
+
 // create univer sheet using the fresh subUnitIds
 univer.createUnit(UniverInstanceType.UNIVER_SHEET, {
   ...data,

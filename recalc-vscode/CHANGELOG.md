@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.7 -- 2025-02-09
+## 0.0.8 -- 2025-02-10
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -9,6 +9,8 @@
 * Add test suite runner, package the extension with Nix.
 * Implement json-rpc tests.
 * Add client test: connect to server, send "open" message and check response.
+* Implement file handling and basic tests for `.rc` files, update publish workflow
+  and fix workflows.
 
 <!-- References -->
 

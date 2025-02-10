@@ -2,8 +2,8 @@ name: Publish Extension
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths: [recalc-vscode/package.json]
 
 concurrency:
   group: recalc-publish-${{github.ref}}
@@ -11,20 +11,25 @@ concurrency:
 
 jobs:
   nix-publish:
-    name: Publish Extension
     runs-on: ubuntu-latest
-
-    environment: main
-    if: github.ref == 'refs/heads/main'
-
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+
+      - name: Check Versions
+        id: versions
+        run: |
+          old_version="$(jq -r .version <(git show ${{ github.event.before }}:recalc-vscode/package.json))"
+          new_version="$(jq -r .version <(git show ${{ github.event.after }}:recalc-vscode/package.json))"
+
+          echo "old_version=${old_version}" >> "${GITHUB_OUTPUT}"
+          echo "new_version=${new_version}" >> "${GITHUB_OUTPUT}"
 
       - name: Set Up Nix
+        if: ${{ steps.versions.outputs.old_version != steps.versions.outputs.new_version }}
         uses: cachix/install-nix-action@v27
 
       - name: Publish Extension
+        if: ${{ steps.versions.outputs.old_version != steps.versions.outputs.new_version }}
         env:
           VSCE_PAT: ${{secrets.RECALC_VSCODE_PAT}}
         run: nix run .#publish

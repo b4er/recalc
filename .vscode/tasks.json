@@ -40,25 +40,22 @@
       }
     },
     {
-      "label": "cabal: test",
-      "command": "cabal test spec",
+      "label": "npm: ts-defs",
+      "command": "npm --prefix recalc-vscode run ts-defs",
       "type": "shell",
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      }
+      "dependsOn": "cabal: build"
     },
     {
       "label": "npm: compile",
       "command": "npm --prefix recalc-vscode run build",
       "type": "shell",
-      "dependsOn": "cabal: build"
+      "dependsOn": "npm: ts-defs"
     },
     {
       "label": "npm: test",
       "command": "npm --prefix recalc-vscode test",
       "type": "shell",
-      "dependsOn": "cabal: build",
+      "dependsOn": "npm: ts-defs",
       "group": {
         "kind": "test",
         "isDefault": false

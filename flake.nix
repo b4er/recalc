@@ -46,18 +46,16 @@
           src = ./${packageName}-vscode;
           version = vscodeManifest.version;
 
-          pname = "${name}-${system}-${version}";
-
           doCheck = true;
 
           buildInputs = [ pkgs.nodejs pkgs.vsce cabalPackage ];
           nativeBuildInputs = [ pkgs.nodejs pkgs.vsce ];
 
-          npmDepsHash = "sha256-d+SNslj1HPMpS1vSQk9Qo6yTy4iRJtWOfDul5J1MbBw=";
+          npmDepsHash = "sha256-5MZQ0Fro1S3KYS3NcOZUauRQe/aYcULBIR6uqSIHqDo=";
 
           buildPhase = ''
-            mkdir src/common/
-            ${cabalPackage}/bin/${packageName}-ts-defs > src/common/messages.d.ts
+            ls src/
+            ${cabalPackage}/bin/${packageName}-ts-defs > src/messages.d.ts
             npm run build
           '';
 
