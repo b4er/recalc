@@ -3,6 +3,7 @@ import { ComponentManager } from '@univerjs/ui';
 import { IRenderManagerService } from '@univerjs/engine-render';
 
 import { MessageController } from './controllers/rpc.controller';
+import { HoverController } from './controllers/hover.controller';
 
 export class RecalcPlugin extends Plugin {
   static override type = UniverInstanceType.UNIVER_SHEET;
@@ -17,10 +18,16 @@ export class RecalcPlugin extends Plugin {
   }
 
   override onStarting() {
-    ([ [MessageController] ] as Dependency[]).forEach(dep => this._injector.add(dep))
+    ([
+      [HoverController],
+      [MessageController],
+    ] as Dependency[]).forEach(dep => this._injector.add(dep))
   }
 
   override onReady() {
-    this._injector.get(MessageController);
+    ([
+      [MessageController],
+      [HoverController],
+    ] as Dependency[]).forEach(ctrl => this._injector.get(ctrl[0]));
   }
 }

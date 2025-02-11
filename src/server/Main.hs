@@ -174,8 +174,8 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
   cellErrors = CellData Missing Missing Missing Missing Missing . Is . (`CustomData` [])
   cellValue v = CellData Missing (Is (renderValue v)) Missing Missing Missing Missing
 
-  cellCyclicalError = cellErrors [Annotation "Cyclical Error" "This cell is part of a cycle."]
-  cellFetchError err = cellErrors [Annotation "Syntax Error" (Text.pack (show err))]
+  cellCyclicalError = cellErrors [Annotation "Cyclic Dependency" "This cell is part of a cycle."]
+  cellFetchError err = cellErrors [Annotation "Semantic Error" (Text.pack (show err))]
   cellSyntaxError err = cellErrors [Annotation "Syntax Error" err]
 
 rpcInsertSheet :: InsertSheetParams -> Handler EngineState ()
