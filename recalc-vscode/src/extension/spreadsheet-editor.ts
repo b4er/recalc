@@ -22,7 +22,9 @@ class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
 				this.client.request("open", {
 					uri: this.uri.toString(),
 					sheetOrder: this.initialData.sheetOrder
-				});
+				}).catch(err =>
+					this.client.logger.error(`erroor: ${err.message}`)
+				);
 				break;
 			default:
 				this.initialData = {
@@ -94,13 +96,12 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
     // when the client receives a notification, forward it to all webviews associated with that uri
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		this.client.onNotification((method: string, params: any) => {
-			console.log(`got notification(${method}, ${JSON.stringify(params)})`)
 			switch (method) {
 				case "setCells":
 					// forward updated sheets to all webviews subscribed to uri ({uri: {sheet: {..}, ..}, ..})
 					for (const [uri, sheets] of Object.entries(params)) {
 						for (const webviewPanel of this.webviews.get(vscode.Uri.parse(uri))) {
-							webviewPanel.webview.postMessage(sheets)
+							webviewPanel.webview.postMessage({method: "setCells", params: sheets})
 						}
 					}
 					break;
@@ -111,9 +112,8 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 
     // when a webview sends a message, forward it to the server via client and pass back result
 		webviewPanel.webview.onDidReceiveMessage(<M extends keyof SpreadsheetProtocol>(message: LogMessage | Message<M>) => {
-
 			if ("notification" in message && message.notification) {
-				vscode.window.showErrorMessage(`A webview sent an invalid message (should be notification): ${JSON.stringify(message)}`);
+				vscode.window.showErrorMessage(`A webview sent an invalid message: ${JSON.stringify(message)}`);
 			} else if (
 				typeof message === "object"
 					&& "method" in message && typeof message.method === "string"
@@ -141,10 +141,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 
 					this.client
 						.request(message.method, params)
-						.then(result => {
-							this.client.logger.log(`webview(${document.uri}) got: ${result}`);
-							webviewPanel.webview.postMessage(result);
-						})
+						.then(result => webviewPanel.webview.postMessage(result));
 				}
 			} else {
         vscode.window.showErrorMessage(`A webview sent an invalid message: ${JSON.stringify(message)}`);
@@ -211,8 +208,8 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
    * @param document the custom document to save
    * @param token cancellation token
    */
-  saveCustomDocument(_document: Spreadsheet, _token: vscode.CancellationToken): Thenable<void> {
-    throw new Error('Method not implemented.');
+  saveCustomDocument(document: Spreadsheet, _token: vscode.CancellationToken): Thenable<void> {
+		return this.client.request("save", {uri: document.uri.toString(), asUri: document.uri.toString()});
   }
 
   /**
@@ -222,8 +219,8 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
    * @param destination the destination URI to save the document
    * @param token cancellation token
    */
-  saveCustomDocumentAs(_document: Spreadsheet, _destination: vscode.Uri, _token: vscode.CancellationToken): Thenable<void> {
-    throw new Error('Method not implemented.');
+  saveCustomDocumentAs(document: Spreadsheet, destination: vscode.Uri, _token: vscode.CancellationToken): Thenable<void> {
+		return this.client.request("save", {uri: document.uri.toString(), asUri: destination.toString()});
   }
 
   /**
@@ -233,7 +230,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
    * @param token cancellation token
    */
   revertCustomDocument(_document: Spreadsheet, _token: vscode.CancellationToken): Thenable<void> {
-    throw new Error('Method not implemented.');
+    throw new Error('Method not implemented. (revertCustomDocument)');
   }
 
   /**
@@ -244,7 +241,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
    * @param token cancellation token
    */
   backupCustomDocument(_document: Spreadsheet, _context: vscode.CustomDocumentBackupContext, _token: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
-    throw new Error('Method not implemented.');
+    throw new Error('Method not implemented. (backupCustomDocument)');
   }
 
   /**

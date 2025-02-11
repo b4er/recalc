@@ -36,6 +36,14 @@ export const logger = {
     vscode.postMessage({method: "log", params: {level: Loglevel.Debug, message: message}}),
 }
 
+function toNestedMap<T>(entries: [[number, number], T][]): Record<number, Record<number, T>> {
+  return entries.reduce((acc, [[i, j], x]) => {
+    acc[i] ??= {};
+    acc[i][j] = x;
+    return acc;
+  }, {} as Record<number, Record<number, T>>);
+}
+
 export class MessageController extends Disposable {
   constructor(
     @ICommandService private readonly _commandService: ICommandService,
@@ -74,16 +82,30 @@ export class MessageController extends Disposable {
 
   /**
    * Handle an RPC message originating from the server-exe.
-   * @param message raw message sent
+   * @param event message event received
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private handleMessage(message: MessageEvent<any>) {
-    logger.log(`received message: ${message}`)
+  private handleMessage(event: MessageEvent<any>) {
+    if (!event?.data?.params) {
+      return;
+    }
+
+    for (const [sheetId, value] of Object.entries(event.data.params)) {
+      console.log(`sheet(${sheetId}) add ${JSON.stringify(value)}`)
+      this._commandService.executeCommand(SetRangeValuesMutation.id, {
+        unitId: data.id,
+        subUnitId: sheetId,
+        cellValue: toNestedMap(value as [[number, number], unknown][]),
+        loop: true,
+      })
+    }
   }
 
   /* Command handlers (forward to server via json-rpc) */
 
-  private handleSetRangeValues(params: ISetRangeValuesMutationParams) {
+  private handleSetRangeValues(params: ISetRangeValuesMutationParams & {loop?: boolean}) {
+    if (params.loop) return;
+
     postMessage({method: "setRangeValues", params: {
       sheetId: params.subUnitId,
       cells: params.cellValue,

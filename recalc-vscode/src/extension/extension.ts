@@ -46,7 +46,9 @@ export function activate(context: vscode.ExtensionContext) {
 			const writer = new rpc.StreamMessageWriter(this.process.stdin, encoding);
 
 			const binName = binPath.split("/").at(-1);
-			this.process.stderr.on('data', data => this.logger.info(`(${binName}) ${data.toString().trim()}`));
+			this.process.stderr.on('data', data =>
+				this.logger.log(`(${binName}) ${data.toString().trim()}`)
+			);
 
 			return {reader: reader, writer: writer}
 		}

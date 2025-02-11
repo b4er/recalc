@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.5.0.0
+version:            0.6.0.0
 synopsis:           functional spreadsheet programming
 -- description:
 license:            MIT
@@ -73,6 +73,7 @@ library recalc-server
     exposed-modules:
         Recalc.Server
         Recalc.Server.Protocol
+        Recalc.Server.Types
 
     other-modules:
         Recalc.Server.Generic
@@ -82,8 +83,8 @@ library recalc-server
         aeson >= 2.2.0.0,
         bytestring,
         network-uri,
-        recalc-lang,
         recalc-engine,
+        recalc-lang,
         stm
 
 executable recalc-server-exe
@@ -93,8 +94,11 @@ executable recalc-server-exe
 
     main-is:        Main.hs
 
+    other-modules:  List_add
+
     build-depends:
         aeson >= 2.2.0.0,
+        recalc-engine,
         recalc-server
 
 executable recalc-ts-defs
@@ -105,6 +109,7 @@ executable recalc-ts-defs
     main-is:        Main.hs
 
     other-modules:
+        Recalc.Server.TH
         Recalc.Server.TypeScript
 
     build-depends:

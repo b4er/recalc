@@ -33,10 +33,12 @@ main = runHandler @Api initialState $ \state ->
 module Recalc.Server
   ( Handler
   , liftEngine
+  , debug
+  , dumpEngineState
   , scheduleJob
   , runHandler
-  , sendBS
   , module Recalc.Server.Generic
+  , module Recalc.Server.Types
   , aesonOptions
   ) where
 
@@ -45,11 +47,9 @@ import Control.Concurrent.STM
 import Control.Exception qualified as Exception
 import Control.Monad
 import Control.Monad.Reader
+import Control.Monad.State.Strict qualified as State
 import Data.Aeson qualified as Json
-import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LB
-import Data.Text qualified as Text
-import Data.Text.Encoding qualified as Text
 import System.Exit (exitFailure, exitSuccess)
 import System.IO
 import System.IO.Error (isEOFError)
@@ -57,19 +57,7 @@ import Text.Read (readMaybe)
 
 import Recalc.Server.Generic
 import Recalc.Server.Json (aesonOptions)
-
--- | send json-rpc message on stdout
-sendBS :: LB.ByteString -> IO ()
-sendBS = BS.putStr . BS.toStrict . toRpc
- where
-  toRpc bs =
-    LB.concat
-      [ "Content-Length: " <> showLB (LB.length bs)
-      , "\r\n\r\n"
-      , bs
-      ]
-
-  showLB = LB.fromStrict . Text.encodeUtf8 . Text.pack . show
+import Recalc.Server.Types
 
 data State engine = State
   { jobs :: TChan (Job engine)
@@ -86,11 +74,19 @@ runJob (Job t) = runReaderT t
 -- | handler threads are in IO and have access to the state
 type Handler engine = ReaderT (State engine) IO
 
-scheduleJob :: Job engine -> Handler engine ()
-scheduleJob x = liftIO . atomically . (`writeTChan` x) =<< asks jobs
+scheduleJob :: ReaderT (State engine) IO () -> Handler engine ()
+scheduleJob x = liftIO . atomically . (`writeTChan` Job x) =<< asks jobs
 
-liftEngine :: () -> Handler engine a
-liftEngine = error "liftEngine" engine
+liftEngine :: State.State engine a -> Handler engine a
+liftEngine f = liftIO . atomically . (`stateTVar` State.runState f) =<< asks engine
+
+debug :: Show a => String -> a -> Handler engine ()
+debug message dat = liftIO $ hPutStrLn stderr (message <> ": " <> show dat)
+
+dumpEngineState :: Show engine => Handler engine ()
+dumpEngineState = do
+  tvar <- asks engine
+  liftIO $ hPutStrLn stderr . ("EngineState: " <>) . show =<< readTVarIO tvar
 
 -- | reads lines from stdin and maintains a channel of reactor inputs with new requests,
 -- handler threads deal with requests by reading from the request channel.
@@ -113,15 +109,12 @@ runHandler engine0 handlers = (`Exception.catches` failureHandlers) $ do
     case (readMaybe $ drop (length @[] "Content-Length: ") ln0, ln1) of
       (Just k, "\r") -> do
         reqRaw <- LB.hGet stdin k
-        -- mapM_ (appendFile debugOutput) [ln0, ln1, Text.unpack (decodeUtf8 $ LB.toStrict reqRaw)]
         case do x <- Json.eitherDecode reqRaw; handle @api x (handlers state) of
           Left err -> hPutStrLn stderr err
           Right io -> atomically . writeTChan (jobs state) $ Job (liftIO io)
       _ -> do
-        -- mapM_ (appendFile debugOutput) [ln0, ln1]
         hPutStrLn stderr ("unexpected inputs: " <> ln0 <> ln1)
  where
-  -- debugOutput = "debugOutput.txt"
   failureHandlers = [Exception.Handler ioExcept, Exception.Handler someExcept]
 
   ioExcept (e :: Exception.IOException) = hPrint stderr e >> exitFailure

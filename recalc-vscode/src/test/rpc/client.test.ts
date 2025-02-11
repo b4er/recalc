@@ -55,7 +55,7 @@ describe('testClient', function () {
     logger.info(`>>> send open request to TestClient`)
     const result = await testClient.request("open", {uri: "test://file.rc", sheetOrder: [[nanoid.nanoid(), "Sheet 1"]]})
 
-    assert.deepEqual(result, "ok");
+    assert.deepEqual(result, []);
 
     logger.info(`>>> shutting down TestClient`)
     await testClient.stop();

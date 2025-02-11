@@ -28,12 +28,15 @@ module Recalc.Engine
 
     -- * Generic spreadsheet language interface
   , Language (..)
+  , Isn't (..)
   , module Recalc.Engine
+  , DS
   , FetchError (..)
   , newEngineState
   , modifyDocs
   , insertDocument
   , insertSheet
+  , updateDocument
   , fetchType
   , fetchValue
   , getEnv
@@ -57,7 +60,7 @@ import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
 import Recalc.Engine.DocumentStore
 import Recalc.Engine.Language
-import Recalc.Engine.Monad hiding (EngineT, runEngineT)
+import Recalc.Engine.Monad hiding (EngineState, EngineT, runEngineT)
 import Recalc.Engine.Monad qualified
 
 type EngineT doc sheet cell term f =
@@ -66,10 +69,12 @@ type EngineT doc sheet cell term f =
 type Engine doc sheet cell term =
   EngineT doc sheet cell term Identity
 
+type EngineState = Recalc.Engine.Monad.EngineState Slow
+
 runEngineT
   :: EngineT doc sheet cell term f a
-  -> EngineState Slow doc sheet cell term
-  -> f (a, EngineState Slow doc sheet cell term)
+  -> EngineState doc sheet cell term
+  -> f (a, EngineState doc sheet cell term)
 runEngineT = Recalc.Engine.Monad.runEngineT
 
 {- input validation -}
@@ -116,6 +121,17 @@ validateCells _sheetId = go [] [] [] []
    where
     row = concatMap sequence (tail $ iterate (['A' .. 'Z'] :) []) !! c
 
+updateMeta
+  :: (Isn't cell, Monad f)
+  => SheetId
+  -> [(CellAddr, cell)]
+  -> EngineT doc sheet cell term f ()
+updateMeta sheetId meta =
+  modifyDocs $ \ds -> foldl' alg ds meta
+ where
+  alg ds (ca, c) = alterCellMeta sheetId ca (foo c) ds
+  foo = undefined :: cell -> cell -> cell
+
 -- | recompute new store from validated new inputs
 recompute
   :: forall dat doc sheet f
@@ -136,7 +152,7 @@ recompute
           [((SheetId, CellAddr), Either (FetchError (ErrorOf (TermOf dat))) (ValueOf (TermOf dat)))]
       )
 recompute sheetId (errors, values, formulas) = do
-  EngineState chain documentStore depMap <- get
+  Recalc.Engine.Monad.EngineState chain documentStore depMap <- get
   let
     -- delete outdated ranges from errors and values
     deleteOldDeps :: [(CellAddr, d, a)] -> Slow CellAddr -> Slow CellAddr
@@ -250,7 +266,7 @@ recompute sheetId (errors, values, formulas) = do
       Left err -> (Left err, chain, documentStore')
 
   -- return the new changes and update storage
-  xchanges <$ put (EngineState chain' documentStore'' depMap')
+  xchanges <$ put (Recalc.Engine.Monad.EngineState chain' documentStore'' depMap')
  where
   updateDeps f ca ds dm = Set.foldr' (\a -> f sheetId a ca) dm ds
 

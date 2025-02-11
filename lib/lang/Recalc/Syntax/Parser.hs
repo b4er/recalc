@@ -93,10 +93,10 @@ readExcel :: Text -> Maybe CellAddr
 readExcel txt = go . (`Text.splitAt` txt) =<< alg 0 False (Text.unpack txt)
  where
   go (letters, digits)
-    | j >= 0 = Just (j, readExcel26 letters - 1)
+    | r >= 0 = Just (r, readExcel26 letters - 1)
     | otherwise = Nothing
    where
-    j = read (Text.unpack digits) - 1
+    r = read (Text.unpack digits) - 1
 
   alg k b (c : cs)
     | not b, isUpper c = alg (k + 1) b cs

@@ -19,7 +19,7 @@ import Data.Set (Set)
 import Data.Text (Text)
 import Network.URI (URI)
 
--- | Column and row (zero-indexed)
+-- | Row and column (both zero-indexed)
 type CellAddr = (Int, Int)
 
 -- | Beginning (top left) and end (bottom right) of a range

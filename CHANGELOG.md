@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.5.0.0 -- 2025-02-10
+## 0.6.0.0 -- 2025-02-11
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -18,3 +18,5 @@
 * Send "ok" from , gracefully terminate when the client disconnects (by eof).
 * Add more rpc routes for spreadsheet operations (set value ranges,
   sheet insertion, sheet removal, worksheet order, work sheet name).
+* Implement all sheet operations on server side (recompute and sheet operations),
+  deal with server-side errors forwards. Hook up a mock language interpreter.

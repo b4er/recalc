@@ -26,6 +26,10 @@ module Recalc.Engine.DocumentStore
   , setCellType
   , setCellValue
 
+    -- * Updates
+  , alterCellMeta
+  , updateDocument
+
     -- * Lookups
   , lookupCellDeps
   , lookupCellTerm
@@ -38,12 +42,19 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
 
+import Data.Text qualified as Text
 import Recalc.Engine.Language hiding (Cell)
 
 -- | The document store keeps a 'Document' for each resource id.
 newtype DocumentStore doc sheet cell term value
   = DocumentStore
       (Map URI (Document doc sheet cell term value))
+
+instance
+  (Show doc, Show sheet, Show cell, Show term, Show value)
+  => Show (DocumentStore doc sheet cell term value)
+  where
+  show (DocumentStore m) = show m
 
 newDocumentStore :: DocumentStore doc sheet cell term value
 newDocumentStore = DocumentStore mempty
@@ -102,6 +113,7 @@ class Isn't cell where
 instance Isn't () where isn't _ = False
 instance Isn't Bool where isn't = not
 instance Isn't Int where isn't = (== 0)
+instance Isn't Text where isn't = Text.null
 
 insertDocument
   :: URI -> doc -> DocumentStore doc sheet cell term value -> DocumentStore doc sheet cell term value
@@ -139,6 +151,17 @@ alterCell (uri, sheetName) ca updateCell (DocumentStore docs) =
   updateCell' c =
     let c' = updateCell c
     in  if maybe True (isn't . cell) c' then Nothing else c'
+
+alterCellMeta
+  :: Isn't cell
+  => SheetId
+  -> CellAddr
+  -> (cell -> cell)
+  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value
+alterCellMeta sheetId ca updateMeta = alterCell sheetId ca $ \case
+  Just c -> Just c{cell = updateMeta (cell c)}
+  x -> x
 
 setCell
   :: Isn't cell
@@ -223,3 +246,14 @@ lookupCellValue sheetId ca = unpack <=< lookupCell' sheetId ca
         _ -> Nothing
     )
       . content
+
+updateDocument
+  :: URI
+  -> (doc -> doc)
+  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value
+updateDocument uri f (DocumentStore docs) =
+  DocumentStore
+    $ (`Map.update` uri)
+      (Just . \(Document (sheets, doc)) -> Document (sheets, f doc))
+      docs

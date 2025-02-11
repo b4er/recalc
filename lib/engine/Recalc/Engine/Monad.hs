@@ -1,4 +1,5 @@
 {-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Module      : Recalc.Engine.Monad
@@ -55,6 +56,12 @@ type DS doc sheet cell term = DocumentStore doc sheet cell term (ValueOf term)
 
 data EngineState dm doc sheet cell term
   = EngineState !(Chain Ix) !(DS doc sheet cell term) !(dm CellAddr)
+
+instance
+  (Show doc, Show sheet, Show cell, Show term, Show (ValueOf term))
+  => Show (EngineState dm doc sheet cell term)
+  where
+  show (EngineState _ ds _) = show ds
 
 newEngineState :: Deps.DependencyMap dm => EngineState dm doc sheet cell term
 newEngineState = EngineState [] newDocumentStore Deps.empty

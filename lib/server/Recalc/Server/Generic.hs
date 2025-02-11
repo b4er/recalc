@@ -63,6 +63,8 @@ module Recalc.Server.Generic
   ) where
 
 import Control.Concurrent (MVar, newMVar, withMVar)
+import Control.Exception (SomeException, displayException, try)
+import Data.Aeson (Options (..))
 import Data.Aeson qualified as Json
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KeyMap
@@ -72,6 +74,7 @@ import Data.Data (Typeable, typeRep)
 import Data.Kind (Type)
 import Data.List
 import Data.Proxy
+import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Data.Word
@@ -84,9 +87,10 @@ import Recalc.Server.Json (aesonOptions)
 -- | inject jsonrpc version string into a @'Json.Value'@
 genericToVersionedJSON
   :: (Generic a, Json.GToJSON' Json.Value Json.Zero (Rep a))
-  => a
+  => Options
+  -> a
   -> Json.Value
-genericToVersionedJSON = inject "jsonrpc" (Json.String "2.0") . Json.genericToJSON aesonOptions
+genericToVersionedJSON options = inject "jsonrpc" (Json.String "2.0") . Json.genericToJSON options
  where
   inject k v = \case
     Json.Object obj -> Json.Object (KeyMap.insert (Key.fromString k) v obj)
@@ -108,16 +112,44 @@ instance Json.FromJSON params => Json.FromJSON (JsonRpcRequest params) where
   parseJSON = Json.genericParseJSON aesonOptions{Json.rejectUnknownFields = False}
 
 instance Json.ToJSON params => Json.ToJSON (JsonRpcRequest params) where
-  toJSON = genericToVersionedJSON
+  toJSON = genericToVersionedJSON aesonOptions
 
-data JsonRpcResponse rsp = JsonRpcResponse
+data JsonRpcResult rsp = JsonRpcResult
   {response'id :: Maybe Id, response'result :: rsp}
   deriving (Generic, Show)
 
-instance Json.FromJSON rsp => Json.FromJSON (JsonRpcResponse rsp)
+instance Json.FromJSON rsp => Json.FromJSON (JsonRpcResult rsp)
 
-instance Json.ToJSON rsp => Json.ToJSON (JsonRpcResponse rsp) where
-  toJSON = genericToVersionedJSON
+instance Json.ToJSON rsp => Json.ToJSON (JsonRpcResult rsp) where
+  toJSON =
+    genericToVersionedJSON
+      aesonOptions
+        { omitNothingFields = False -- make sure to encode @JsonRpcResult ()@ as @{..result: []}@
+        }
+
+data JsonRpcErrorObject = JsonRpcErrorObject
+  { errorObject'code :: Int
+  -- ^ -32099 to -32000 are server-defined json-rpc codes
+  , errorObject'message :: Text
+  }
+  deriving (Generic, Show)
+
+instance Json.FromJSON JsonRpcErrorObject
+
+instance Json.ToJSON JsonRpcErrorObject where
+  toJSON = Json.genericToJSON aesonOptions
+
+data JsonRpcError = JsonRpcError
+  {errorResponse'id :: Maybe Id, errorResponse'error :: JsonRpcErrorObject}
+  deriving (Generic, Show)
+
+instance Json.FromJSON JsonRpcError
+
+instance Json.ToJSON JsonRpcError where
+  toJSON = genericToVersionedJSON aesonOptions
+
+jsonRpcError :: Maybe Id -> String -> JsonRpcError
+jsonRpcError xId = JsonRpcError xId . JsonRpcErrorObject (-32001) . Text.pack
 
 {-# NOINLINE stdoutLock #-}
 stdoutLock :: MVar ()
@@ -176,8 +208,7 @@ instance (HasHandler a, HasHandler b) => HasHandler (a :<|> b) where
   hoist nt (a :<|> b) = hoist @a nt a :<|> hoist @b nt b
 
 instance
-  ( {-remove-} Show params
-  , KnownSymbol sym
+  ( KnownSymbol sym
   , Json.FromJSON params
   , Json.ToJSON rsp
   , Typeable params
@@ -188,8 +219,10 @@ instance
   handle' (JsonRpcRequest{..}, segments) f
     | methodMatches
     , Json.Success params' <- Json.fromJSON @params request'params =
-        Right $ do
-          sendIO . JsonRpcResponse request'id =<< f (request'id, params')
+        Right
+          $ try @SomeException (f (request'id, params')) >>= \case
+            Left err -> sendIO (jsonRpcError request'id (displayException err))
+            Right res -> sendIO (JsonRpcResult request'id res)
     | methodMatches =
         Left
           $ "handler for method '"

@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.9 -- 2025-02-10
+## 0.0.10 -- 2025-02-11
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -13,6 +13,8 @@
   and fix workflows.
 * Add custom Univer plugin, add RPC-controller, customize UI a bit and add webview
   logging functionality.
+* Add json-rpc server-side error handling, finish the RPC-controller (handling of
+  all messages).
 
 <!-- References -->
 

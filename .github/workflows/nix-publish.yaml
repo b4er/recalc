@@ -11,6 +11,7 @@ concurrency:
 
 jobs:
   nix-publish:
+    name: Publish Extension
     runs-on: ubuntu-latest
     environment: main
     steps:
