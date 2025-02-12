@@ -5,7 +5,6 @@ import { CellAlertManagerService, CellAlertType, HoverManagerService, SheetSkele
 import { debounceTime } from 'rxjs';
 
 import { CellFormatting } from '../views/extensions/cell-diagnostics.render';
-import { logger } from './rpc.controller';
 
 type Annotation = { title: string, message: string};
 

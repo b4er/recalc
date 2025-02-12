@@ -91,7 +91,6 @@ export class MessageController extends Disposable {
     }
 
     for (const [sheetId, value] of Object.entries(event.data.params)) {
-      console.log(`sheet(${sheetId}) add ${JSON.stringify(value)}`)
       this._commandService.executeCommand(SetRangeValuesMutation.id, {
         unitId: data.id,
         subUnitId: sheetId,

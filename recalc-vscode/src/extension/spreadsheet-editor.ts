@@ -12,7 +12,7 @@ class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
   initialData: SheetDocument;
 
 	constructor(uri: vscode.Uri, client: Client<SpreadsheetProtocol>) {
-    super(() => console.log(`Custom(${this.uri}).dispose()`));
+    super(() => client.logger.log(`Custom(${this.uri}).dispose()`));
     this.uri = uri;
     this.client = client;
 
@@ -32,7 +32,7 @@ class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
 					sheetOrder: [],
 					sheets: {},
 				};
-				console.error(`cannot open file: unsupported uri-scheme '${uri.scheme}'`)
+				client.logger.error(`cannot open file: unsupported uri-scheme '${uri.scheme}'`)
 		}
   }
 }
@@ -78,16 +78,12 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 			localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")]
 		};
 
-		// The text document acts as our model, so we have to sync change in the document to our
-		// editor and sync changes in the editor back to the document.
-		function updateWebview() {
-			console.log(`updateWebview()`)
-		}
-
 		// Hook up event handlers so that we can synchronize the webview with the text document.
 		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
-				updateWebview();
+				// The text document acts as our model, so we have to sync change in the document to our
+				// editor and sync changes in the editor back to the document.
+				this.client.logger.log(`updateWebview()`);
 			}
 		}).dispose();
 
@@ -106,7 +102,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 					}
 					break;
 				default:
-					console.warn(`unknown Notification: ${method} (params: ${JSON.stringify(params)})`)
+					this.client.logger.warn(`unknown Notification: ${method} (params: ${JSON.stringify(params)})`)
 			}
 		});
 

@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.10 -- 2025-02-11
+## 0.0.11 -- 2025-02-11
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -15,6 +15,8 @@
   logging functionality.
 * Add json-rpc server-side error handling, finish the RPC-controller (handling of
   all messages).
+* Add hover controller and cell diagnostics UI (highlight cells with parse-errors,
+  type errors or eval errors), merged cell diagnostics not supported.
 
 <!-- References -->
 
