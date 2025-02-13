@@ -13,10 +13,10 @@ import Data.List (groupBy, sortOn)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text)
-import GHC.Generics
+import GHC.Generics (Generic)
 import Network.URI
 
-import Recalc.Engine (Isn't (..))
+import Recalc.Engine (Isn't (..), Meta (..))
 import Recalc.Server.Generic
 import Recalc.Server.Json
 import Recalc.Server.Types
@@ -132,6 +132,16 @@ instance Isn't CellData where
       , isn't cellData'p
       , isn't cellData'custom
       ]
+
+instance Meta CellData where
+  CellData s v f si p custom `merge` CellData s' v' f' si' p' custom' =
+    CellData
+      (s `merge` s')
+      (v `merge` v')
+      (f `merge` f')
+      (si `merge` si')
+      (p `merge` p')
+      (custom `merge` custom')
 
 newtype Cells = Cells (Map (Int, Int) CellData)
   deriving (Show)

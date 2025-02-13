@@ -17,8 +17,11 @@ module Recalc.Engine.DocumentStore
   , cellTerm
   , cellValue
 
-    -- * Setters
+    -- * Type Classes
   , Isn't (..)
+  , Meta (..)
+
+    -- * Setters
   , insertDocument
   , insertSheet
   , setCell
@@ -114,6 +117,10 @@ instance Isn't () where isn't _ = False
 instance Isn't Bool where isn't = not
 instance Isn't Int where isn't = (== 0)
 instance Isn't Text where isn't = Text.null
+
+-- | can be merged (à la "missing data kept, null removes it")
+class Meta cell where
+  merge :: cell -> cell -> cell
 
 insertDocument
   :: URI -> doc -> DocumentStore doc sheet cell term value -> DocumentStore doc sheet cell term value

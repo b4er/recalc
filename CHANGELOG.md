@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.6.0.0 -- 2025-02-11
+## 0.6.1.0 -- 2025-02-13
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -20,3 +20,5 @@
   sheet insertion, sheet removal, worksheet order, work sheet name).
 * Implement all sheet operations on server side (recompute and sheet operations),
   deal with server-side errors forwards. Hook up a mock language interpreter.
+* Add a rough implementation for the Language, fix merging meta data, hook it
+  up to the server.

@@ -127,7 +127,7 @@ instance Language Term where
     Sum r -> Set.singleton r
 
   infer _ = pure (Just 42) -- just a dummy "type"
-  inferValue _ = pure (Just 42) -- just a dummy "type"
+  inferValue _ _ = pure (Just 42) -- just a dummy "type"
 
   type ValueOf Term = Maybe Int
   eval = \case

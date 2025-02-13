@@ -29,4 +29,4 @@ spec = do
     readExcel "AA1" `shouldBe` Just (0, 26)
 
   describe "termP" . it "passes the an example" $ do
-    parseTest (termP <* eof) "foo" (Free "foo")
+    parseTest (formulaP <* eof) "=foo" (Free "foo")

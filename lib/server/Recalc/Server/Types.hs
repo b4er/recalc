@@ -4,7 +4,7 @@ module Recalc.Server.Types where
 
 import Data.Aeson qualified as Json
 
-import Recalc.Engine (Isn't (..))
+import Recalc.Engine (Isn't (..), Meta (..))
 
 instance Isn't Json.Value where
   isn't = (Json.Null ==)
@@ -13,7 +13,7 @@ data Nullable t
   = Missing
   | Null
   | Is t
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 instance Isn't a => Isn't (Nullable a) where
   isn't (Is x) = isn't x
@@ -32,3 +32,9 @@ instance Json.ToJSON t => Json.ToJSON (Nullable t) where
     Is t -> Json.toJSON t
 
   omitField = \case Missing -> True; _ -> False
+
+instance Meta (Nullable t) where
+  Missing `merge` x = x
+  x `merge` Missing = x
+  Null `merge` x = x
+  _ `merge` x = x

@@ -11,7 +11,8 @@ Simple Megaparsec-based parser for the Term language.
 module Recalc.Syntax.Parser
   ( -- * Term Parser
     Parser
-  , termP
+  , formulaP
+  , valueP
 
     -- * Exported as Testing Utilities
   , decimal
@@ -46,8 +47,8 @@ lexeme = Lexer.lexeme spaces
 symbol :: String -> Parser String
 symbol = Lexer.symbol spaces
 
-string :: String -> Parser String
-string = lexeme . Char.string
+-- string :: String -> Parser String
+-- string = lexeme . Char.string
 
 -- | parse (signed) integers
 decimal :: Parser Int
@@ -57,25 +58,37 @@ decimal =
     , negate <$> (symbol "-" *> lexeme Lexer.decimal)
     ]
 
-braces, parens :: Parser a -> Parser a
-braces = between (symbol "{") (symbol "}")
+parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
 startChar, middleChar :: Parser Char
 startChar = Char.letterChar
 middleChar = Char.alphaNumChar
 
-keywords :: [String]
-keywords = ["Type", ":", "->", ".", "+"]
+-- FIXME: keep in sync with "prelude"
+isKeyword :: String -> Bool
+isKeyword x =
+  map toLower x
+    `elem` map (map toLower) ["Bool", "False", "True", "not", "or", "and"]
 
-identifier :: Parser Text
-identifier = Text.pack <$> (lexeme . try) (word >>= check)
+word :: Parser String
+word = (:) <$> startChar <*> many middleChar
+
+identifier :: Parser CaseInsensitive
+identifier = CaseInsensitive . Text.pack <$> (lexeme . try) (word >>= check)
  where
-  word = (:) <$> startChar <*> many middleChar
   check x
-    | x `elem` keywords = fail $ "keyword " ++ show x ++ " cannot be an identifier"
+    | isKeyword x = fail $ "keyword ‘" ++ show x ++ "’ cannot be an identifier"
     | otherwise = pure x
 
+keyword :: Parser CaseInsensitive
+keyword = CaseInsensitive . Text.pack <$> (lexeme . try) (word >>= check)
+ where
+  check x
+    | isKeyword x = pure x
+    | otherwise = fail $ "‘" ++ show x ++ "’ is not a keyword"
+
+{-
 stringLiteral :: Parser String
 stringLiteral = between (Char.char '"') (Char.char '"') (many (try escaped <|> normalChar))
  where
@@ -86,6 +99,7 @@ stringLiteral = between (Char.char '"') (Char.char '"') (many (try escaped <|> n
     [ (c, take 2 (tail (show [c])))
     | c <- "\"\\\a\b\f\n\r\t\v"
     ]
+-}
 
 -- | read an spreadsheet address of the form column-row
 -- (columns are labelled "A..Z, AA..", and rows enumerated)
@@ -109,9 +123,11 @@ readExcel txt = go . (`Text.splitAt` txt) =<< alg 0 False (Text.unpack txt)
   readExcel26 :: Text -> Int
   readExcel26 = Text.foldl' (\a c -> 26 * a + ord (toLower c) - 96) 0
 
+{- Term Parsing -}
+
 -- | parse an inferrable term
-termP :: Parser (Term Infer)
-termP = resolve <$> termI
+formulaP :: Parser (Term Infer)
+formulaP = resolve <$> (symbol "=" *> termI)
 
 resolve :: Term m -> Term m
 resolve = go []
@@ -121,7 +137,7 @@ resolve = go []
     Inf x -> Inf (go env x)
     Lam n x -> Lam n (go ((Global <$> n) : env) x)
     Ann e t -> Ann (go env e) (go env t)
-    Univ k -> Univ k
+    Set k -> Set k
     Pi n x y -> Pi n (go env x) (go ((Global <$> n) : env) y)
     Bound i -> Bound (i + length env)
     v@(Free n) -> maybe v Bound $ elemIndex (Just n) env
@@ -159,7 +175,7 @@ termI =
     choice
       [ Free . Global <$> identifier
       , parens termI
-      , Univ 0 <$ symbol "*"
+      , Set 0 <$ symbol "*"
       ]
 
 termC, lambda :: Parser (Term Check)
@@ -173,5 +189,6 @@ lambda =
 
   binderP = Just <$> identifier <|> Nothing <$ Char.string "_"
 
-fn :: Term Infer -> Term Check -> Term Infer
-fn t = Pi Nothing (Inf t)
+{- Value Parsing -}
+valueP :: Parser Value
+valueP = vfree . Global <$> keyword

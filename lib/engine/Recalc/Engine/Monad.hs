@@ -1,6 +1,8 @@
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{- HLINT ignore "Eta reduce" -}
+
 {-|
 Module      : Recalc.Engine.Monad
 Description : Recalculation monad for spreadsheets using terms
@@ -13,8 +15,9 @@ module Recalc.Engine.Monad where
 
 import Build.Scheduler
 import Build.Task
+import Control.Arrow (second)
 import Control.Monad.Except (ExceptT (..), runExceptT)
-import Control.Monad.Reader (asks, runReaderT)
+import Control.Monad.Reader (asks, local, runReaderT)
 import Control.Monad.State.Strict
 
 import Recalc.Engine.DependencyMap qualified as Deps
@@ -29,6 +32,9 @@ fetchValue uri sheetId ca = lift . ($ Cell Value (uri, sheetId) ca) =<< asks fst
 
 getEnv :: Fetch env err value env
 getEnv = asks snd
+
+localEnv :: (env -> env) -> Fetch env err value a -> Fetch env err value a
+localEnv f x = local (second f) x
 
 -- | A spreadsheet value is a monadic task that computes a type, value
 -- or result of a volatile function

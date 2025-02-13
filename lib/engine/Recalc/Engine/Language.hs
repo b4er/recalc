@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
 {-|
@@ -17,7 +18,10 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Set (Set)
 import Data.Text (Text)
+import Data.Void (Void)
 import Network.URI (URI)
+import Prettyprinter
+import Text.Megaparsec (ParseErrorBundle, errorBundlePretty)
 
 -- | Row and column (both zero-indexed)
 type CellAddr = (Int, Int)
@@ -38,8 +42,23 @@ data Ix
   deriving (Eq, Ord)
 
 -- | Evaluation of cells can always fail due to invalid formulas or refs
-data FetchError err = InvalidFormula | RefError | OtherError err
+data FetchError err
+  = InvalidFormula (ParseErrorBundle String Void)
+  | RefError
+  | OtherError err
   deriving (Eq, Show)
+
+instance Pretty err => Pretty (FetchError err) where
+  pretty = \case
+    InvalidFormula parseError -> pretty (errorBundlePretty parseError)
+    RefError -> "#REF"
+    OtherError err -> pretty err
+
+errorTitle :: (a -> Text) -> FetchError a -> Text
+errorTitle otherTitle = \case
+  InvalidFormula{} -> "Syntax Error"
+  RefError -> "Invalid Reference"
+  OtherError err -> otherTitle err
 
 type FetchResult err f = ExceptT (FetchError err) f
 
@@ -72,7 +91,7 @@ class Language term where
   infer :: term -> Fetch (EnvOf term) (ErrorOf term) (ValueOf term) (ValueOf term)
 
   -- | All values can be inferred
-  inferValue :: ValueOf term -> Maybe (ValueOf term)
+  inferValue :: EnvOf term -> ValueOf term -> Maybe (ValueOf term)
 
   -- | All terms can be evaluated in the 'Fetch' context
   eval :: term -> Fetch (EnvOf term) (ErrorOf term) (ValueOf term) (ValueOf term)

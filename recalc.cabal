@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.6.0.0
+version:            0.6.1.0
 synopsis:           functional spreadsheet programming
 -- description:
 license:            MIT
@@ -54,6 +54,7 @@ library recalc-lang
     hs-source-dirs: lib/lang
 
     exposed-modules:
+        Recalc.Semantics
         Recalc.Syntax.Fixity
         Recalc.Syntax.Parser
         Recalc.Syntax.Term
@@ -98,7 +99,9 @@ executable recalc-server-exe
 
     build-depends:
         aeson >= 2.2.0.0,
+        prettyprinter,
         recalc-engine,
+        recalc-lang,
         recalc-server
 
 executable recalc-ts-defs

@@ -28,10 +28,12 @@ module Recalc.Engine
 
     -- * Generic spreadsheet language interface
   , Language (..)
+  , FetchError (..)
+  , errorTitle
   , Isn't (..)
+  , Meta (..)
   , module Recalc.Engine
   , DS
-  , FetchError (..)
   , newEngineState
   , modifyDocs
   , insertDocument
@@ -40,6 +42,7 @@ module Recalc.Engine
   , fetchType
   , fetchValue
   , getEnv
+  , localEnv
   ) where
 
 import Build.Rebuilder (dirtyBitRebuilder)
@@ -59,7 +62,8 @@ import Text.Megaparsec (ParseErrorBundle)
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
 import Recalc.Engine.DocumentStore
-import Recalc.Engine.Language
+import Recalc.Engine.Language hiding (Fetch)
+import Recalc.Engine.Language qualified as Language
 import Recalc.Engine.Monad hiding (EngineState, EngineT, runEngineT)
 import Recalc.Engine.Monad qualified
 
@@ -70,6 +74,8 @@ type Engine doc sheet cell term =
   EngineT doc sheet cell term Identity
 
 type EngineState = Recalc.Engine.Monad.EngineState Slow
+
+type Fetch term a = Language.Fetch (EnvOf term) (ErrorOf term) (ValueOf term) a
 
 runEngineT
   :: EngineT doc sheet cell term f a
@@ -122,15 +128,14 @@ validateCells _sheetId = go [] [] [] []
     row = concatMap sequence (tail $ iterate (['A' .. 'Z'] :) []) !! c
 
 updateMeta
-  :: (Isn't cell, Monad f)
+  :: (Isn't cell, Meta cell, Monad f)
   => SheetId
   -> [(CellAddr, cell)]
   -> EngineT doc sheet cell term f ()
 updateMeta sheetId meta =
   modifyDocs $ \ds -> foldl' alg ds meta
  where
-  alg ds (ca, c) = alterCellMeta sheetId ca (foo c) ds
-  foo = undefined :: cell -> cell -> cell
+  alg ds (ca, c) = alterCellMeta sheetId ca (merge c) ds
 
 -- | recompute new store from validated new inputs
 recompute
@@ -154,6 +159,9 @@ recompute
 recompute sheetId (errors, values, formulas) = do
   Recalc.Engine.Monad.EngineState chain documentStore depMap <- get
   let
+    -- static environment
+    env = newEnv @(TermOf dat) sheetId
+
     -- delete outdated ranges from errors and values
     deleteOldDeps :: [(CellAddr, d, a)] -> Slow CellAddr -> Slow CellAddr
     deleteOldDeps xs dm =
@@ -198,7 +206,7 @@ recompute sheetId (errors, values, formulas) = do
         ( \ds (ca, (e, r, c)) -> setCell sheetId ca (cellTerm e r c) ds
         )
         ( foldl'
-            ( \ds (ca, c, v) -> setCell sheetId ca (cellValue (inferValue @(TermOf dat) v) v c) ds
+            ( \ds (ca, c, v) -> setCell sheetId ca (cellValue (inferValue @(TermOf dat) env v) v c) ds
             )
             ( foldl'
                 ( \ds (ca, c, _) -> setCell sheetId ca (cellError c) ds
@@ -214,7 +222,7 @@ recompute sheetId (errors, values, formulas) = do
     (xchanges, chain', documentStore'') = case xrecompute of
       Right (dirty :: [((URI, Text), CellAddr)]) ->
         let
-          spreadsheets = spreadsheetsOf (newEnv @(TermOf dat) sheetId) documentStore'
+          spreadsheets = spreadsheetsOf env documentStore'
 
           -- current store
           store
@@ -223,7 +231,8 @@ recompute sheetId (errors, values, formulas) = do
             Cell kind sheetId' ca'
               | Just v <- (if kind == Type then lookupCellType else lookupCellValue) sheetId' ca' documentStore' ->
                   pure v
-              | ca' `elem` map fst3 errors -> throwError InvalidFormula
+              | Just err <- lookup ca' [(k, v) | (k, _, v) <- errors] ->
+                  throwError (InvalidFormula err)
               | otherwise -> throwError RefError
             Volatile -> error "not implemented"
 

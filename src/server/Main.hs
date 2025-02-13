@@ -1,29 +1,34 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Main where
 
-import Control.Monad.Except (throwError)
+import Control.Arrow (first, second)
 import Control.Monad.Reader (liftIO, runReaderT)
 import Data.List (foldl', sortOn)
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
-import Text.Megaparsec (MonadParsec (eof), errorBundlePretty, parse)
+import Data.Void (Void)
+import Prettyprinter (Pretty (pretty), defaultLayoutOptions, layoutPretty)
+import Prettyprinter.Render.Text (renderStrict)
+import Text.Megaparsec (ParseErrorBundle, eof, parse)
 
-import Control.Arrow (Arrow (first, second))
-import Debug.Trace (traceShowId)
 import List_add
 import Recalc.Engine qualified as Engine
+import Recalc.Semantics (semanticErrorTitle)
 import Recalc.Server
 import Recalc.Server.Protocol
+import Recalc.Syntax.Parser (Parser, formulaP, valueP)
+import Recalc.Syntax.Term
 
 -- | the 'EngineState' describes which additional state per element in the
 -- 'DocumentStore' we keep
-type EngineState = Engine.EngineState DocState SheetName CellState Term
+type EngineState = Engine.EngineState DocState SheetName CellState (Term Infer)
 
-type DocumentStore = Engine.DS DocState SheetName CellState Term
+type DocumentStore = Engine.DS DocState SheetName CellState (Term Infer)
 
 -- | the document tracks the sheet order
 type DocState = [(Text, Text)]
@@ -32,42 +37,19 @@ type SheetName = Text
 
 type CellState = Engine.MetaOf CellData
 
-data Term = Term deriving (Show)
-data Value = Value deriving (Show)
-
-instance Engine.Language Term where
-  deps _ = mempty
-
-  type EnvOf Term = Engine.SheetId
-  newEnv = id
-
-  type ErrorOf Term = ()
-  type ValueOf Term = Value
-
-  infer _ = throwError (Engine.OtherError ())
-  inferValue = pure
-
-  eval _ = pure Value
-
 instance Engine.Input CellData where
-  type TermOf CellData = Term
+  type TermOf CellData = (Term Infer)
 
   type MetaOf CellData = CellData -- do we need all?
   metaOf = id
 
   exprOrValueOf loc CellData{..} = case (cellData'f, cellData'v) of
-    (Is formula, _) -> Just (Left <$> parseFormula loc formula)
-    (_, Is value) -> Just (Right <$> parseValue loc value)
+    (Is formula, _) -> Just (Left <$> parse' formulaP formula)
+    (_, Is value) -> Just (Right <$> parse' valueP value)
     _ -> Nothing
    where
-    parseFormula :: String -> Text -> Engine.Parsed Term
-    parseFormula _ _ = pure Term
-
-    parseValue :: String -> Text -> Engine.Parsed Value
-    parseValue _ "12" = pure Value
-    parseValue _ _ = case parse eof loc "jaja" of
-      Left l -> Left l
-      _ -> error "what"
+    parse' :: Parser a -> Text -> Either (ParseErrorBundle String Void) a
+    parse' p = parse (p <* eof) loc . Text.unpack
 
 type SheetsApi = ToApi SpreadsheetProtocol
 
@@ -75,7 +57,7 @@ main :: IO ()
 main = runHandler @SheetsApi Engine.newEngineState $ \state ->
   hoist @SheetsApi (`runReaderT` state) (namedHandlers server)
  where
-  -- \| ignore request id
+  -- ignore request id
   params = snd
 
   server :: SpreadsheetProtocol (AsServerT (Handler EngineState))
@@ -94,8 +76,8 @@ main = runHandler @SheetsApi Engine.newEngineState $ \state ->
 modifyDocs :: (DocumentStore -> DocumentStore) -> Handler EngineState ()
 modifyDocs = liftEngine . Engine.modifyDocs
 
-renderValue :: Value -> Text
-renderValue _ = "(Value)"
+renderPretty :: Pretty a => a -> Text
+renderPretty = renderStrict . layoutPretty defaultLayoutOptions . pretty
 
 {- JSON-RPC Handlers -}
 
@@ -139,7 +121,7 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
           Engine.recompute @CellData sheetId (errors, values, formulas)
       )
       -- send back the results
-      >>= liftIO . sendResult . traceShowId . \case
+      >>= liftIO . sendResult . \case
         Left cycle' -> [(ca, cellCyclicalError) | ca <- cycle']
         Right okChanges ->
           [ either ((ca,) . cellFetchError) ((ca,) . cellValue) x
@@ -150,7 +132,7 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
   pure
     $ Cells
     $ Map.fromList
-      [ (ca, cellSyntaxError (Text.pack (errorBundlePretty err)))
+      [ (ca, cellFetchError (Engine.InvalidFormula @(Engine.ErrorOf (Term Infer)) err))
       | (ca, _, err) <- errors
       ]
  where
@@ -172,11 +154,10 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
   quotientOn' f = quotientOn f . sortOn f
 
   cellErrors = CellData Missing Missing Missing Missing Missing . Is . (`CustomData` [])
-  cellValue v = CellData Missing (Is (renderValue v)) Missing Missing Missing Missing
+  cellValue v = CellData Missing (Is (renderPretty v)) Missing Missing Missing Missing
 
   cellCyclicalError = cellErrors [Annotation "Cyclic Dependency" "This cell is part of a cycle."]
-  cellFetchError err = cellErrors [Annotation "Semantic Error" (Text.pack (show err))]
-  cellSyntaxError err = cellErrors [Annotation "Syntax Error" err]
+  cellFetchError err = cellErrors [Annotation (Engine.errorTitle semanticErrorTitle err) (renderPretty err)]
 
 rpcInsertSheet :: InsertSheetParams -> Handler EngineState ()
 rpcInsertSheet InsertSheetParams{..} =
