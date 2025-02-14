@@ -74,19 +74,18 @@ isKeyword x =
 word :: Parser String
 word = (:) <$> startChar <*> many middleChar
 
-identifier :: Parser CaseInsensitive
+identifier, keyword, identifierOrKeyword :: Parser CaseInsensitive
 identifier = CaseInsensitive . Text.pack <$> (lexeme . try) (word >>= check)
  where
   check x
-    | isKeyword x = fail $ "keyword ‘" ++ show x ++ "’ cannot be an identifier"
+    | isKeyword x = fail $ "keyword ‘" ++ x ++ "’ cannot be an identifier"
     | otherwise = pure x
-
-keyword :: Parser CaseInsensitive
+identifierOrKeyword = CaseInsensitive . Text.pack <$> (lexeme . try) word
 keyword = CaseInsensitive . Text.pack <$> (lexeme . try) (word >>= check)
  where
   check x
     | isKeyword x = pure x
-    | otherwise = fail $ "‘" ++ show x ++ "’ is not a keyword"
+    | otherwise = fail $ "‘" ++ x ++ "’ is not a keyword"
 
 {-
 stringLiteral :: Parser String
@@ -127,7 +126,7 @@ readExcel txt = go . (`Text.splitAt` txt) =<< alg 0 False (Text.unpack txt)
 
 -- | parse an inferrable term
 formulaP :: Parser (Term Infer)
-formulaP = resolve <$> (symbol "=" *> termI)
+formulaP = resolve <$> (spaces *> symbol "=" *> termI)
 
 resolve :: Term m -> Term m
 resolve = go []
@@ -173,7 +172,7 @@ termI =
 
   atom =
     choice
-      [ Free . Global <$> identifier
+      [ Free . Global <$> identifierOrKeyword
       , parens termI
       , Set 0 <$ symbol "*"
       ]

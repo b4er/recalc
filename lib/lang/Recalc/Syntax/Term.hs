@@ -12,6 +12,7 @@ Types definitions for a very basic dependently typed lambda calculus based on
 module Recalc.Syntax.Term where
 
 import Data.Function (on)
+import Data.Maybe (fromMaybe)
 import Data.String
 import Data.Text (Text, pack, toLower)
 import Numeric
@@ -49,6 +50,9 @@ instance IsString Name where
   fromString :: String -> Name
   fromString = Global . CaseInsensitive . pack
 
+pat :: Text -> Maybe CaseInsensitive
+pat = Just . CaseInsensitive
+
 data Term (m :: Mode) where
   -- | inferrable terms are checkable
   Inf :: !(Term Infer) -> Term Check
@@ -67,8 +71,18 @@ data Term (m :: Mode) where
   -- | application
   (:$) :: !(Term Infer) -> !(Term Check) -> Term Infer
 
-deriving instance Eq (Term m)
 deriving instance Show (Term m)
+
+instance Eq (Term m) where
+  Inf x == Inf y = x == y
+  Lam _ x == Lam _ y = x == y
+  Ann x t == Ann y v = x == y && t == v
+  Set m == Set n = n == m
+  Pi _ dom range == Pi _ dom' range' = dom == dom' && range == range'
+  Bound i == Bound j = i == j
+  Free name == Free name' = name == name'
+  f :$ x == g :$ y = f == g && x == y
+  _ == _ = False
 
 lam :: CaseInsensitive -> Term Check -> Term Check
 lam = Lam . Just
@@ -108,6 +122,9 @@ data Value
   | VSet !Int
   | VPi !(Maybe CaseInsensitive) !Value !(Value -> Value)
   | VNeutral !Neutral
+
+instance Eq Value where
+  (==) = (==) `on` quote
 
 vfree :: Name -> Value
 vfree = VNeutral . NFree
@@ -155,25 +172,30 @@ braced =
 instance Pretty (Term m) where
   pretty = pr [] 0
    where
-    pr :: forall m' ann. [Doc ann] -> Int -> Term m' -> Doc ann
+    pr :: forall m' ann. [CaseInsensitive] -> Int -> Term m' -> Doc ann
     pr env i = \case
       Inf e -> pr env i e
-      Lam xn x -> parensIf (i > lamP) ("\\" <> pretty xn <+> "->" <+> pr (prettyBinder xn : env) i x)
+      Lam xn x ->
+        let
+          v = fromMaybe (genFresh env) xn
+        in
+          parensIf (i > lamP) ("\\" <> pretty v <+> "->" <+> pr (v : env) i x)
       Ann e t -> parensIf (i > annP) (pr env annP e <> ":" <+> pr env 0 t)
       Set k
         | k == 0 -> "*"
         | otherwise -> "Type" <> showSubscript k
       Pi xn a b ->
-        parensIf (i > funP)
-          $ annotateArg xn (pr env (funP + 1) a) <+> "->" <+> pr (prettyBinder xn : env) funP b
-      Bound j -> env !! j
-      Free (Quote n) -> reverse env !! n
+        let
+          v = fromMaybe (genFresh env) xn
+        in
+          parensIf (i > funP)
+            $ annotateArg xn (pr env (funP + 1) a) <+> "->" <+> pr (v : env) funP b
+      Bound j -> pretty (env !! j)
+      Free (Quote n) -> pretty (reverse env !! n)
       Free n -> pretty n
       app@(:$){} ->
         let (y, ys) = splitApp app
         in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0) ys)
-
-    prettyBinder = maybe "_" (pretty @CaseInsensitive)
 
     parensIf b doc
       | b = "(" <> doc <> ")"
@@ -187,6 +209,11 @@ instance Pretty (Term m) where
     lamP = 0 :: Int
     funP = 1 :: Int
     annP = 2 :: Int
+
+genFresh :: [CaseInsensitive] -> CaseInsensitive
+genFresh env =
+  head . filter (`notElem` env)
+    $ CaseInsensitive "x" : map (CaseInsensitive . ("x" <>) . pack . show) [1 :: Int ..]
 
 splitFun :: Term Infer -> ([Term Check], Term Check)
 splitFun = go []

@@ -32,6 +32,7 @@ module Recalc.Engine
   , errorTitle
   , Isn't (..)
   , Meta (..)
+  , Ix (..)
   , module Recalc.Engine
   , DS
   , newEngineState

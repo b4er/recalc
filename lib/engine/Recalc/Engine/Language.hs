@@ -29,7 +29,7 @@ type CellAddr = (Int, Int)
 -- | Beginning (top left) and end (bottom right) of a range
 type CellRange = (CellAddr, CellAddr)
 
-data Kind = Type | Value deriving (Eq, Ord)
+data Kind = Type | Value deriving (Eq, Ord, Show)
 
 -- | Spreadsheets are uniquely determined by a resource id and sheet name
 type SheetId = (URI, Text)
@@ -39,7 +39,7 @@ type SheetId = (URI, Text)
 data Ix
   = Cell Kind SheetId CellAddr
   | Volatile
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 -- | Evaluation of cells can always fail due to invalid formulas or refs
 data FetchError err

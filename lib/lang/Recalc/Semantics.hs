@@ -85,9 +85,10 @@ data SemanticError
   | ExpectedSet (Term Check)
   | IllegalApplication Type
   | UnknownIdentifier Name
-  deriving (Show)
+  | UnknownError Text
+  deriving (Eq, Show)
 
-throwSemanticError :: SemanticError -> Fetch (Term Infer) a
+throwSemanticError :: MonadError (FetchError SemanticError) m => SemanticError -> m a
 throwSemanticError err = throwError (OtherError err)
 
 bindType :: Name -> Value -> Fetch (Term Infer) a -> Fetch (Term Infer) a
@@ -102,12 +103,12 @@ eval' term = do
     go :: [Value] -> Term m -> Value
     go valueEnv = \case
       Inf x -> go valueEnv x
-      Lam pat body -> VLam pat (\x -> go (x : valueEnv) body)
+      Lam p body -> VLam p (\x -> go (x : valueEnv) body)
       Ann x _ty -> go valueEnv x
       Set k -> VSet k
-      Pi pat dom range ->
+      Pi p dom range ->
         let dom' = go valueEnv dom
-        in  VPi pat dom' (\v -> go (v : valueEnv) range)
+        in  VPi p dom' (\v -> go (v : valueEnv) range)
       Bound i -> valueEnv !! i
       Free name
         | Just Decl{declValue = Just v} <- Map.lookup name globals -> v
@@ -125,10 +126,10 @@ check' i ty = \case
     when (quote ty' /= quote ty)
       $ throwSemanticError (TypeMismatch ty' ty)
   x@(Lam _ body) -> case ty of
-    VPi pat t t' ->
-      bindType (Local pat i) t
-        $ check' (i + 1) (t' (vfree (Local pat i)))
-        $ subst 0 (Free (Local pat i)) body
+    VPi p t t' ->
+      bindType (Local p i) t
+        $ check' (i + 1) (t' (vfree (Local p i)))
+        $ subst 0 (Free (Local p i)) body
     ty' -> throwSemanticError (TypeMismatchPi x ty')
 
 infer' :: Int -> Term Infer -> Fetch (Term Infer) Type
@@ -139,13 +140,13 @@ infer' i = \case
     t' <- eval t
     t' <$ check' i t' e
   Set k -> pure $ VSet (k + 1)
-  Pi pat dom range -> do
+  Pi p dom range -> do
     m <- inferUniverse' i dom
     dom' <- eval' dom
     n <-
-      bindType (Local pat i) dom'
+      bindType (Local p i) dom'
         $ inferUniverse' (i + 1)
-        $ subst 0 (Free (Local pat i)) range
+        $ subst 0 (Free (Local p i)) range
     pure $ VSet (max m n)
   Bound _i -> throwSemanticError TypeOfBound
   Free name -> do
@@ -216,6 +217,7 @@ semanticErrorTitle = \case
   ExpectedSet{} -> "Illegal Kind"
   IllegalApplication{} -> "Illegal Application"
   UnknownIdentifier{} -> "Uknown Identifier"
+  UnknownError{} -> "Error"
 
 instance Pretty SemanticError where
   pretty =
@@ -249,4 +251,8 @@ instance Pretty SemanticError where
         [ "Unknown identifier ‘"
         , pretty name
         , "’."
+        ]
+      UnknownError message ->
+        [ "An unknown error occurred: "
+        , pretty message
         ]
