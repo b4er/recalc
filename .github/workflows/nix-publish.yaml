@@ -3,7 +3,6 @@ name: Publish Extension
 on:
   push:
     branches: [main]
-    paths: [recalc-vscode/package.json]
 
 concurrency:
   group: recalc-publish-${{github.ref}}
@@ -20,8 +19,14 @@ jobs:
       - name: Check Versions
         id: versions
         run: |
-          old_version="$(jq -r .version <(git show ${{ github.event.before }}:recalc-vscode/package.json))"
-          new_version="$(jq -r .version <(git show ${{ github.event.after }}:recalc-vscode/package.json))"
+          gh auth login --with-token <<< "${{secrets.GITHUB_TOKEN}}"
+          latest_successful_run="$(
+            gh api --jq '.workflow_runs | map(select(.conclusion == "success")) | .[0].head_sha' \
+              /repos/${{github.repository}}/actions/workflows/nix-publish.yaml/runs
+          )"
+
+          old_version="$(jq -r .version <(git show "${latest_successful_run:-${{github.event.before}}}":recalc-vscode/package.json))"
+          new_version="$(jq -r .version <(git show ${{github.event.after}}:recalc-vscode/package.json))"
 
           echo "old_version=${old_version}" >> "${GITHUB_OUTPUT}"
           echo "new_version=${new_version}" >> "${GITHUB_OUTPUT}"
