@@ -1,5 +1,8 @@
 import { IWorksheetData } from "@univerjs/core";
 import { readFileSync } from "node:fs";
+import * as rpc from 'vscode-jsonrpc/node';
+import { noLogger } from "./test/logging";
+
 /**
  * Utilities for reading SheetDocuments (file-ending: .rc).
  *
@@ -33,11 +36,24 @@ export type SheetDocument = {
 	}
 };
 
-export function readJson(uri: IUri, text: string): SheetDocument {
-  const json = JSON.parse(text);
+export function readJson(uri: IUri, text: string, logger: rpc.Logger = noLogger): SheetDocument {
+  let json: any;
+
+  try {
+    json = JSON.parse(text);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) {
+      logger.warn(`Unexpected error when reading JSON: ${error}`)
+    }
+
+    json = {
+      sheetOrder: ["Sheet 1"],
+      sheets: { "Sheet 1": {} },
+    }
+  }
 
   // validate fields a bit
-  if (json.sheetOrder !== undefined && json.sheets !== undefined) {
+  if (typeof json === "object" && json.sheetOrder !== undefined && json.sheets !== undefined) {
     if (Array.isArray(json.sheetOrder)) {
       if (typeof json.sheets === 'object') {
         // generate an ID per sheet-name
@@ -83,6 +99,6 @@ function validateSheet(sheetName: string, sheetJson: any) {
   return sheetJson;
 }
 
-export function openFile(uri: IUri): SheetDocument {
-  return readJson(uri, readFileSync(uri.path).toString('utf-8'));
+export function openFile(uri: IUri, logger: rpc.Logger = noLogger): SheetDocument {
+  return readJson(uri, readFileSync(uri.path).toString('utf-8'), logger);
 }
