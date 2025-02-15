@@ -51,7 +51,7 @@
           buildInputs = [ pkgs.nodejs pkgs.vsce cabalPackage ];
           nativeBuildInputs = [ pkgs.nodejs pkgs.vsce ];
 
-          npmDepsHash = "sha256-5MZQ0Fro1S3KYS3NcOZUauRQe/aYcULBIR6uqSIHqDo=";
+          npmDepsHash = "sha256-Eflur4h3wazXPFij4YQyAsEDYQMhfWx6SJg9+dB9qoE=";
 
           buildPhase = ''
             ls src/
