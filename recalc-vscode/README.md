@@ -21,9 +21,14 @@ to the `eslint` Git-Hooks, so it needs to be manually run (`npm run lint` in a d
   (custom editor, commands etc.) are declared.
 - **[`src/extension/extension.ts`](./src/extension/extension.ts)**: The main file for the
   custom editor.
+- **[`src/frontend`](./src/frontend)**: Sub-divided like a
+  [standard Univer plugin][plugin-directory-structure], consists of
+  [`controllers`](./src/frontend/controllers), [`services`](./src/frontend/services),
+  and [`views`](./src/frontend/views).
 - **[`src/frontend/index.ts`](./src/frontend/index.ts)**: The main file for the frontend.
-- **[`src/test/test.ts`](./src/test/test.ts)**: The TypeScript test suite for the vscode
-  Web Extension components.
+- **[`src/rpc`](./src/frontend/rpc)**: Json-rpc client implementation.
+- **[`src/test`](./src/test)**: The TypeScript test suite for the, automatically
+  collects `*.test.ts`.
 - **[`tsconfig.json`](./tsconfig.json)**: TypeScript transpiler configuration.
 
 ## Building the Project
@@ -33,3 +38,4 @@ Refer to [README.md](../README.md#building-the-project).
 <!-- References -->
 
   [univer-sheet-api]: https://docs.univer.ai/en-US/guides/sheets/features/core/sheet-api
+  [plugin-directory-structure]: https://docs.univer.ai/en-US/blog/anatomy#plugin-directory-structure

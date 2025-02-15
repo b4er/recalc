@@ -17,13 +17,12 @@ import { UniverDocsUIPlugin } from "@univerjs/docs-ui";
 import { UniverSheetsPlugin } from "@univerjs/sheets";
 import { AddRangeProtectionFromToolbarCommand, UniverSheetsUIPlugin } from "@univerjs/sheets-ui";
 
-import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula";
+import { UniverSheetsFormulaUIPlugin } from "@univerjs/sheets-formula-ui";
 
 import { locales } from './locales';
 import { RecalcPlugin } from "./plugin";
-import { UniverSheetsFormulaUIPlugin } from "@univerjs/sheets-formula-ui";
 
-// basic example (no interaction with the backend)
+// create a new Univer instance and set locales
 const univer = new Univer({
   theme: defaultTheme,
   locale: LocaleType[config.locale],
@@ -31,9 +30,11 @@ const univer = new Univer({
   logLevel: LogLevel.VERBOSE,
 });
 
+// register the core plugins
+univer.registerPlugin(UniverDocsPlugin);
 univer.registerPlugin(UniverRenderEnginePlugin);
-univer.registerPlugin(UniverFormulaEnginePlugin);
 
+// modify the UI slighly
 univer.registerPlugin(UniverUIPlugin, {
   container: 'app',
   menu: {
@@ -42,20 +43,19 @@ univer.registerPlugin(UniverUIPlugin, {
     [ AddRangeProtectionFromToolbarCommand.id ]: { hidden: true },
   }
 });
-
-/* register all necessary plugins */
-univer.registerPlugin(UniverDocsPlugin);
 univer.registerPlugin(UniverDocsUIPlugin);
 
-univer.registerPlugin(UniverSheetsPlugin);
+// register sheets
+univer.registerPlugin(UniverSheetsPlugin, {notExecuteFormula: true});
 univer.registerPlugin(UniverSheetsUIPlugin);
-univer.registerPlugin(UniverSheetsFormulaUIPlugin);
 
-/* register the recalc-plugin */
+// using the default UI plugin
+univer.registerPlugin(UniverSheetsFormulaUIPlugin, { notExecuteFormula: true });
+
+// register the recalc-plugin (lazy loading would break UI bits)
 univer.registerPlugin(RecalcPlugin);
 
 // create univer sheet using the fresh subUnitIds
 univer.createUnit(UniverInstanceType.UNIVER_SHEET, {
-  ...data,
-  sheetOrder: data.sheetOrder.map((x: [string, string]) => x[0])
+  ...data, sheetOrder: data.sheetOrder.map(([x]: [string, string]) => x)
 });

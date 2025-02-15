@@ -14,7 +14,8 @@
     "experimentalDecorators": true,
 
     "types": [
-      "@types/vscode-webview"
+      "@types/vscode-webview",
+      "@univerjs/ui/locale",
     ]
   },
   "exclude": ["node_modules"]
