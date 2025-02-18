@@ -1,7 +1,18 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Recalc.Syntax.Arbitrary () where
+{-|
+Module      : Recalc.Syntax.Arbitrary
+Description : Fully arbitrary terms.
+
+Implementation of the "Arbitrary" type class for terms, the
+arbitrary terms are fully random (they may not typecheck). A
+better approach in general would be to produce a restricted
+type and generate a term for it (à la Djinn).
+-}
+module Recalc.Syntax.Arbitrary (Set0 (..)) where
 
 import Data.Text qualified as Text
 import Test.QuickCheck
@@ -14,6 +25,12 @@ instance Arbitrary CaseInsensitive where
     varName i
       | i == 0 = "x"
       | otherwise = "x" ++ show i
+
+instance CoArbitrary CaseInsensitive where
+  coarbitrary =
+    foldr (\c f -> variant (fromEnum c) . f) id
+      . Text.unpack
+      . caseInsensitive
 
 instance Arbitrary (Term Infer) where
   arbitrary = genTermI 0 5
@@ -46,3 +63,55 @@ genTermC bindersCount depth =
   choose @Int (0, if depth > 0 then 1 else 0) >>= \case
     0 -> Inf <$> genTermI bindersCount (depth - 1)
     _ -> Lam <$> arbitrary <*> genTermC (bindersCount + 1) (depth - 1)
+
+newtype Set0 = Set0 (Term Infer)
+  deriving (Show) via (Term Infer)
+
+instance Arbitrary Set0 where
+  arbitrary = Set0 <$> genSet0Term 0 0
+
+genSet0Term :: Int -> Int -> Gen (Term Infer)
+genSet0Term depth bindersCount =
+  oneof
+    $ pure (Free "bool")
+      : map (pure . Bound) [0 .. bindersCount - 1]
+        <> nested
+ where
+  genSet0TermC d b = Inf <$> genSet0Term (d - 1) b
+
+  nested
+    | 0 < depth =
+        [ (`Ann` Set 0) <$> genSet0TermC (depth - 1) bindersCount
+        , Pi
+            <$> arbitrary
+            <*> genSet0TermC (depth - 1) bindersCount
+            <*> genSet0TermC (depth - 1) (bindersCount + 1)
+        ]
+    | otherwise = []
+
+instance Arbitrary Name where arbitrary = Global <$> arbitrary
+instance CoArbitrary Name where coarbitrary = genericCoarbitrary
+
+instance Arbitrary Neutral where arbitrary = genNeutral 10
+instance CoArbitrary Neutral where coarbitrary = genericCoarbitrary
+
+instance Arbitrary Value where arbitrary = genValue 10
+instance CoArbitrary Value where coarbitrary = genericCoarbitrary
+
+genNeutral :: Int -> Gen Neutral
+genNeutral depth
+  | 0 < depth = oneof [genNFree, NApp <$> genNeutral (depth - 1) <*> genValue (depth - 1)]
+  | otherwise = genNFree
+ where
+  genNFree = NFree . Global <$> arbitrary
+
+genValue :: Int -> Gen Value
+genValue depth =
+  oneof
+    $ (VSet . abs <$> arbitrary)
+      : (VNeutral <$> genNeutral depth)
+      : nested
+ where
+  nested
+    | 0 < depth = [VLam <$> arbitrary <*> arbitrary]
+    | otherwise = []

@@ -3,30 +3,68 @@
 
 module Recalc.SemanticsSpec where
 
+import Control.Monad (void)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
+import Data.Bifunctor (bimap)
+import Data.Map qualified as Map
 import Data.Maybe (fromJust)
 import Network.URI (parseURI)
 import Test.Hspec (Spec, describe, it, shouldBe, shouldNotBe)
+import Test.Hspec.QuickCheck (prop)
 
 import Recalc.Engine
 import Recalc.Semantics
+import Recalc.Syntax.Arbitrary (Set0 (..))
 import Recalc.Syntax.Term
 
 spec :: Spec
 spec = do
-  describe "check" $ it "passes basic examples" $ do
-    shouldBe () ()
+  describe "check" $ do
+    prop "passes arbitrary test for Inf" $ \x ->
+      let
+        xTy = runInfer [] x
+        res = do ty <- xTy; runCheck [] ty (Inf x)
+      in
+        res `shouldBe` void xTy
 
-  describe "infer" $ it "passes basic examples" $ do
-    shouldBe () ()
+  describe "infer" $ do
+    it "passes Boolean examples" $ do
+      runInfer [] (Free "false") `shouldBe` Right (vfree "bool")
+      runInfer [] (Free "bool") `shouldBe` Right (VSet 0)
+
+    prop "passes Set(_) examples (hierarchy of universes)" $ \k ->
+      runInfer [] (Set k) `shouldBe` Right (VSet (k + 1))
+
+    prop "infers arbitrary terms (x: *)" $ \(Set0 x) ->
+      runInfer [] x `shouldBe` Right (VSet 0)
+
+    prop "infers globals" $ \name ty gs' ->
+      do
+        let
+          gs = map (bimap Global typeDecl) $ filter (\(n, _) -> n /= name) gs'
+        runInfer ((Global name, typeDecl ty) : gs) (Free (Global name))
+        `shouldBe` Right ty
+
+    it "infers built-ins correctly (boolean operators)" $ do
+      runInfer [] (Free "not") `shouldBe` Right (vfree "bool" `vfun` vfree "bool")
+      runInfer [] (Free "or") `shouldBe` Right (vfree "bool" `vfun` vfree "bool" `vfun` vfree "bool")
+
+    it "infers application of built-ins (boolean operators + examples)" $ do
+      runInfer [] (Free "not" :$ Inf (Free "false")) `shouldBe` Right (vfree "bool")
+      runInfer
+        [ ("any", typeDecl (VSet 0))
+        , (Local Nothing 0, typeDecl (VPi Nothing (VSet 0) id))
+        ]
+        (Free (Local Nothing 0) :$ Inf (Free "any"))
+        `shouldBe` Right (vfree "any")
 
   describe "eval" $ do
-    it "evaluates Set(_) correctly" $ do
+    it "evaluates Set(_)" $ do
       runEval (Set 0) `shouldBe` Right (VSet 0)
       runEval (Set 1) `shouldBe` Right (VSet 1)
 
-    it "evaluates variables+globals correctly" $ do
+    it "evaluates variables+globals" $ do
       runEval (Free "J") `shouldBe` Right (vfree "J")
       runEval (Free "J") `shouldBe` Right (vfree "j")
 
@@ -39,6 +77,11 @@ spec = do
       runEval (Free "not")
         `shouldNotBe` Right
           (VLam (pat "a") (\_x -> VNeutral (NFree "not")))
+
+    it "evaluates applications (Boolean values)" $ do
+      runEval (Free "not" :$ Inf (Free "true")) `shouldBe` Right (vfree "False")
+      runEval (Free "not" :$ Inf (Free "FALSE")) `shouldBe` Right (vfree "true")
+      runEval (Free "and" :$ Inf (Free "true") :$ Inf (Free "false")) `shouldBe` Right (vfree "FALSE")
 
     -- SKI combinators
     let
@@ -88,14 +131,18 @@ spec = do
 
 {-- Utilities to run tests: --}
 
+typeDecl :: Value -> Decl
+typeDecl = (`Decl` Nothing)
+
 type Result = Either (FetchError SemanticError)
 
-runFetch :: Fetch (Term Infer) a -> Result a
-runFetch fx = runExcept (runReaderT fx env)
+runFetch :: [(Name, Decl)] -> Fetch (Term Infer) a -> Result a
+runFetch extraGlobals fx = runExcept (runReaderT fx env')
  where
   sheetId1 = (fromJust (parseURI "file:///SemanticSpec.rc"), "Test Sheet 1")
 
-  env = (fetch, newEnv @(Term Infer) sheetId1)
+  env = newEnv @(Term Infer) sheetId1
+  env' = (fetch, env{globals = globals env <> Map.fromList extraGlobals})
 
   -- fetching is tested in the Engine spec
   fetch _ix =
@@ -103,10 +150,10 @@ runFetch fx = runExcept (runReaderT fx env)
       $ "fetching not supported during tests."
 
 runEval :: Term m -> Result Value
-runEval x = runFetch (eval' x)
+runEval x = runFetch [] (eval' x)
 
-runCheck :: Value -> Term Check -> Result ()
-runCheck x ty = runFetch (check' 0 x ty)
+runCheck :: [(Name, Decl)] -> Value -> Term Check -> Result ()
+runCheck extra x ty = runFetch extra (check' 0 x ty)
 
-runInfer :: Term Infer -> Result Type
-runInfer x = runFetch (infer x)
+runInfer :: [(Name, Decl)] -> Term Infer -> Result Type
+runInfer extra x = runFetch extra (infer x)

@@ -15,6 +15,7 @@ import Data.Function (on)
 import Data.Maybe (fromMaybe)
 import Data.String
 import Data.Text (Text, pack, toLower)
+import GHC.Generics (Generic)
 import Numeric
 import Prettyprinter
 
@@ -44,7 +45,22 @@ data Name
     Local !(Maybe CaseInsensitive) !Int
   | -- | same but during quoting
     Quote !Int
-  deriving (Eq, Ord, Show)
+  deriving (Generic, Show)
+
+instance Eq Name where
+  Global n == Global n' = n == n'
+  Local _ i == Local _ j = i == j
+  Quote i == Quote j = i == j
+  _ == _ = False
+
+instance Ord Name where
+  compare (Global n) (Global n') = compare n n'
+  compare Global{} _ = LT
+  compare Local{} Global{} = GT
+  compare (Local _ i) (Local _ j) = compare i j
+  compare Local{} _ = LT
+  compare (Quote i) (Quote j) = compare i j
+  compare Quote{} _ = GT
 
 instance IsString Name where
   fromString :: String -> Name
@@ -100,7 +116,7 @@ subst :: Int -> Term Infer -> Term m -> Term m
 subst i r = \case
   Inf e -> Inf (subst i r e)
   Lam n x -> Lam n (subst (i + 1) r x)
-  Ann e t -> Ann (subst i r e) t
+  Ann e t -> Ann (subst i r e) (subst i r t)
   Set k -> Set k
   Pi xn x y -> Pi xn (subst i r x) (subst (i + 1) r y)
   Bound j
@@ -116,12 +132,14 @@ subst i r = \case
 data Neutral
   = NFree !Name
   | NApp !Neutral !Value
+  deriving (Generic)
 
 data Value
   = VLam !(Maybe CaseInsensitive) !(Value -> Value)
   | VSet !Int
   | VPi !(Maybe CaseInsensitive) !Value !(Value -> Value)
   | VNeutral !Neutral
+  deriving (Generic)
 
 instance Eq Value where
   (==) = (==) `on` quote

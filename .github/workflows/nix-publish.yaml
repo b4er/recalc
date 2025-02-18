@@ -31,8 +31,8 @@ jobs:
           old_version="$(jq -r .version <(git show "${latest_successful_run:-${{github.event.before}}}":recalc-vscode/package.json))"
           new_version="$(jq -r .version <(git show ${{github.event.after}}:recalc-vscode/package.json))"
 
-          echo "old_version=${old_version}" >> "${GITHUB_OUTPUT}"
-          echo "new_version=${new_version}" >> "${GITHUB_OUTPUT}"
+          echo "old_version=${old_version}" | tee -a "${GITHUB_OUTPUT}"
+          echo "new_version=${new_version}" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Set Up Nix
         if: ${{ steps.versions.outputs.old_version != steps.versions.outputs.new_version }}
