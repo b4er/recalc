@@ -5,6 +5,11 @@
 if [ "$1" == "cabal" ]; then
   prefix="."
   version="$(grep '^version:' recalc.cabal | awk -F: '{print $2}' | xargs)"
+  ts_version="$(grep '^version:' recalc-vscode/recalc-ts-defs.cabal | awk -F: '{print $2}' | xargs)"
+  if [ "${version}" != "${ts_version}" ]; then
+    echo "cabal versions for recalc and recalc-ts-defs mismatch (${version} vs. ${ts_version})" >&2
+    exit 2
+  fi
 else
   prefix="recalc-vscode"
   #version="$(jq -r .version < "$prefix/package.json")"

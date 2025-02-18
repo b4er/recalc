@@ -37,6 +37,7 @@ export type SheetDocument = {
 };
 
 export function readJson(uri: IUri, text: string, logger: rpc.Logger = noLogger): SheetDocument {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let json: any;
 
   try {

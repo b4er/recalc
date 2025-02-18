@@ -28,5 +28,10 @@ jobs:
       - name: Set Up Nix
         uses: cachix/install-nix-action@v27
 
+      - name: Set Up Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: recalc-cache
+
       - name: Build & Test
-        run: nix build
+        run: nix --accept-flake-config build

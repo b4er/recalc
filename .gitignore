@@ -1,3 +1,4 @@
+**/.*.swp
 .pre-commit-config.yaml
 dist-newstyle/
 result

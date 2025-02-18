@@ -20,8 +20,8 @@ class TestClient extends Client<SpreadsheetProtocol> {
 
   protected createMessageTransports(encoding: "utf-8" | "ascii"): Promise<MessageTransports> {
 
-    const _binName = "recalc-server-exe";
-    const binPath = fs.existsSync(`bin/recalc-server-exe`)
+    const _binName = "recalc-server";
+    const binPath = fs.existsSync(`bin/recalc-server`)
       ? `bin/${_binName}`
       : execSync(`cd .. && cabal list-bin ${_binName}`).toString('utf-8').trim()
 

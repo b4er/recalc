@@ -5,34 +5,37 @@
 
 **recalc** is a functional programming language embedded in a spreadsheet environment.
 
+## Installation
+
+The easiest is installing [`b4er.recalc-vscode`][recalc-vscode] from the Visual Studio Marketplace.
+
 ## Project Organization
 
-- **[`recalc-engine`](./lib/engine/Recalc/Engine.hs)** (Haskell):
+- **[`Recalc.Engine`](./lib/Recalc/Engine.hs)** (Haskell):
   The core recalculation engine based on [*Build Systems à la Carte*][build]. It handles
   incremental computations and dependency tracking for arbitrary (dependently typed)
   languages implementing the `Language` interface.
 
-- **[`recalc-lang`](./lib/lang/Recalc/Syntax)** (Haskell): The language implementation, a very basic
-  dependently typed lambda calculus based on
+- **[`Recalc.Syntax`](./lib/Recalc/Syntax)** (Haskell): The language implementation, a
+  very basic dependently typed lambda calculus based on
   [*A tutorial implementation of a dependently typed lambda calculus*][lambdaPi].
 
-- **[`recalc-server`](./lib/server/Recalc/Server.hs)** (Haskell): A generic implementation
+- **[`Recalc.Server`](./lib/Recalc/Server.hs)** (Haskell): A generic implementation
   for named handlers (from Servant-like protocol definition) of json-rpc. And the concrete
   protocol definition.
 
-- **[`recalc-server-exe`](./src/server/Main.hs)** (Haskell): The Spreadsheet backend
-  json-rpc implementation.
+- **[`recalc-server`](./src/Main.hs)** (Haskell): The Spreadsheet json-rpc backend.
 
 - **[`recalc-spec`](./spec/README.md)** (Haskell): Full test suite for all Haskell tests.
-
-- **[`recalc-ts-defs`](./src/ts/Main.hs)** (Haskell): TypeScript code generation for json-rpc
-  and protocol type sharing with the Web Extension.
 
 - **[`recalc-vscode`](./recalc-vscode)** (TypeScript): A Visual Studio Code web extension
   providing a frontend for editing and interacting with recalc sheets. The extension starts
   a Haskell process for backend computations.
 
   The frontend UI is built using the [Univer][univer-sheet-api] Sheet API.
+
+  [`recalc-vscode/hs`](./recalc-vscode/hs) contains a TypeScript generator for protocol
+  types.
 
 ## Building the Project
 
@@ -58,10 +61,6 @@ If you only want to build the `.vsxi`, jump to (3):
 
 2. **Running the Web Extension in Development:**
 
-   ```bash
-   npm --prefix recalc-vscode install
-   ```
-
    In a dev shell open the current directory (eg. `codium .`), launch the extension
    development host using (F5).
 
@@ -81,4 +80,5 @@ If you only want to build the `.vsxi`, jump to (3):
 
   [build]: https://dl.acm.org/doi/10.1145/3236774
   [lambdaPi]: https://www.andres-loeh.de/LambdaPi/LambdaPi.pdf
+  [recalc-vscode]: https://marketplace.visualstudio.com/items/b4er.recalc-vscode
   [univer-sheet-api]: https://docs.univer.ai/en-US/guides/sheets/features/core/sheet-api

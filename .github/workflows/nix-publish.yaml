@@ -38,8 +38,15 @@ jobs:
         if: ${{ steps.versions.outputs.old_version != steps.versions.outputs.new_version }}
         uses: cachix/install-nix-action@v27
 
+      - name: Set Up Cachix (write)
+        if: ${{ steps.versions.outputs.old_version != steps.versions.outputs.new_version }}
+        uses: cachix/cachix-action@v15
+        with:
+          name: recalc-cache
+          authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+
       - name: Publish Extension
         if: ${{ steps.versions.outputs.old_version != steps.versions.outputs.new_version }}
         env:
           VSCE_PAT: ${{secrets.RECALC_VSCODE_PAT}}
-        run: nix run .#publish
+        run: cachix watch-exec nix -- --accept-flake-config run .#publish

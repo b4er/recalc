@@ -24,11 +24,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 		protected async createMessageTransports(encoding: "utf-8" | "ascii"): Promise<MessageTransports> {
 
-			// vsix is bundled with the -server-exe here:
-			const _binName = `${this.name}-server-exe`;
+			// vsix is bundled with the -server here:
+			const _binName = `${this.name}-server`;
 			const defaultBinPath = `${context.extensionPath}/bin/${_binName}`;
 
-			// guess the location for the -server-exe
+			// guess the location for the -server
 			const binPath = config.serverPath
 				|| existsSync(defaultBinPath)
 						? defaultBinPath

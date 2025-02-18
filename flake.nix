@@ -5,6 +5,15 @@
     git-hooks.url = "github:cachix/git-hooks.nix";
   };
 
+  nixConfig = {
+    substituters = [
+      "https://recalc-cache.cachix.org"
+    ];
+    trusted-public-keys = [
+      "recalc-cache.cachix.org-1:aguGrZyYzNwKVM133vmqFReqbet21OMnC3jo2jTu+nU="
+    ];
+  };
+
   outputs = { flake-utils, nixpkgs, git-hooks, self, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -12,56 +21,47 @@
 
         pkgs = import nixpkgs { inherit system; };
 
-        haskellPackages = pkgs.haskellPackages.override {
-          overrides = self: super: rec {
-            aeson =
-              pkgs.haskell.lib.dontCheck (
-                self.callCabal2nix "aeson"
-                  (pkgs.fetchgit {
-                    url = "https://github.com/haskell/aeson.git";
-                    rev = "7cce2034104935ffd8523677e89bde3c5cd0e136";
-                    sha256 = "sha256-ZG5nyQ+j/mGT6GuKfVZw2hcqEDhT8z2/NLj0yWThc+8=";
-                  })
-                  { }
-              );
-            build =
-              pkgs.haskell.lib.dontCheck (
-                self.callCabal2nix "build"
-                  (pkgs.fetchgit {
-                    url = "https://github.com/snowleopard/build.git";
-                    rev = "43b18b9a362d7d27b64679ea4122e4b8c5dfedd9";
-                    sha256 = "sha256-l/3/VpnZlt4pDitEU40a20NbEpGWe0x1gyzqKKN65fw=";
-                  })
-                  { }
-              );
-          };
-        };
+        ## Pin GHC version
+        versions = import ./versions.nix { inherit pkgs; };
+        ghc = versions.ghc;
 
-        cabalPackage = haskellPackages.callCabal2nix packageName self { };
+        ## Build static exe (override configure flags for callCabal2nix)
+        staticHaskell = import ./static-haskell.nix { inherit pkgs ghc; };
 
+        ## read manifest file for extension
         vscodeManifest = builtins.fromJSON (builtins.readFile ./${packageName}-vscode/package.json);
 
-        vscodeExtension = pkgs.buildNpmPackage rec {
+        # Derivations:
+
+        dynamic = ghc.callCabal2nix packageName self { };
+        static = staticHaskell packageName self;
+
+        tsDefsDynamic = (ghc.extend (pkgs.haskell.lib.packageSourceOverrides {
+          recalc = ./.;
+        })).callCabal2nix "${packageName}-ts-defs" ./recalc-vscode
+          { };
+
+        mkVscodeExtension = pkg: pkgs.buildNpmPackage {
           name = "${packageName}-vscode";
           src = ./${packageName}-vscode;
           version = vscodeManifest.version;
 
           doCheck = true;
 
-          buildInputs = [ pkgs.nodejs pkgs.vsce cabalPackage ];
+          buildInputs = [ pkgs.nodejs pkgs.vsce pkg ];
           nativeBuildInputs = [ pkgs.nodejs pkgs.vsce ];
 
-          npmDepsHash = "sha256-Eflur4h3wazXPFij4YQyAsEDYQMhfWx6SJg9+dB9qoE=";
+          npmDepsHash = "sha256-15/DmOlvCDwdW21lMXoClgJ8tLtb54hV5kIzaqaYPFw=";
 
           buildPhase = ''
             ls src/
-            ${cabalPackage}/bin/${packageName}-ts-defs > src/messages.d.ts
+            ${tsDefsDynamic}/bin/${packageName}-ts-defs > src/messages.d.ts
             npm run build
           '';
 
           checkPhase = ''
             mkdir bin/
-            cp ${cabalPackage}/bin/${packageName}-server-exe bin/
+            cp ${pkg}/bin/${packageName}-server bin/
 
             npm test
           '';
@@ -73,21 +73,25 @@
             vsce package
           '';
         };
+
+        # vscodeExtensionDynamic = mkVscodeExtension dynamic;
+        vscodeExtensionStatic = mkVscodeExtension static;
       in
       {
         apps = {
           publish = {
             type = "app";
             program = "${pkgs.writeShellScript "publish" ''
-              cd ${vscodeExtension}
+              cd ${vscodeExtensionStatic}
+              echo "* Publishing ${packageName}-vscode-${vscodeManifest.version}.vsix"
               ${pkgs.vsce}/bin/vsce publish
             ''}";
           };
         };
 
         packages = {
-          recalc-lib = cabalPackage;
-          recalc-vscode = vscodeExtension;
+          recalc-lib = dynamic;
+          recalc-vscode = vscodeExtensionStatic;
 
           default = self.packages.${system}.recalc-vscode;
         };
@@ -127,20 +131,19 @@
           # };
         };
 
-        devShells = {
-          default = pkgs.mkShell {
-            inherit (self.checks.${system}.pre-commit) shellHook;
-            buildInputs = [
-              haskellPackages.cabal-install
-              pkgs.haskell-language-server
-              pkgs.jq
-              pkgs.nodejs
-              pkgs.vsce
-              self.checks.${system}.pre-commit.enabledPackages
-            ];
+        devShells.default = pkgs.mkShell {
+          inherit (self.checks.${system}.pre-commit) shellHook;
 
-            inputsFrom = builtins.attrValues self.packages.${system};
-          };
+          buildInputs = [
+            ghc.cabal-install
+            ghc.haskell-language-server
+            pkgs.jq
+            pkgs.nodejs
+            pkgs.vsce
+            self.checks.${system}.pre-commit.enabledPackages
+          ];
+
+          inputsFrom = [ dynamic ];
         };
       }
     );

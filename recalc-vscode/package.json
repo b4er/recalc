@@ -5,7 +5,7 @@
   "icon": "matrix-icon.png",
   "publisher": "b4er",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "engines": {
     "vscode": "^1.74.0"
   },

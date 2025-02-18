@@ -19,6 +19,10 @@ to the `eslint` Git-Hooks, so it needs to be manually run (`npm run lint` in a d
 
 - **[`package.json`](./package.json)**: VSCode manifest file in which the extension
   (custom editor, commands etc.) are declared.
+- **[`hs`](./hs/Main.hs)**: Source code for TypeScript generation of protocols.
+- **[`recalc-ts-defs.cabal`](./recalc-ts-defs.cabal)**: This is a separate .cabal,
+  from [`recalc.cabal`](../recalc.cabal) allowing (static) build that don't include
+  the template-haskell.
 - **[`src/extension/extension.ts`](./src/extension/extension.ts)**: The main file for the
   custom editor.
 - **[`src/frontend`](./src/frontend)**: Sub-divided like a

@@ -46,10 +46,15 @@
       "dependsOn": "cabal: build"
     },
     {
+      "label": "npm: install",
+      "command": "[ -d recalc-vscode/node_modules ] || npm --prefix recalc-vscode ci",
+      "type": "shell"
+    },
+    {
       "label": "npm: compile",
       "command": "npm --prefix recalc-vscode run build",
       "type": "shell",
-      "dependsOn": "npm: ts-defs"
+      "dependsOn": ["npm: ts-defs", "npm: install"]
     },
     {
       "label": "npm: test",
