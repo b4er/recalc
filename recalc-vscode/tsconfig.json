@@ -15,7 +15,7 @@
 
     "types": [
       "@types/vscode-webview",
-      "@univerjs/ui/locale",
+      "@univerjs/ui/locale"
     ]
   },
   "exclude": ["node_modules"]

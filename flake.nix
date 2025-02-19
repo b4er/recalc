@@ -51,7 +51,7 @@
           buildInputs = [ pkgs.nodejs pkgs.vsce pkg ];
           nativeBuildInputs = [ pkgs.nodejs pkgs.vsce ];
 
-          npmDepsHash = "sha256-15/DmOlvCDwdW21lMXoClgJ8tLtb54hV5kIzaqaYPFw=";
+          npmDepsHash = "sha256-BUwKRkkDtMT/kj687QK9LfLRFt/sbtW/K3gmkK20VO4=";
 
           buildPhase = ''
             ls src/

@@ -8,6 +8,12 @@ import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US';
 import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US';
 
 const enUS = merge(
+  {
+    "sheetFunctionEditor": {
+      "title": "Sheet Function Editor",
+      "tooltip": "Sheet Function Editor",
+    },
+  },
   SheetsEnUS,
   DocsUIEnUS,
   SheetsUIEnUS,
@@ -24,6 +30,16 @@ import SheetsUIZhCN from '@univerjs/sheets-ui/locale/zh-CN';
 import SheetsFormulaUIZhCN from '@univerjs/sheets-formula-ui/locale/zh-CN';
 
 const zhCN = merge(
+  {
+    "sheetFunctionEditor": {
+      "title": "稍后再做",
+      "tooltip": "稍后再做",
+    },
+    "Description": "稍后再做",
+    "Inputs": "稍后再做",
+    "Outputs": "稍后再做",
+    "Enter description": "稍后再做",
+  },
   SheetsZhCN,
   DocsUIZhCN,
   SheetsUIZhCN,

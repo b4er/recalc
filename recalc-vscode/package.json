@@ -5,7 +5,7 @@
   "icon": "matrix-icon.png",
   "publisher": "b4er",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -94,6 +94,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^20",
+    "@types/react": "^19.0.10",
     "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",

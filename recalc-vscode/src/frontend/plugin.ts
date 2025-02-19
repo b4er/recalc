@@ -1,9 +1,11 @@
 import { Dependency, Inject, Injector, Plugin, UniverInstanceType } from '@univerjs/core';
 import { ComponentManager } from '@univerjs/ui';;
-
-import { MessageController } from './controllers/rpc.controller';
-import { HoverController } from './controllers/hover.controller';
 import { IDescriptionService } from '@univerjs/sheets-formula';
+
+import { HoverController } from './controllers/hover.controller';
+import { MenuController } from './controllers/menu.controller';
+import { MessageController } from './controllers/rpc.controller';
+
 import { DescriptionService } from './services/function-description.service';
 
 export class RecalcPlugin extends Plugin {
@@ -19,6 +21,7 @@ export class RecalcPlugin extends Plugin {
 
   override onStarting() {
     const adds: Dependency[] = [
+      [MenuController],
       [HoverController],
       [MessageController],
     ];
@@ -33,6 +36,7 @@ export class RecalcPlugin extends Plugin {
   }
 
   override onReady() {
+    this._injector.get(MenuController);
     this._injector.get(HoverController);
     this._injector.get(MessageController);
     this._injector.get(IDescriptionService);
