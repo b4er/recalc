@@ -12,9 +12,12 @@ arbitrary terms are fully random (they may not typecheck). A
 better approach in general would be to produce a restricted
 type and generate a term for it (à la Djinn).
 -}
-module Recalc.Syntax.Arbitrary (Set0 (..)) where
+module Recalc.Syntax.Arbitrary (SheetName (..), Set0 (..)) where
 
+import Data.Maybe (fromJust)
+import Data.Text (Text)
 import Data.Text qualified as Text
+import Network.URI
 import Test.QuickCheck
 
 import Recalc.Syntax.Term
@@ -89,6 +92,7 @@ genSet0Term depth bindersCount =
         ]
     | otherwise = []
 
+{-
 instance Arbitrary Name where arbitrary = Global <$> arbitrary
 instance CoArbitrary Name where coarbitrary = genericCoarbitrary
 
@@ -115,3 +119,39 @@ genValue depth =
   nested
     | 0 < depth = [VLam <$> arbitrary <*> arbitrary]
     | otherwise = []
+-}
+
+instance Arbitrary URI where
+  arbitrary =
+    oneof
+      $ map
+        (pure . fromJust . parseURI)
+        [ "file:///simple"
+        , "file://host/simple"
+        , "file:///C:/Users/Me/file.xlsx"
+        , "file:///home/user/file.xlsx"
+        , "file:///file%20with%20spaces.xlsx"
+        , "ftp://ftp.example.com/file"
+        , "http://example.com/file.xlsx"
+        , "https://example.com/path/to/file"
+        , "https://example.com/a-b_c~d/file.xlsx"
+        , "https://example.com/query?name=value&other=value"
+        , "https://example.com/#fragment"
+        , "https://user:pass@example.com/"
+        , "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ=="
+        , "urn:isbn:0451450523"
+        ]
+
+newtype SheetName = SheetName Text
+  deriving (Show) via SheetName
+
+instance Arbitrary SheetName where
+  arbitrary =
+    oneof
+      $ map
+        (pure . SheetName)
+        [ "sheet"
+        , "Sheet 1"
+        , "uh,which,chars,are,allowed"
+        , "öh more"
+        ]

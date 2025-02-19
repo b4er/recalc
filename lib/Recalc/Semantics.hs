@@ -17,13 +17,30 @@ and a few declarations to interact with them.
 module Recalc.Semantics where
 
 import Control.Monad (void, when)
+import Control.Monad.Except (runExcept)
+import Control.Monad.Reader (runReaderT)
+import Data.Function (on)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Set (Set)
+import Data.Set qualified as Set
 import Data.Text (Text)
+import GHC.Generics (Generic)
 import Prettyprinter
 
 import Control.Monad.Error.Class (MonadError (throwError))
-import Recalc.Engine (Fetch, FetchError (..), Language (..), SheetId, getEnv, localEnv)
+import Recalc.Engine
+  ( Fetch
+  , FetchError (..)
+  , Ix (Cell)
+  , Language (..)
+  , fetchType
+  , fetchValue
+  , getEnv
+  , localEnv
+  )
+import Recalc.Engine.Core
+import Recalc.Syntax.Parser (Parser, keyword)
 import Recalc.Syntax.Term
 
 data Decl = Decl
@@ -38,45 +55,10 @@ data Env = Env
   , globals :: Globals
   }
 
--- | treating Boolean values as globals
-prelude :: Globals
-prelude =
-  Map.fromList
-    [ ("Bool", Decl (VSet 0) Nothing)
-    , ("False", Decl (vfree "Bool") Nothing)
-    , ("True", Decl (vfree "Bool") Nothing)
-    , ("not", Decl (vfree "Bool" `vfun` vfree "Bool") (Just notImpl))
-    , ("and", Decl (vfree "Bool" `vfun` vfree "Bool" `vfun` vfree "Bool") (Just andImpl))
-    , ("or", Decl (vfree "Bool" `vfun` vfree "Bool" `vfun` vfree "Bool") (Just orImpl))
-    ]
- where
-  notImpl =
-    VLam (Just (CaseInsensitive "x"))
-      $ VNeutral . \case
-        VNeutral (NFree "False") -> NFree "True"
-        VNeutral (NFree "True") -> NFree "False"
-        x -> NApp (NFree "not") x
-
-  andImpl = VLam (Just (CaseInsensitive "x")) $ \x ->
-    VLam (Just (CaseInsensitive "y")) $ \y ->
-      VNeutral $ case (x, y) of
-        (VNeutral (NFree "False"), VNeutral (NFree "False")) -> NFree "False"
-        (VNeutral (NFree "True"), VNeutral (NFree "False")) -> NFree "False"
-        (VNeutral (NFree "False"), VNeutral (NFree "True")) -> NFree "False"
-        (VNeutral (NFree "True"), VNeutral (NFree "True")) -> NFree "True"
-        _ -> NApp (NApp (NFree "and") x) y
-
-  orImpl = VLam (Just (CaseInsensitive "x")) $ \x ->
-    VLam (Just (CaseInsensitive "y")) $ \y ->
-      VNeutral $ case (x, y) of
-        (VNeutral (NFree "False"), VNeutral (NFree "False")) -> NFree "False"
-        (VNeutral (NFree "True"), VNeutral (NFree "False")) -> NFree "True"
-        (VNeutral (NFree "False"), VNeutral (NFree "True")) -> NFree "True"
-        (VNeutral (NFree "True"), VNeutral (NFree "True")) -> NFree "True"
-        _ -> NApp (NApp (NFree "or") x) y
-
 -- | values are types
 type Type = Value
+
+instance Eq Value where (==) = (==) `on` quote
 
 data SemanticError
   = TypeMismatch Type Type
@@ -100,22 +82,26 @@ eval' :: Term m -> Fetch (Term Infer) Value
 eval' term = do
   Env{globals} <- getEnv
   let
-    go :: [Value] -> Term m -> Value
+    go :: [Value] -> Term m -> Fetch (Term Infer) Value
     go valueEnv = \case
       Inf x -> go valueEnv x
-      Lam p body -> VLam p (\x -> go (x : valueEnv) body)
+      Lam p body -> pure $ VLam p (\x -> go (x : valueEnv) body)
       Ann x _ty -> go valueEnv x
-      Set k -> VSet k
-      Pi p dom range ->
-        let dom' = go valueEnv dom
-        in  VPi p dom' (\v -> go (v : valueEnv) range)
-      Bound i -> valueEnv !! i
+      Set k -> pure (VSet k)
+      Pi p dom range -> do
+        dom' <- go valueEnv dom
+        pure $ VPi p dom' (\v -> go (v : valueEnv) range)
+      Bound i -> pure (valueEnv !! i)
+      Ref sheetId _ ca -> fetchValue sheetId ca
       Free name
-        | Just Decl{declValue = Just v} <- Map.lookup name globals -> v
-        | otherwise -> vfree name
-      f :$ x -> vapp (go valueEnv f) (go valueEnv x)
+        | Just Decl{declValue = Just v} <- Map.lookup name globals -> pure v
+        | otherwise -> pure (vfree name)
+      f :$ x -> do
+        f' <- go valueEnv f
+        x' <- go valueEnv x
+        vapp f' x'
 
-  pure (go [] term)
+  go [] term
 
 {- Bi-directional Type Checking -}
 
@@ -126,9 +112,10 @@ check' i ty = \case
     when (quote ty' /= quote ty)
       $ throwSemanticError (TypeMismatch ty' ty)
   x@(Lam _ body) -> case ty of
-    VPi p t t' ->
+    VPi p t t' -> do
+      t'' <- t' (vfree (Local p i))
       bindType (Local p i) t
-        $ check' (i + 1) (t' (vfree (Local p i)))
+        $ check' (i + 1) t''
         $ subst 0 (Free (Local p i)) body
     ty' -> throwSemanticError (TypeMismatchPi x ty')
 
@@ -154,11 +141,13 @@ infer' i = \case
     case Map.lookup name globals of
       Just Decl{declType} -> pure declType
       Nothing -> throwSemanticError (UnknownIdentifier name)
+  Ref sheetId _ ca -> fetchType sheetId ca
   f :$ x ->
     infer' i f >>= \case
       VPi _ t t' -> do
         check' i t x
-        t' <$> eval' x
+        x' <- eval' x
+        t' x'
       t -> throwSemanticError (IllegalApplication t)
 
 inferUniverse' :: Int -> Term Check -> Fetch (Term Infer) Int
@@ -177,17 +166,19 @@ inferUniverse' i = \case
 
 -- | interface implementation
 instance Language (Term Infer) where
-  deps _ = go mempty
+  deps = go mempty
    where
-    go acc = acc -- collect all dependencies (currenty none)
-    -- Inf x -> go acc x
-    -- Lam _ body -> go acc body
-    -- Ann x ty -> go (go acc x) ty
-    -- Set{} -> acc
-    -- Pi _ ty1 ty2 -> go (go acc ty1) ty2
-    -- Bound{} -> acc
-    -- Free{} -> acc
-    -- f :$ x -> go (go acc f) x
+    go :: Set CellRange -> Term m -> Set CellRange
+    go acc = \case
+      Inf x -> go acc x
+      Lam _ body -> go acc body
+      Ann x ty -> go (go acc x) ty
+      Set{} -> acc
+      Pi _ ty1 ty2 -> go (go acc ty1) ty2
+      Bound{} -> acc
+      Free{} -> acc
+      Ref _sheetId _ ca -> Set.singleton (ca, ca)
+      f :$ x -> go (go acc f) x
 
   type EnvOf (Term Infer) = Env
   newEnv = (`Env` prelude)
@@ -206,6 +197,121 @@ instance Language (Term Infer) where
 
   eval :: Term Infer -> Fetch (Term Infer) Value
   eval = eval'
+
+{- Values -}
+
+-- ** Normal Forms
+
+data Neutral
+  = NFree !Name
+  | NRef !SheetId !CellAddr
+  | NApp !Neutral !Value
+  deriving (Generic)
+
+data Value
+  = VLam !(Maybe CaseInsensitive) !(Value -> Fetch (Term Infer) Value)
+  | VSet !Int
+  | VPi !(Maybe CaseInsensitive) !Value !(Value -> Fetch (Term Infer) Value)
+  | VNeutral !Neutral
+
+vfree :: Name -> Value
+vfree = VNeutral . NFree
+
+infixr 9 `vfun`
+
+vfun :: Value -> Value -> Value
+vfun dom range = VPi Nothing dom (const $ pure range)
+
+vapp :: Value -> Value -> Fetch (Term Infer) Value
+vapp (VLam _n f) v = f v
+vapp (VNeutral n) v = pure (VNeutral (NApp n v))
+vapp f _ = throwSemanticError (IllegalApplication f)
+
+vlam :: Maybe CaseInsensitive -> (Value -> Value) -> Value
+vlam vname body = VLam vname $ \x -> pure (body x)
+
+vpi :: Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
+vpi vname dom range = VPi vname dom $ \x -> pure (range x)
+
+instance Show Value where show = show . pretty
+
+-- ** Quoting
+
+quote :: Value -> Term Check
+quote = go 0
+ where
+  go i = \case
+    VLam vname body ->
+      let
+        body' = quoteAbs $ body (vfree (Quote i))
+      in
+        Lam vname (go (i + 1) body')
+    VSet k -> Inf (Set k)
+    VPi vname dom range ->
+      let
+        range' = quoteAbs $ range (vfree (Quote i))
+      in
+        Inf $ Pi vname (go i dom) (go (i + 1) range')
+    VNeutral n -> Inf (goNeutral i n)
+
+  goNeutral i = \case
+    NFree n -> Free n
+    NRef sheetId ca -> Ref sheetId FullySpecified ca
+    NApp n v -> goNeutral i n :$ go i v
+
+  quoteAbs :: Fetch (Term Infer) Value -> Value
+  quoteAbs v = either (error . show) id $ do
+    let
+      fetch = \case
+        Cell _ sheetId ca -> pure (VNeutral (NRef sheetId ca))
+        _ -> throwSemanticError undefined
+     in
+      runExcept $ runReaderT v (fetch, Env undefined mempty)
+
+instance Pretty Value where
+  pretty = pretty . quote
+
+valueP :: Parser Value
+valueP = vfree . Global <$> keyword
+
+{- Prelude -}
+
+-- | treating Boolean values as globals
+prelude :: Globals
+prelude =
+  Map.fromList
+    [ ("Bool", Decl (VSet 0) Nothing)
+    , ("False", Decl (vfree "Bool") Nothing)
+    , ("True", Decl (vfree "Bool") Nothing)
+    , ("not", Decl (vfree "Bool" `vfun` vfree "Bool") (Just notImpl))
+    , ("and", Decl (vfree "Bool" `vfun` vfree "Bool" `vfun` vfree "Bool") (Just andImpl))
+    , ("or", Decl (vfree "Bool" `vfun` vfree "Bool" `vfun` vfree "Bool") (Just orImpl))
+    ]
+ where
+  notImpl =
+    vlam (Just (CaseInsensitive "x"))
+      $ VNeutral . \case
+        VNeutral (NFree "False") -> NFree "True"
+        VNeutral (NFree "True") -> NFree "False"
+        x -> NApp (NFree "not") x
+
+  andImpl = vlam (Just (CaseInsensitive "x")) $ \x ->
+    vlam (Just (CaseInsensitive "y")) $ \y ->
+      VNeutral $ case (x, y) of
+        (VNeutral (NFree "False"), VNeutral (NFree "False")) -> NFree "False"
+        (VNeutral (NFree "True"), VNeutral (NFree "False")) -> NFree "False"
+        (VNeutral (NFree "False"), VNeutral (NFree "True")) -> NFree "False"
+        (VNeutral (NFree "True"), VNeutral (NFree "True")) -> NFree "True"
+        _ -> NApp (NApp (NFree "and") x) y
+
+  orImpl = vlam (Just (CaseInsensitive "x")) $ \x ->
+    vlam (Just (CaseInsensitive "y")) $ \y ->
+      VNeutral $ case (x, y) of
+        (VNeutral (NFree "False"), VNeutral (NFree "False")) -> NFree "False"
+        (VNeutral (NFree "True"), VNeutral (NFree "False")) -> NFree "True"
+        (VNeutral (NFree "False"), VNeutral (NFree "True")) -> NFree "True"
+        (VNeutral (NFree "True"), VNeutral (NFree "True")) -> NFree "True"
+        _ -> NApp (NApp (NFree "or") x) y
 
 {- Errors -}
 

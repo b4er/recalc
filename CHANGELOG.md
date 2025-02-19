@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.1.0 -- 2025-02-19
+## 0.7.2.0 -- 2025-02-19
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -24,3 +24,4 @@
   up to the server.
 * Adjust project structure and add static builds for building the .vsix
 * More tests for Recalc.Semantics and some bugfixes.
+* Implement simple cell references (no ranges due to current typing).

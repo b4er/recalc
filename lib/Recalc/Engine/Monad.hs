@@ -20,15 +20,16 @@ import Control.Monad.Except (ExceptT (..), runExceptT)
 import Control.Monad.Reader (asks, local, runReaderT)
 import Control.Monad.State.Strict
 
+import Recalc.Engine.Core (CellAddr, SheetId)
 import Recalc.Engine.DependencyMap qualified as Deps
 import Recalc.Engine.DocumentStore
 import Recalc.Engine.Language
 
-fetchType :: URI -> Text -> CellAddr -> Fetch env err value value
-fetchType uri sheetId ca = lift . ($ Cell Type (uri, sheetId) ca) =<< asks fst
+fetchType :: SheetId -> CellAddr -> Fetch env err value value
+fetchType sheetId ca = lift . ($ Cell Type sheetId ca) =<< asks fst
 
-fetchValue :: URI -> Text -> CellAddr -> Fetch env err value value
-fetchValue uri sheetId ca = lift . ($ Cell Value (uri, sheetId) ca) =<< asks fst
+fetchValue :: SheetId -> CellAddr -> Fetch env err value value
+fetchValue sheetId ca = lift . ($ Cell Value sheetId ca) =<< asks fst
 
 getEnv :: Fetch env err value env
 getEnv = asks snd

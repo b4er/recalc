@@ -23,16 +23,9 @@ import Network.URI (URI)
 import Prettyprinter
 import Text.Megaparsec (ParseErrorBundle, errorBundlePretty)
 
--- | Row and column (both zero-indexed)
-type CellAddr = (Int, Int)
-
--- | Beginning (top left) and end (bottom right) of a range
-type CellRange = (CellAddr, CellAddr)
+import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
 
 data Kind = Type | Value deriving (Eq, Ord, Show)
-
--- | Spreadsheets are uniquely determined by a resource id and sheet name
-type SheetId = (URI, Text)
 
 -- | The spreadsheet engine can be queried for re-evaluation of
 -- cells (types and values) and volatile results.

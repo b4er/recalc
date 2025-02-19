@@ -60,6 +60,7 @@ import Data.Set qualified as Set
 import Data.Void (Void)
 import Text.Megaparsec (ParseErrorBundle)
 
+import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
 import Recalc.Engine.DocumentStore
@@ -91,7 +92,7 @@ type Parsed = Either (ParseErrorBundle String Void)
 -- | input data can be arbitrary
 class Language (TermOf dat) => Input dat where
   type TermOf dat
-  exprOrValueOf :: String -> dat -> Maybe (Parsed (Either (TermOf dat) (ValueOf (TermOf dat))))
+  exprOrValueOf :: SheetId -> dat -> Maybe (Parsed (Either (TermOf dat) (ValueOf (TermOf dat))))
 
   type MetaOf dat
   metaOf :: dat -> MetaOf dat
@@ -112,21 +113,16 @@ validateCells
   => SheetId
   -> [(CellAddr, dat)]
   -> (MetaChangesOf dat, ChangesOf dat)
-validateCells _sheetId = go [] [] [] []
+validateCells sheetId = go [] [] [] []
  where
   go meta errors values formulas ((ca, dat) : cs) =
-    case exprOrValueOf (showExcel26 ca) dat of
+    case exprOrValueOf sheetId dat of
       Nothing -> go ((ca, metaOf dat) : meta) errors values formulas cs
       Just q -> case q of
         Left e -> go meta ((ca, metaOf dat, e) : errors) values formulas cs
         Right (Left x) -> go meta errors values ((ca, metaOf dat, x) : formulas) cs
         Right (Right v) -> go meta errors ((ca, metaOf dat, v) : values) formulas cs
   go meta errors values formulas [] = (meta, (errors, values, formulas))
-
-  showExcel26 :: CellAddr -> String
-  showExcel26 (r, c) = row <> show (r + 1)
-   where
-    row = concatMap sequence (tail $ iterate (['A' .. 'Z'] :) []) !! c
 
 updateMeta
   :: (Isn't cell, Meta cell, Monad f)

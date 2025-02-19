@@ -107,13 +107,6 @@ termP = space *> term <* eof
 
 type Value = Maybe Int
 
--- instance Pretty Term where
---   pretty = \case
---     Num n -> pretty n
---     Ref r -> pretty (showExcel26 r)
---     Add x y -> pretty x <+> "+" <+> pretty y
---     Sum (s,t) -> "SUM(" <> pretty (showExcel26 s) <> ":" <> pretty (showExcel26 t) <> ")"
-
 instance Language Term where
   type EnvOf Term = SheetId
   newEnv = id
@@ -133,18 +126,18 @@ instance Language Term where
   eval = \case
     Num n -> pure (Just n)
     Add x y -> liftA2 (+) <$> eval x <*> eval y
-    Ref ref -> do (uri, sheetId) <- getEnv; fetchValue uri sheetId ref
+    Ref ref -> do sheetId <- getEnv; fetchValue sheetId ref
     Sum (x, y) -> do
-      (uri, sheetId) <- getEnv
+      sheetId <- getEnv
       Just . sum . catMaybes
         <$> sequence
-          [fetchValue uri sheetId (i, j) | i <- [fst x .. fst y], j <- [snd x .. snd y]]
+          [fetchValue sheetId (i, j) | i <- [fst x .. fst y], j <- [snd x .. snd y]]
 
 instance Input String where
   type TermOf String = Term
 
-  -- \| parse strings starting with @"="@ as term, else treat as value
-  exprOrValueOf fileName ('=' : input) = Just (parse (Left <$> termP <* eof) fileName input)
+  -- parse strings starting with @"="@ as term, else treat as value
+  exprOrValueOf sheetId ('=' : input) = Just (parse (Left <$> termP <* eof) (Text.unpack (snd sheetId)) input)
   exprOrValueOf _ input = Just (Right (Right (Just (read @Int input))))
 
   type MetaOf String = ()

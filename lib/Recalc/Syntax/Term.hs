@@ -11,13 +11,17 @@ Types definitions for a very basic dependently typed lambda calculus based on
 -}
 module Recalc.Syntax.Term where
 
+import Data.Char (isAlphaNum)
 import Data.Function (on)
 import Data.Maybe (fromMaybe)
 import Data.String
-import Data.Text (Text, pack, toLower)
+import Data.Text qualified as Text
 import GHC.Generics (Generic)
+import Network.URI
 import Numeric
 import Prettyprinter
+
+import Recalc.Engine
 
 -- * Terms
 
@@ -28,7 +32,7 @@ data Mode = Check | Infer deriving (Eq, Show)
 newtype CaseInsensitive = CaseInsensitive {originalText :: Text}
 
 caseInsensitive :: CaseInsensitive -> Text
-caseInsensitive = toLower . originalText
+caseInsensitive = Text.toLower . originalText
 
 instance Eq CaseInsensitive where
   (==) = (==) `on` caseInsensitive
@@ -64,10 +68,13 @@ instance Ord Name where
 
 instance IsString Name where
   fromString :: String -> Name
-  fromString = Global . CaseInsensitive . pack
+  fromString = Global . CaseInsensitive . Text.pack
 
 pat :: Text -> Maybe CaseInsensitive
 pat = Just . CaseInsensitive
+
+data RefInfo = FullySpecified | SheetOnly | Unspecified
+  deriving (Show)
 
 data Term (m :: Mode) where
   -- | inferrable terms are checkable
@@ -84,6 +91,8 @@ data Term (m :: Mode) where
   Bound :: !Int -> Term Infer
   -- | free variable
   Free :: !Name -> Term Infer
+  -- | cell references
+  Ref :: !(URI, Text) -> RefInfo -> CellAddr -> Term Infer
   -- | application
   (:$) :: !(Term Infer) -> !(Term Check) -> Term Infer
 
@@ -97,6 +106,7 @@ instance Eq (Term m) where
   Pi _ dom range == Pi _ dom' range' = dom == dom' && range == range'
   Bound i == Bound j = i == j
   Free name == Free name' = name == name'
+  Ref sheetId _ ca == Ref sheetId' _ ca' = sheetId == sheetId' && ca == ca'
   f :$ x == g :$ y = f == g && x == y
   _ == _ = False
 
@@ -123,56 +133,8 @@ subst i r = \case
     | i == j -> r
     | otherwise -> Bound j
   Free n -> Free n
+  Ref sheetId refInfo ca -> Ref sheetId refInfo ca
   x :$ y -> subst i r x :$ subst i r y
-
--- * Evaluation
-
--- ** Normal Form
-
-data Neutral
-  = NFree !Name
-  | NApp !Neutral !Value
-  deriving (Generic)
-
-data Value
-  = VLam !(Maybe CaseInsensitive) !(Value -> Value)
-  | VSet !Int
-  | VPi !(Maybe CaseInsensitive) !Value !(Value -> Value)
-  | VNeutral !Neutral
-  deriving (Generic)
-
-instance Eq Value where
-  (==) = (==) `on` quote
-
-vfree :: Name -> Value
-vfree = VNeutral . NFree
-
-infixr 9 `vfun`
-
-vfun :: Value -> Value -> Value
-vfun dom range = VPi Nothing dom (const range)
-
-vapp :: Value -> Value -> Value
-vapp (VLam _n f) v = f v
-vapp (VNeutral n) v = VNeutral (NApp n v)
-vapp a b = error ("vapp: " ++ show (a, b))
-
-instance Show Value where show = show . pretty
-
--- ** Quoting
-
-quote :: Value -> Term Check
-quote = go 0
- where
-  go i = \case
-    VLam n f -> Lam n $ go (i + 1) $ f (vfree (Quote i))
-    VSet k -> Inf (Set k)
-    VPi n v f -> Inf $ Pi n (go i v) (go (i + 1) (f (vfree (Quote i))))
-    VNeutral n -> Inf (goNeutral i n)
-
-  goNeutral i = \case
-    NFree n -> Free n
-    NApp n v -> goNeutral i n :$ go i v
 
 instance Pretty CaseInsensitive where
   pretty = pretty . originalText
@@ -186,6 +148,11 @@ braced :: [Doc ann] -> Doc ann
 braced =
   group
     . encloseSep (flatAlt "{ " "{") (flatAlt " }" "}") ", "
+
+showExcel26 :: CellAddr -> String
+showExcel26 (r, c) = row <> show (r + 1)
+ where
+  row = concatMap sequence (tail $ iterate (['A' .. 'Z'] :) []) !! c
 
 instance Pretty (Term m) where
   pretty = pr [] 0
@@ -211,9 +178,24 @@ instance Pretty (Term m) where
       Bound j -> pretty (env !! j)
       Free (Quote n) -> pretty (reverse env !! n)
       Free n -> pretty n
+      Ref (uri, sheetName) refInfo ca -> case refInfo of
+        FullySpecified -> quoteSheetRef True (brackets (prettyURI uri) <> escapeUri sheetName) <> "!" <> prettyCellAddr ca
+        SheetOnly -> quoteSheetRef False (escapeUri sheetName) <> "!" <> prettyCellAddr ca
+        Unspecified -> prettyCellAddr ca
+       where
+        quoteSheetRef showUri
+          | (showUri && requireQuotes (prettyURI' uri))
+              || requireQuotes sheetName =
+              enclose "'" "'"
+          | otherwise = id
       app@(:$){} ->
         let (y, ys) = splitApp app
         in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0) ys)
+
+    prettyCellAddr = pretty . Text.pack . showExcel26
+    requireQuotes =
+      Text.any
+        (\c -> not (isAlphaNum c) && c `notElem` ("._~" :: String))
 
     parensIf b doc
       | b = "(" <> doc <> ")"
@@ -228,16 +210,31 @@ instance Pretty (Term m) where
     funP = 1 :: Int
     annP = 2 :: Int
 
+prettyURI :: URI -> Doc ann
+prettyURI = escapeUri . prettyURI'
+
+prettyURI' :: URI -> Text
+prettyURI' = stripPrefix "file://" . Text.pack . unEscapeString . show
+ where
+  stripPrefix prefix str
+    | Just trimmed <- Text.stripPrefix prefix str = trimmed
+    | otherwise = str
+
+escapeUri :: Text -> Doc ann
+escapeUri =
+  pretty
+    . Text.replace "'" "\\'"
+    . Text.replace "[" "\\["
+    . Text.replace "]" "\\]"
+    . Text.replace "\\" "\\\\"
+
 genFresh :: [CaseInsensitive] -> CaseInsensitive
 genFresh env =
   head . filter (`notElem` env)
-    $ CaseInsensitive "x" : map (CaseInsensitive . ("x" <>) . pack . show) [1 :: Int ..]
+    $ CaseInsensitive "x" : map (CaseInsensitive . ("x" <>) . Text.pack . show) [1 :: Int ..]
 
 splitFun :: Term Infer -> ([Term Check], Term Check)
 splitFun = go []
  where
   go acc (Pi Nothing x (Inf y)) = go (x : acc) y
   go acc y = (reverse acc, Inf y)
-
-instance Pretty Value where
-  pretty = pretty . quote

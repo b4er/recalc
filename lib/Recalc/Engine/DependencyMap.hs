@@ -12,7 +12,7 @@ import Data.Map qualified as Map
 import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 
-import Recalc.Engine.Language (CellAddr, CellRange, SheetId)
+import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
 
 -- point :: x -> (x, x)
 -- point x = (x, x)

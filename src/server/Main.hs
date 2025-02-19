@@ -18,10 +18,10 @@ import Text.Megaparsec (ParseErrorBundle, eof, parse)
 
 import List_add
 import Recalc.Engine qualified as Engine
-import Recalc.Semantics (semanticErrorTitle)
+import Recalc.Semantics (semanticErrorTitle, valueP)
 import Recalc.Server
 import Recalc.Server.Protocol
-import Recalc.Syntax.Parser (Parser, formulaP, valueP)
+import Recalc.Syntax.Parser (Parser, formulaP)
 import Recalc.Syntax.Term
 
 -- | the 'EngineState' describes which additional state per element in the
@@ -43,13 +43,13 @@ instance Engine.Input CellData where
   type MetaOf CellData = CellData -- do we need all?
   metaOf = id
 
-  exprOrValueOf loc CellData{..} = case (cellData'f, cellData'v) of
+  exprOrValueOf sheetId CellData{..} = case (cellData'f, cellData'v) of
     (Is formula, _) -> Just (Left <$> parse' formulaP formula)
     (_, Is value) -> Just (Right <$> parse' valueP value)
     _ -> Nothing
    where
     parse' :: Parser a -> Text -> Either (ParseErrorBundle String Void) a
-    parse' p = parse (p <* eof) loc . Text.unpack
+    parse' p = parse (runReaderT p sheetId <* eof) (Text.unpack (snd sheetId)) . Text.unpack
 
 type SheetsApi = ToApi SpreadsheetProtocol
 

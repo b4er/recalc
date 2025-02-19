@@ -44,8 +44,9 @@ import Control.Monad ((<=<))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
-
 import Data.Text qualified as Text
+
+import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
 import Recalc.Engine.Language hiding (Cell)
 
 -- | The document store keeps a 'Document' for each resource id.

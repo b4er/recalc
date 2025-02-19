@@ -8,6 +8,7 @@ import Prettyprinter.Render.String (renderString)
 import Test.Hspec (Expectation, Spec, describe, it)
 import Text.Megaparsec ((<|>))
 
+import Recalc.Engine (SheetId)
 import Recalc.Syntax.Fixity
 import Recalc.Syntax.Parser
 import Recalc.Syntax.Test
@@ -58,14 +59,14 @@ spec :: Spec
 spec = do
   describe "makeOpsParser"
     . manyIt "parses" succeeds
-    $ \(input, x, _) -> parseTest e input x
+    $ \(input, x, _) -> parseTest sheetId e input x
 
   describe "makeOpsParser/ppHelpers"
     . manyIt "re-encodes" succeeds
     $ \(input, _, check) ->
-      when check $ parseTest (renderE <$> e) input input
+      when check $ parseTest sheetId (renderE <$> e) input input
 
-  describe "makeOpsParser" . manyIt "rejects" rejects $ failTest e
+  describe "makeOpsParser" . manyIt "rejects" rejects $ failTest sheetId e
  where
   -- [(string input, expected, True <--> test render(parse(input)) == input)]
   succeeds =
@@ -118,3 +119,6 @@ manyIt verb cases prop =
   zipWithM_ (\ex i -> it (message i) (prop ex)) cases [1 :: Int ..]
  where
   message i = verb <> " example-" <> show i
+
+sheetId :: SheetId
+sheetId = undefined

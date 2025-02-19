@@ -12,9 +12,10 @@ module Recalc.Syntax.Parser
   ( -- * Term Parser
     Parser
   , formulaP
-  , valueP
+  , keyword
 
     -- * Exported as Testing Utilities
+  , cellReferenceOrFree
   , decimal
   , parens
   , readExcel
@@ -22,20 +23,22 @@ module Recalc.Syntax.Parser
   ) where
 
 import Control.Monad (void)
-import Data.Char (isDigit, isUpper, ord, toLower)
+import Control.Monad.Reader (ReaderT, ask, asks)
+import Data.Char (isDigit, isPrint, isUpper, ord, toLower)
 import Data.List (elemIndex)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Void (Void)
+import Network.URI (escapeURIString, isUnescapedInURI, parseURI)
 import Text.Megaparsec
 import Text.Megaparsec.Char qualified as Char
 import Text.Megaparsec.Char.Lexer qualified as Lexer
 
-import Recalc.Engine (CellAddr)
+import Recalc.Engine.Core
 import Recalc.Syntax.Term
 
--- | simple parser with no internal state
-type Parser = Parsec Void String
+-- | simple parser keeps the "SheetId" as state
+type Parser = ReaderT SheetId (Parsec Void String)
 
 -- | parse whitespace (disallow both line- and block comments).
 spaces :: Parser ()
@@ -74,13 +77,12 @@ isKeyword x =
 word :: Parser String
 word = (:) <$> startChar <*> many middleChar
 
-identifier, keyword, identifierOrKeyword :: Parser CaseInsensitive
+identifier, keyword :: Parser CaseInsensitive
 identifier = CaseInsensitive . Text.pack <$> (lexeme . try) (word >>= check)
  where
   check x
     | isKeyword x = fail $ "keyword ‘" ++ x ++ "’ cannot be an identifier"
     | otherwise = pure x
-identifierOrKeyword = CaseInsensitive . Text.pack <$> (lexeme . try) word
 keyword = CaseInsensitive . Text.pack <$> (lexeme . try) (word >>= check)
  where
   check x
@@ -140,6 +142,7 @@ resolve = go []
     Pi n x y -> Pi n (go env x) (go ((Global <$> n) : env) y)
     Bound i -> Bound (i + length env)
     v@(Free n) -> maybe v Bound $ elemIndex (Just n) env
+    ref@Ref{} -> ref
     x :$ y -> go env x :$ go env y
 
 termI :: Parser (Term Infer)
@@ -172,10 +175,81 @@ termI =
 
   atom =
     choice
-      [ Free . Global <$> identifierOrKeyword
+      [ cellReferenceOrFree
       , parens termI
       , Set 0 <$ symbol "*"
       ]
+
+cellReferenceOrFree :: Parser (Term Infer)
+cellReferenceOrFree = choice [noUri, withUri, quoted]
+ where
+  cellRef = lexeme $ do
+    ca' <- word
+    case readExcel (Text.pack ca') of
+      Just ca -> pure ca
+      _ -> fail $ "‘" ++ ca' ++ "’ is not a cell reference"
+
+  cellRange = cellRef
+  readExcelCellRange = readExcel
+
+  simpleWord =
+    (:)
+      <$> choice (Char.letterChar : map Char.char "_~")
+      <*> many (choice (Char.alphaNumChar : map Char.char "._~"))
+
+  escapedWord = many (try escaped <|> normalChar)
+   where
+    escaped = choice $ map (\(c, esc) -> c <$ Char.string esc) specialChars
+    normalChar = satisfy $ \c -> isPrint c && c `notElem` map fst specialChars
+    specialChars = [(c, '\\' : [c]) | c <- "'[]\\"]
+
+  -- for example: @bool@, @sheet!A3@, or @A3@
+  noUri = do
+    (uri, sheetName) <- ask
+    prefix <- Text.pack <$> lexeme simpleWord
+    (symbol "!" *> (Ref (uri, prefix) SheetOnly <$> cellRange))
+      <|> pure
+        ( case readExcelCellRange prefix of
+            Just ca -> Ref (uri, sheetName) Unspecified ca
+            Nothing -> Free (Global (CaseInsensitive prefix))
+        )
+
+  -- eg. @[file]data!A1@
+  withUri = do
+    uri <- checkUri =<< between (symbol "[") (symbol "]") simpleWord
+    sheetName <- simpleWord
+    Ref (uri, Text.pack sheetName) FullySpecified <$> (symbol "!" *> cellRange)
+
+  -- eg. @'Sheet 1'!B3@, or @'[file name]sheet!A1'@
+  quoted =
+    uncurry Ref
+      <$> between (symbol "'") (symbol "'") quotedSheetId
+      <*> (symbol "!" *> cellRange)
+
+  -- eg. @[file name]sheet@, or @Sheet 13@
+  quotedSheetId = do
+    currentUri <- asks fst
+    (uri, spec) <-
+      option
+        (currentUri, SheetOnly)
+        ((,FullySpecified) <$> between (symbol "[") (symbol "]") (escapedWord >>= checkUri))
+    sheetId <- Text.pack <$> escapedWord
+    pure ((uri, sheetId), spec)
+
+  checkUri uri' =
+    case parseURI (escapeURI uri') <|> parseURI ("file://" <> escapeURI uri') of
+      Nothing -> fail $ "‘" ++ uri' ++ "’ is not a valid URI"
+      Just uri -> pure uri
+
+  escapeURI = escapeSpecialChars . escapeURIString isUnescapedInURI
+
+  escapeSpecialChars =
+    Text.unpack
+      . Text.replace "'" "%27"
+      . Text.replace "[" "%5B"
+      . Text.replace "]" "%5D"
+      . Text.replace "\\" "%5C"
+      . Text.pack
 
 termC, lambda :: Parser (Term Check)
 termC = lambda <|> (Inf <$> termI)
@@ -187,7 +261,3 @@ lambda =
   lams vars body = foldr Lam body vars
 
   binderP = Just <$> identifier <|> Nothing <$ Char.string "_"
-
-{- Value Parsing -}
-valueP :: Parser Value
-valueP = vfree . Global <$> keyword
