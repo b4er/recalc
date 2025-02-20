@@ -7,6 +7,10 @@ export enum Loglevel {
   Debug = 3,
 }
 
+export function readLoglevel(input: string) {
+	return ["error", "warning", "info", "debug"].indexOf(input.toLowerCase())
+}
+
 /** extends rpc.Logger (compatible) with data and flag (when set vscode will open a notification) */
 export type IExtensionLogger = {
 	error: (message: string, error?: Error, data?: any, showNotification?: boolean) => void;

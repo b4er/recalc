@@ -26,7 +26,7 @@ class TestClient extends Client<SpreadsheetProtocol> {
       : execSync(`cd .. && cabal list-bin ${_binName}`).toString('utf-8').trim()
 
     // spawn and hook up message transports
-    this.logger.log(`starting: ${binPath}`);
+    this.logger.info(`Starting: ${binPath}`);
     this.process = spawn("sh", ["-c", binPath]);
 
     if (!this.process || !this.process.stdout || !this.process.stderr) {

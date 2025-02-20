@@ -5,7 +5,7 @@
   "icon": "matrix-icon.png",
   "publisher": "b4er",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -21,7 +21,7 @@
     "configuration": {
       "title": "recalc",
       "properties": {
-        "spreadsheet-vscode.locale": {
+        "recalc-vscode.locale": {
           "type": "string",
           "enum": [
             "EN_US",
@@ -34,6 +34,12 @@
           "type": "string",
           "default": "",
           "description": "Spreadsheet server URI (resolved via @cabal list-bin@ when not set)."
+        },
+        "recalc-vscode.logLevel": {
+          "type": "string",
+          "default": "info",
+          "enum": ["debug", "info", "warning", "error"],
+          "description": "Controls the log level of the extension."
         },
         "recalc-vscode.serverMaxRestartCount": {
           "type": "number",

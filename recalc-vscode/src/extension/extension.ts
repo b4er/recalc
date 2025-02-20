@@ -7,6 +7,7 @@ import { Client, MessageTransports } from '../rpc/client';
 import { SpreadsheetEditorProvider } from './spreadsheet-editor';
 import { existsSync } from 'fs';
 import { ExtensionLogger } from './logging';
+import { readLoglevel } from '../rpc/logging';
 
 export function activate(context: vscode.ExtensionContext) {
 	// read vscode app-specific settings (as specified in package.json)
@@ -19,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 		private process?: ChildProcessWithoutNullStreams;
 
 		constructor() {
-			super(config.serverMaxRestartCount, new ExtensionLogger("recalc"));
+			super(config.serverMaxRestartCount, new ExtensionLogger("recalc", readLoglevel(config.logLevel)));
 		}
 
 		protected async createMessageTransports(encoding: "utf-8" | "ascii"): Promise<MessageTransports> {
@@ -35,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 						: execSync(`cabal list-bin ${_binName}`).toString('utf-8').trim();
 
 			// spawn and hook up message transports
-			this.logger.log(`starting: ${binPath}`);
+			this.logger.info(`Starting: ${binPath}`, undefined, true);
 			this.process = spawn("sh", ["-c", binPath]);
 
 			if (!this.process || !this.process.stdout || !this.process.stderr) {

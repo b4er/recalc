@@ -11,8 +11,10 @@ export enum RevealOutputChannelOn {
 
 export class ExtensionLogger {
   private outputChannel: vscode.OutputChannel;
+  private logLevel: Loglevel;
 
-  constructor(name: string) {
+  constructor(name: string, logLevel: Loglevel) {
+    this.logLevel = logLevel;
     this.outputChannel = vscode.window.createOutputChannel(name);
   }
 
@@ -31,18 +33,23 @@ export class ExtensionLogger {
   }
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  info(message: string, data?: any, showNotification: boolean = true): void {
+  info(message: string, data?: any, showNotification: boolean = false): void {
     this.logOutputMessage(Loglevel.Info, RevealOutputChannelOn.Info, message, data, showNotification);
   }
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  log(message: string, data?: any, showNotification: boolean = true): void {
+  log(message: string, data?: any, showNotification: boolean = false): void {
     this.logOutputMessage(Loglevel.Debug, RevealOutputChannelOn.Debug, message, data, showNotification);
   }
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
   private logOutputMessage(type: Loglevel, _reveal: RevealOutputChannelOn, message: string, data: any | undefined, showNotification: boolean): void {
-		const level = Loglevel[type];
+    if (this.logLevel < type) {
+      return;
+    }
+
+    const level = Loglevel[type];
+
     this.appendLog(level, message);
     if (data !== null && data !== undefined) {
       this.appendLog(level, JSON.stringify(data, null, 2));

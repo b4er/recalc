@@ -160,7 +160,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
     const mkUri = (...pathSegments: string[]) =>
       webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "dist", ...pathSegments));
 
-		const config = vscode.workspace.getConfiguration('spreadsheet-vscode');
+		const config = vscode.workspace.getConfiguration('recalc-vscode');
 
     return /* html */`
       <!DOCTYPE html>
