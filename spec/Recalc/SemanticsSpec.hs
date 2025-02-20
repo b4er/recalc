@@ -29,8 +29,8 @@ spec = do
 
   describe "infer" $ do
     it "passes Boolean examples" $ do
-      runInfer [] (Free "false") `shouldBe` Right (vfree "bool")
-      runInfer [] (Free "bool") `shouldBe` Right (VSet 0)
+      runInfer [] (boolOf False) `shouldBe` Right vbool
+      runInfer [] (Lit Bool) `shouldBe` Right (VSet 0)
 
     prop "passes Set(_) examples (hierarchy of universes)" $ \k ->
       runInfer [] (Set k) `shouldBe` Right (VSet (k + 1))
@@ -46,11 +46,11 @@ spec = do
         `shouldBe` Right ty-}
 
     it "infers built-ins correctly (boolean operators)" $ do
-      runInfer [] (Free "not") `shouldBe` Right (vfree "bool" `vfun` vfree "bool")
-      runInfer [] (Free "or") `shouldBe` Right (vfree "bool" `vfun` vfree "bool" `vfun` vfree "bool")
+      runInfer [] (Free "not") `shouldBe` Right (vbool `vfun` vbool)
+      runInfer [] (Free "or") `shouldBe` Right (vbool `vfun` vbool `vfun` vbool)
 
     it "infers application of built-ins (boolean operators + examples)" $ do
-      runInfer [] (Free "not" :$ Inf (Free "false")) `shouldBe` Right (vfree "bool")
+      runInfer [] (Free "not" :$ Inf (boolOf False)) `shouldBe` Right vbool
       runInfer
         [ ("any", typeDecl (VSet 0))
         , (Local Nothing 0, typeDecl (vpi Nothing (VSet 0) id))
@@ -78,9 +78,9 @@ spec = do
           (vlam (pat "a") (\_x -> VNeutral (NFree "not")))
 
     it "evaluates applications (Boolean values)" $ do
-      runEval (Free "not" :$ Inf (Free "true")) `shouldBe` Right (vfree "False")
-      runEval (Free "not" :$ Inf (Free "FALSE")) `shouldBe` Right (vfree "true")
-      runEval (Free "and" :$ Inf (Free "true") :$ Inf (Free "false")) `shouldBe` Right (vfree "FALSE")
+      runEval (Free "not" :$ Inf (boolOf True)) `shouldBe` Right (vboolOf False)
+      runEval (Free "not" :$ Inf (boolOf False)) `shouldBe` Right (vboolOf True)
+      runEval (Free "and" :$ Inf (boolOf True) :$ Inf (boolOf False)) `shouldBe` Right (vboolOf False)
 
     -- SKI combinators
     let

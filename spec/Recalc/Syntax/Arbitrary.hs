@@ -76,7 +76,8 @@ instance Arbitrary Set0 where
 genSet0Term :: Int -> Int -> Gen (Term Infer)
 genSet0Term depth bindersCount =
   oneof
-    $ pure (Free "bool")
+    $ pure (Lit Bool)
+      : pure (Lit Int)
       : map (pure . Bound) [0 .. bindersCount - 1]
         <> nested
  where

@@ -1,0 +1,2 @@
+- # the ranks are too high
+  ignore: { name: Avoid lambda }

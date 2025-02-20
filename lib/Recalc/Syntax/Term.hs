@@ -11,6 +11,8 @@ Types definitions for a very basic dependently typed lambda calculus based on
 -}
 module Recalc.Syntax.Term where
 
+import Data.Array.Dynamic (Array)
+import Data.Array.Dynamic qualified as Array
 import Data.Char (isAlphaNum)
 import Data.Function (on)
 import Data.Maybe (fromMaybe)
@@ -73,8 +75,27 @@ instance IsString Name where
 pat :: Text -> Maybe CaseInsensitive
 pat = Just . CaseInsensitive
 
+-- | cell references may be given @[file_name.rc]sheet!C3@, @sheet!C3@,
+-- or @C3@; corresponding to @FullySpecified@, @SheetOnly@, and
+-- @Unspecified@ respectively
 data RefInfo = FullySpecified | SheetOnly | Unspecified
   deriving (Show)
+
+-- | types of literals
+data Lit = Bool | Int
+  deriving (Eq, Show)
+
+-- | values of literals
+data LitOf
+  = BoolOf !Bool
+  | IntOf !Int
+  deriving (Eq, Show)
+
+-- | a tensor (type) is described by the number of dimensions
+-- of each component
+newtype TensorDescriptor = TensorDescriptor
+  {dims :: [Term Check]}
+  deriving (Eq, Show)
 
 data Term (m :: Mode) where
   -- | inferrable terms are checkable
@@ -93,6 +114,14 @@ data Term (m :: Mode) where
   Free :: !Name -> Term Infer
   -- | cell references
   Ref :: !(URI, Text) -> RefInfo -> CellAddr -> Term Infer
+  -- | literal types
+  Lit :: !Lit -> Term Infer
+  -- | literal terms
+  LitOf :: !LitOf -> Term Infer
+  -- | tensor type
+  Tensor :: !TensorDescriptor -> Term Infer
+  -- | tensor value (represented as a multi-dimensional array)
+  TensorOf :: !TensorDescriptor -> !(Array (Term Check)) -> Term Infer
   -- | application
   (:$) :: !(Term Infer) -> !(Term Check) -> Term Infer
 
@@ -107,8 +136,18 @@ instance Eq (Term m) where
   Bound i == Bound j = i == j
   Free name == Free name' = name == name'
   Ref sheetId _ ca == Ref sheetId' _ ca' = sheetId == sheetId' && ca == ca'
+  Lit lit == Lit lit' = lit == lit'
+  LitOf val == LitOf val' = val == val'
+  Tensor td == Tensor td' = td == td'
+  TensorOf td arr == TensorOf td' arr' = td == td' && arr == arr'
   f :$ x == g :$ y = f == g && x == y
   _ == _ = False
+
+boolOf :: Bool -> Term Infer
+boolOf = LitOf . BoolOf
+
+intOf :: Int -> Term Infer
+intOf = LitOf . IntOf
 
 lam :: CaseInsensitive -> Term Check -> Term Check
 lam = Lam . Just
@@ -134,7 +173,15 @@ subst i r = \case
     | otherwise -> Bound j
   Free n -> Free n
   Ref sheetId refInfo ca -> Ref sheetId refInfo ca
+  Lit lit -> Lit lit
+  LitOf val -> LitOf val
+  Tensor td -> Tensor (substTensor i r td)
+  TensorOf td arr -> TensorOf (substTensor i r td) (subst i r <$> arr)
   x :$ y -> subst i r x :$ subst i r y
+
+substTensor :: Int -> Term Infer -> TensorDescriptor -> TensorDescriptor
+substTensor i r (TensorDescriptor dims) =
+  TensorDescriptor (subst i r `map` dims)
 
 instance Pretty CaseInsensitive where
   pretty = pretty . originalText
@@ -143,6 +190,21 @@ instance Pretty Name where
   pretty = \case
     Global n -> pretty n
     x -> "{" <> viaShow x <> "}"
+
+instance Pretty TensorDescriptor where
+  pretty (TensorDescriptor dims) =
+    align
+      $ encloseSep "⟨" "⟩" comma (map pretty dims)
+
+instance Pretty Lit where
+  pretty = \case
+    Bool -> "bool"
+    Int -> "int"
+
+instance Pretty LitOf where
+  pretty = \case
+    BoolOf b -> pretty b
+    IntOf i -> pretty i
 
 braced :: [Doc ann] -> Doc ann
 braced =
@@ -178,6 +240,8 @@ instance Pretty (Term m) where
       Bound j -> pretty (env !! j)
       Free (Quote n) -> pretty (reverse env !! n)
       Free n -> pretty n
+      Lit lit -> pretty lit
+      LitOf val -> pretty val
       Ref (uri, sheetName) refInfo ca -> case refInfo of
         FullySpecified -> quoteSheetRef True (brackets (prettyURI uri) <> escapeUri sheetName) <> "!" <> prettyCellAddr ca
         SheetOnly -> quoteSheetRef False (escapeUri sheetName) <> "!" <> prettyCellAddr ca
@@ -188,6 +252,8 @@ instance Pretty (Term m) where
               || requireQuotes sheetName =
               enclose "'" "'"
           | otherwise = id
+      Tensor td -> pretty td
+      TensorOf td arr -> pretty td <+> pretty (Array.toList arr)
       app@(:$){} ->
         let (y, ys) = splitApp app
         in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0) ys)

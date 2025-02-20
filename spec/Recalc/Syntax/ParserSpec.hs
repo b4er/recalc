@@ -51,7 +51,10 @@ spec = do
 
   describe "cellReferenceOrFree" $ do
     it "passes some examples" $ do
-      parseTest cellReferenceOrFree "Bool" (Free "bool")
+      parseTest cellReferenceOrFree "BOOL" (Lit Bool)
+      parseTest cellReferenceOrFree "bool" (Lit Bool)
+      parseTest cellReferenceOrFree "Boolean" (Free "boolean")
+      parseTest cellReferenceOrFree "boolean" (Free "boolean")
       parseTest cellReferenceOrFree "A1" $ Ref sheetId Unspecified (0, 0)
       parseTest cellReferenceOrFree "Bool!A1" $ Ref (uri, "Bool") SheetOnly (0, 0)
       parseTest cellReferenceOrFree "Bool!A10" $ Ref (uri, "Bool") SheetOnly (9, 0)
@@ -83,9 +86,9 @@ spec = do
 
   describe "termP" . it "parses simple types (variables, globals, Set)" $ do
     parseTest formulaP "=foo" (Free "foo")
-    parseTest formulaP "=Bool" (Free "Bool")
-    parseTest formulaP "=False" (Free "False")
-    parseTest formulaP "=True" (Free "True")
+    parseTest formulaP "=bool" (Lit Bool)
+    parseTest formulaP "=False" (boolOf False)
+    parseTest formulaP "=TRUE" (boolOf True)
     parseTest formulaP "= *" (Set 0)
     parseTest formulaP "= * " (Set 0)
     parseTest formulaP " =* " (Set 0)

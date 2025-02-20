@@ -19,7 +19,10 @@ module Recalc.Semantics where
 import Control.Monad (void, when)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
+import Data.Array.Dynamic (Array)
+import Data.Array.Dynamic qualified as Array
 import Data.Function (on)
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
@@ -76,6 +79,29 @@ throwSemanticError err = throwError (OtherError err)
 bindType :: Name -> Value -> Fetch (Term Infer) a -> Fetch (Term Infer) a
 bindType name ty = localEnv (\env -> env{globals = Map.insert name (Decl ty Nothing) (globals env)})
 
+{- Dependencies -}
+
+deps' :: Term m -> Set CellRange
+deps' = go mempty
+ where
+  go :: Set CellRange -> Term m -> Set CellRange
+  go acc = \case
+    Inf x -> go acc x
+    Lam _ body -> go acc body
+    Ann x ty -> go (go acc x) ty
+    Set{} -> acc
+    Pi _ ty1 ty2 -> go (go acc ty1) ty2
+    Bound{} -> acc
+    Free{} -> acc
+    Ref _sheetId _ ca -> Set.singleton (ca, ca)
+    Lit{} -> acc
+    LitOf{} -> acc
+    Tensor td -> goTensor acc td
+    TensorOf td arr -> Array.foldrA (flip go) (goTensor acc td) arr
+    f :$ x -> go (go acc f) x
+
+  goTensor arr (TensorDescriptor dims) = foldl' go arr dims
+
 {- Evaluation -}
 
 eval' :: Term m -> Fetch (Term Infer) Value
@@ -96,6 +122,11 @@ eval' term = do
       Free name
         | Just Decl{declValue = Just v} <- Map.lookup name globals -> pure v
         | otherwise -> pure (vfree name)
+      Lit lit -> pure (VLit lit)
+      LitOf val -> pure (VLitOf val)
+      Tensor (TensorDescriptor dims) ->
+        VTensor . VTensorDescriptor <$> mapM (\x -> go valueEnv x) dims
+      TensorOf td arr -> error (show (td, arr))
       f :$ x -> do
         f' <- go valueEnv f
         x' <- go valueEnv x
@@ -122,7 +153,6 @@ check' i ty = \case
 infer' :: Int -> Term Infer -> Fetch (Term Infer) Type
 infer' i = \case
   Ann e t -> do
-    -- check' i ctxt (VSet 0)
     void $ inferUniverse' i (Inf t)
     t' <- eval t
     t' <$ check' i t' e
@@ -142,6 +172,17 @@ infer' i = \case
       Just Decl{declType} -> pure declType
       Nothing -> throwSemanticError (UnknownIdentifier name)
   Ref sheetId _ ca -> fetchType sheetId ca
+  Lit{} -> pure (VSet 0)
+  LitOf val -> case val of
+    BoolOf{} -> pure (VLit Bool)
+    IntOf{} -> pure (VLit Int)
+  Tensor (TensorDescriptor dims) -> do
+    mapM_ (\x -> check' i vint x) dims
+    pure (VSet 0)
+  TensorOf (TensorDescriptor dims) arr -> do
+    mapM_ (\x -> check' i vint x) dims
+    mapM_ (\x -> check' i vint x) arr
+    VTensor . VTensorDescriptor <$> mapM (\x -> eval' x) dims
   f :$ x ->
     infer' i f >>= \case
       VPi _ t t' -> do
@@ -161,24 +202,13 @@ inferUniverse' i = \case
         case Map.lookup name globals of
           Just Decl{declType = VSet k} -> pure k
           _ -> throwSemanticError (UnknownIdentifier name)
+      Inf Tensor{} -> pure 0
       ty -> throwSemanticError (ExpectedSet ty)
   ty -> throwSemanticError (ExpectedSet ty)
 
 -- | interface implementation
 instance Language (Term Infer) where
-  deps = go mempty
-   where
-    go :: Set CellRange -> Term m -> Set CellRange
-    go acc = \case
-      Inf x -> go acc x
-      Lam _ body -> go acc body
-      Ann x ty -> go (go acc x) ty
-      Set{} -> acc
-      Pi _ ty1 ty2 -> go (go acc ty1) ty2
-      Bound{} -> acc
-      Free{} -> acc
-      Ref _sheetId _ ca -> Set.singleton (ca, ca)
-      f :$ x -> go (go acc f) x
+  deps = deps'
 
   type EnvOf (Term Infer) = Env
   newEnv = (`Env` prelude)
@@ -208,10 +238,16 @@ data Neutral
   | NApp !Neutral !Value
   deriving (Generic)
 
+newtype VTensorDescriptor = VTensorDescriptor [Value]
+
 data Value
   = VLam !(Maybe CaseInsensitive) !(Value -> Fetch (Term Infer) Value)
   | VSet !Int
   | VPi !(Maybe CaseInsensitive) !Value !(Value -> Fetch (Term Infer) Value)
+  | VLit Lit
+  | VLitOf LitOf
+  | VTensor VTensorDescriptor
+  | VTensorOf VTensorDescriptor (Array Value)
   | VNeutral !Neutral
 
 vfree :: Name -> Value
@@ -233,6 +269,13 @@ vlam vname body = VLam vname $ \x -> pure (body x)
 vpi :: Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
 vpi vname dom range = VPi vname dom $ \x -> pure (range x)
 
+vbool, vint :: Type
+vbool = VLit Bool
+vint = VLit Int
+
+vboolOf :: Bool -> Value
+vboolOf = VLitOf . BoolOf
+
 instance Show Value where show = show . pretty
 
 -- ** Quoting
@@ -252,12 +295,19 @@ quote = go 0
         range' = quoteAbs $ range (vfree (Quote i))
       in
         Inf $ Pi vname (go i dom) (go (i + 1) range')
+    VLit lit -> Inf (Lit lit)
+    VLitOf val -> Inf (LitOf val)
+    VTensor td -> Inf (Tensor (goTensor i td))
+    VTensorOf td arr -> Inf (TensorOf (goTensor i td) (go i <$> arr))
     VNeutral n -> Inf (goNeutral i n)
 
   goNeutral i = \case
     NFree n -> Free n
     NRef sheetId ca -> Ref sheetId FullySpecified ca
     NApp n v -> goNeutral i n :$ go i v
+
+  goTensor i (VTensorDescriptor vdims) =
+    TensorDescriptor (map (go i) vdims)
 
   quoteAbs :: Fetch (Term Infer) Value -> Value
   quoteAbs v = either (error . show) id $ do
@@ -280,38 +330,27 @@ valueP = vfree . Global <$> keyword
 prelude :: Globals
 prelude =
   Map.fromList
-    [ ("Bool", Decl (VSet 0) Nothing)
-    , ("False", Decl (vfree "Bool") Nothing)
-    , ("True", Decl (vfree "Bool") Nothing)
-    , ("not", Decl (vfree "Bool" `vfun` vfree "Bool") (Just notImpl))
-    , ("and", Decl (vfree "Bool" `vfun` vfree "Bool" `vfun` vfree "Bool") (Just andImpl))
-    , ("or", Decl (vfree "Bool" `vfun` vfree "Bool" `vfun` vfree "Bool") (Just orImpl))
+    [ ("not", Decl (vbool `vfun` vbool) (Just notImpl))
+    , ("and", Decl (vbool `vfun` vbool `vfun` vbool) (Just andImpl))
+    , ("or", Decl (vbool `vfun` vbool `vfun` vbool) (Just orImpl))
     ]
  where
   notImpl =
-    vlam (Just (CaseInsensitive "x"))
-      $ VNeutral . \case
-        VNeutral (NFree "False") -> NFree "True"
-        VNeutral (NFree "True") -> NFree "False"
-        x -> NApp (NFree "not") x
+    vlam (Just (CaseInsensitive "x")) $ \case
+      VLitOf (BoolOf b) -> VLitOf (BoolOf (not b))
+      x -> VNeutral (NApp (NFree "not") x)
 
   andImpl = vlam (Just (CaseInsensitive "x")) $ \x ->
     vlam (Just (CaseInsensitive "y")) $ \y ->
-      VNeutral $ case (x, y) of
-        (VNeutral (NFree "False"), VNeutral (NFree "False")) -> NFree "False"
-        (VNeutral (NFree "True"), VNeutral (NFree "False")) -> NFree "False"
-        (VNeutral (NFree "False"), VNeutral (NFree "True")) -> NFree "False"
-        (VNeutral (NFree "True"), VNeutral (NFree "True")) -> NFree "True"
-        _ -> NApp (NApp (NFree "and") x) y
+      case (x, y) of
+        (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a && b))
+        _ -> VNeutral (NApp (NApp (NFree "and") x) y)
 
   orImpl = vlam (Just (CaseInsensitive "x")) $ \x ->
     vlam (Just (CaseInsensitive "y")) $ \y ->
-      VNeutral $ case (x, y) of
-        (VNeutral (NFree "False"), VNeutral (NFree "False")) -> NFree "False"
-        (VNeutral (NFree "True"), VNeutral (NFree "False")) -> NFree "True"
-        (VNeutral (NFree "False"), VNeutral (NFree "True")) -> NFree "True"
-        (VNeutral (NFree "True"), VNeutral (NFree "True")) -> NFree "True"
-        _ -> NApp (NApp (NFree "or") x) y
+      case (x, y) of
+        (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a || b))
+        _ -> VNeutral (NApp (NApp (NFree "or") x) y)
 
 {- Errors -}
 

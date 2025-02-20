@@ -143,7 +143,14 @@ resolve = go []
     Bound i -> Bound (i + length env)
     v@(Free n) -> maybe v Bound $ elemIndex (Just n) env
     ref@Ref{} -> ref
+    Lit lit -> Lit lit
+    LitOf val -> LitOf val
+    Tensor td -> Tensor (goTensor env td)
+    TensorOf td arr -> TensorOf (goTensor env td) (go env <$> arr)
     x :$ y -> go env x :$ go env y
+
+  goTensor env (TensorDescriptor dims) =
+    TensorDescriptor (map (go env) dims)
 
 termI :: Parser (Term Infer)
 termI =
@@ -211,7 +218,12 @@ cellReferenceOrFree = choice [noUri, withUri, quoted]
       <|> pure
         ( case readExcelCellRange prefix of
             Just ca -> Ref (uri, sheetName) Unspecified ca
-            Nothing -> Free (Global (CaseInsensitive prefix))
+            Nothing
+              | Text.toLower prefix == "bool" -> Lit Bool
+              | Text.toLower prefix == "false" -> boolOf False
+              | Text.toLower prefix == "true" -> boolOf True
+              | Text.toLower prefix == "int" -> Lit Int
+              | otherwise -> Free (Global (CaseInsensitive prefix))
         )
 
   -- eg. @[file]data!A1@
