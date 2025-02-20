@@ -16,7 +16,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.URI
 
-import Recalc.Engine (Isn't (..), Meta (..))
+import Recalc.Engine (CellRange, Isn't (..), Meta (..))
 import Recalc.Server.Generic
 import Recalc.Server.Json
 import Recalc.Server.Types
@@ -30,6 +30,7 @@ data SpreadsheetProtocol mode = SpreadsheetProtocol
   , rpcRemoveSheet :: mode :- JsonRpc "removeSheet" RemoveSheetParams ()
   , rpcSetWorksheetOrder :: mode :- JsonRpc "setWorksheetOrder" SetWorksheetOrderParams ()
   , rpcSetWorksheetName :: mode :- JsonRpc "setWorksheetName" SetWorksheetNameParams ()
+  , rpcDefineFunction :: mode :- JsonRpc "defineFunction" DefineFunctionParams ()
   }
   deriving (Generic)
 
@@ -81,6 +82,15 @@ data SetWorksheetNameParams = SetWorksheetNameParams
   { setWorksheetName'uri :: URI
   , setWorksheetName'sheetId :: Text
   , setWorksheetName'sheetName :: Text
+  }
+  deriving (Show, Generic)
+
+data DefineFunctionParams = DefineFunctionParams
+  { defineFunction'uri :: URI
+  , defineFunction'sheetId :: Text
+  , defineFunction'description :: Text
+  , defineFunction'inputs :: [(Text, CellRange)]
+  , defineFunction'output :: CellRange
   }
   deriving (Show, Generic)
 
@@ -169,6 +179,9 @@ instance Json.FromJSON RemoveSheetParams where
   parseJSON = Json.genericParseJSON aesonOptions
 
 instance Json.FromJSON SetWorksheetNameParams where
+  parseJSON = Json.genericParseJSON aesonOptions
+
+instance Json.FromJSON DefineFunctionParams where
   parseJSON = Json.genericParseJSON aesonOptions
 
 {-- Cells --}

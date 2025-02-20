@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.16 -- 2025-02-20
+## 0.0.17 -- 2025-02-20
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -26,7 +26,8 @@
   The [`RangeSelector`](./src/frontend/views/components/RangeSelector.tsx) does not
   allow range selection due to issues with Univer's `RefSelectionsRenderService`,
   and the built-in `RangeSelector` causes other issues.
-* Fix configuration and add `logLevel` setting, defaults to Info.
+* Fix configuration and add `logLevel` setting, defaults to Info, add call for
+  defining the function.
 
 <!-- References -->
 

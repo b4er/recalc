@@ -5,7 +5,7 @@ import { useDependency } from "@univerjs/ui";
 
 const nanoid = require("nanoid");
 
-import { logger } from "../../controllers/rpc.controller";
+import { logger, postMessage } from "../../controllers/rpc.controller";
 import { ParseInput, ParseInputProps } from "../components/ParseInput";
 import { RangeSelector } from "../components/RangeSelector";
 import { outputColor, useColor } from "./hooks/useColor";
@@ -237,12 +237,12 @@ function saveFunctionDefinition(sheet: Sheet, state: FunctionDefinition) {
     return;
   }
 
-  logger.log(JSON.stringify({method: "setFunction", params: {
-    sheetId: sheet.subUnitId,
-    description: state.description,
-    inputs: state.inputs.flatMap(x => x.range ? [[x.name, tuplifyCellRange(x.range)]] : []),
-    output: tuplifyCellRange(state.output.range)
-  }}));
+  postMessage({method: "defineFunction", params: {
+    sheetId: "",
+    description: "",
+    inputs: state.inputs.flatMap(x => x.range ? [[x.name, tuplifyCellRange(x.range)]] as [[string, CellRangeHs]] : []),
+    output: tuplifyCellRange(state.output.range),
+  }})
 }
 
 type CellRangeHs = [[number,number],[number,number]];

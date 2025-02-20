@@ -71,6 +71,7 @@ main = runHandler @SheetsApi Engine.newEngineState $ \state ->
       , rpcRemoveSheet = Main.rpcRemoveSheet . params
       , rpcSetWorksheetOrder = Main.rpcSetWorksheetOrder . params
       , rpcSetWorksheetName = Main.rpcSetWorksheetName . params
+      , rpcDefineFunction = Main.rpcDefineFunction . params
       }
 
 modifyDocs :: (DocumentStore -> DocumentStore) -> Handler EngineState ()
@@ -184,3 +185,6 @@ rpcSetWorksheetName SetWorksheetNameParams{..} =
     $ Engine.updateDocument
       setWorksheetName'uri
       (updateList setWorksheetName'sheetId setWorksheetName'sheetName)
+
+rpcDefineFunction :: DefineFunctionParams -> Handler EngineState ()
+rpcDefineFunction def@DefineFunctionParams{} = debug "rpcDefineFunction" def
