@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.14 -- 2025-02-19
+## 0.0.15 -- 2025-02-20
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -19,7 +19,13 @@
   type errors or eval errors), merged cell diagnostics not supported.
 * Implement description service (single hard-coded description), UI fixes.
 * Bump version for publishing the statically built version.
-* Add menu UI for sheet-defined functions + stub for sidebar panel as editor.
+* Add menu UI for sheet-defined functions.
+* Implement the sheet-defined function editor side panel: accepts description,
+  re-orderable inputs (name+range selection), and output (range selection).
+
+  The [`RangeSelector`](./src/frontend/views/components/RangeSelector.tsx) does not
+  allow range selection due to issues with Univer's `RefSelectionsRenderService`,
+  and the built-in `RangeSelector` causes other issues.
 
 <!-- References -->
 

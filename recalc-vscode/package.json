@@ -5,7 +5,7 @@
   "icon": "matrix-icon.png",
   "publisher": "b4er",
   "repository": "https://github.com/b4er/recalc/recalc-vscode",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -78,6 +78,7 @@
     "tests": "npm install && npm run cabal-build && npm run ts-defs && npm test"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@types/vscode-webview": "^1.57.5",
     "@univerjs/core": "^0.6.0",
     "@univerjs/design": "^0.6.0",
@@ -89,11 +90,13 @@
     "@univerjs/sheets-formula-ui": "^0.6.0",
     "@univerjs/sheets-ui": "^0.6.0",
     "@univerjs/ui": "^0.6.0",
-    "nanoid": "^5.0.9"
+    "nanoid": "^5.0.9",
+    "parsimmon": "^1.18.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^20",
+    "@types/parsimmon": "^1.10.9",
     "@types/react": "^19.0.10",
     "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
