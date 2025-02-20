@@ -18,6 +18,7 @@ import Text.Megaparsec.Char
 
 import Recalc.Engine
 import Recalc.Syntax.Parser (readExcel)
+import Recalc.Syntax.Term (showExcel26)
 
 data Term = Num Int | Add Term Term | Ref CellAddr | Sum CellRange
   deriving (Show)
@@ -137,8 +138,10 @@ instance Input String where
   type TermOf String = Term
 
   -- parse strings starting with @"="@ as term, else treat as value
-  exprOrValueOf sheetId ('=' : input) = Just (parse (Left <$> termP <* eof) (Text.unpack (snd sheetId)) input)
-  exprOrValueOf _ input = Just (Right (Right (Just (read @Int input))))
+  termOrValueOf _ ca ('=' : input) =
+    Just (parse (Left <$> termP <* eof) (showExcel26 ca) input)
+  termOrValueOf _ _ input =
+    Just (Right (Right (Just (read @Int input))))
 
   type MetaOf String = ()
   metaOf _ = ()

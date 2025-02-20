@@ -43,13 +43,13 @@ instance Engine.Input CellData where
   type MetaOf CellData = CellData -- do we need all?
   metaOf = id
 
-  exprOrValueOf sheetId CellData{..} = case (cellData'f, cellData'v) of
+  termOrValueOf sheetId ca CellData{..} = case (cellData'f, cellData'v) of
     (Is formula, _) -> Just (Left <$> parse' formulaP formula)
     (_, Is value) -> Just (Right <$> parse' valueP value)
     _ -> Nothing
    where
     parse' :: Parser a -> Text -> Either (ParseErrorBundle String Void) a
-    parse' p = parse (runReaderT p sheetId <* eof) (Text.unpack (snd sheetId)) . Text.unpack
+    parse' p = parse (runReaderT p sheetId <* eof) (showExcel26 ca) . Text.unpack
 
 type SheetsApi = ToApi SpreadsheetProtocol
 

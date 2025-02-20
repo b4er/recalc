@@ -39,7 +39,7 @@ termP = makeOpsParser
   (void . symbol)              -- parse operator from operator symbol
   (numP <|> parens termP)      -- parse atomic terms and parenthesized one recursively
   (error "no unary operators") -- skip (since there are no Prefix, or Postfix operators)
-  Op                           -- build expression from binary operator
+  Op                           -- build term from binary operator
 @
 -}
 module Recalc.Syntax.Fixity

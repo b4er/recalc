@@ -92,12 +92,16 @@ type Parsed = Either (ParseErrorBundle String Void)
 -- | input data can be arbitrary
 class Language (TermOf dat) => Input dat where
   type TermOf dat
-  exprOrValueOf :: SheetId -> dat -> Maybe (Parsed (Either (TermOf dat) (ValueOf (TermOf dat))))
+  termOrValueOf
+    :: SheetId
+    -> CellAddr
+    -> dat
+    -> Maybe (Parsed (Either (TermOf dat) (ValueOf (TermOf dat))))
 
   type MetaOf dat
   metaOf :: dat -> MetaOf dat
 
--- | meta changes which don't map to expressions/values,
+-- | meta changes which don't map to terms/values,
 -- do not affect re-computation
 type MetaChangesOf dat = [(CellAddr, MetaOf dat)]
 
@@ -116,7 +120,7 @@ validateCells
 validateCells sheetId = go [] [] [] []
  where
   go meta errors values formulas ((ca, dat) : cs) =
-    case exprOrValueOf sheetId dat of
+    case termOrValueOf sheetId ca dat of
       Nothing -> go ((ca, metaOf dat) : meta) errors values formulas cs
       Just q -> case q of
         Left e -> go meta ((ca, metaOf dat, e) : errors) values formulas cs

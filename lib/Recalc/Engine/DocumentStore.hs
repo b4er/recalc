@@ -85,7 +85,7 @@ data CellContent term value
       (Maybe value)
       -- ^ inferred type
       term
-      -- ^ "raw" expression
+      -- ^ "raw" term
       (Maybe value)
       -- ^ computed value
   | CellValue
