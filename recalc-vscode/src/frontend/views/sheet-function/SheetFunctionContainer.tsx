@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { IColumnRange, IRowRange, LocaleService, useDependency } from "@univerjs/core";
+import { IColumnRange, IRowRange, LocaleService } from "@univerjs/core";
+import { useDependency } from "@univerjs/ui";
 
 import './SheetFunctionContainer.css'
 

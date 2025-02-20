@@ -1,5 +1,4 @@
 import { Dependency, Inject, Injector, Plugin, UniverInstanceType } from '@univerjs/core';
-import { ComponentManager } from '@univerjs/ui';;
 import { IDescriptionService } from '@univerjs/sheets-formula';
 
 import { HoverController } from './controllers/hover.controller';
@@ -14,7 +13,6 @@ export class RecalcPlugin extends Plugin {
 
   constructor(
     @Inject(Injector) override readonly _injector: Injector,
-    @Inject(ComponentManager) private readonly _componentManager: ComponentManager,
   ) {
     super();
   }
