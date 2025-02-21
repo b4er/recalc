@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.5.0 -- 2025-02-21
+## 0.7.5.1 -- 2025-02-21
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language

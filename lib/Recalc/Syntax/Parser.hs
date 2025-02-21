@@ -69,7 +69,6 @@ startChar, middleChar :: Parser Char
 startChar = Char.letterChar
 middleChar = Char.alphaNumChar
 
--- FIXME: keep in sync with "prelude"
 isKeyword :: String -> Bool
 isKeyword x =
   map toLower x

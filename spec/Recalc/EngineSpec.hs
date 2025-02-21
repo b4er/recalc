@@ -17,6 +17,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 
 import Recalc.Engine
+import Recalc.Engine.Core
 import Recalc.Syntax.Parser (readExcel)
 import Recalc.Syntax.Term (showExcel26)
 
@@ -93,9 +94,9 @@ termP = space *> term <* eof
   rangeP = (,) <$> (refP <* char ':') <*> refP
 
   refP = do
-    col <- someOf ['A' .. 'Z']
-    row <- digits
-    maybe (fail "Invalid cell reference") pure . readExcel $ Text.pack (col <> row)
+    colStr <- someOf ['A' .. 'Z']
+    rowDigits <- digits
+    maybe (fail "Invalid cell reference") pure . readExcel $ Text.pack (colStr <> rowDigits)
 
   digits =
     (:)
@@ -132,7 +133,7 @@ instance Language Term where
       sheetId <- getEnv
       Just . sum . catMaybes
         <$> sequence
-          [fetchValue sheetId (i, j) | i <- [fst x .. fst y], j <- [snd x .. snd y]]
+          [fetchValue sheetId (i, j) | i <- [row x .. row y], j <- [column x .. column y]]
 
 instance Input String where
   type TermOf String = Term

@@ -16,7 +16,8 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.URI
 
-import Recalc.Engine (CellRange, Isn't (..), Meta (..))
+import Recalc.Engine (Isn't (..), Meta (..))
+import Recalc.Engine.Core
 import Recalc.Server.Generic
 import Recalc.Server.Json
 import Recalc.Server.Types
@@ -214,9 +215,9 @@ instance Json.ToJSON Cells where
       . quotientOn fst
       . sortOn fst
       -- [](j,[((i,j),x)]) -> [](j,Map i x)
-      . map (second (Map.fromList . map (first fst)))
+      . map (second (Map.fromList . map (first row)))
       -- [((i,j),x)] -> [(j,[..])]
-      . quotientOn (snd . fst)
+      . quotientOn (column . fst)
       $ Map.assocs cells
 
 -- | assumes the input list is sorted and that the @repr@ function respects the order
