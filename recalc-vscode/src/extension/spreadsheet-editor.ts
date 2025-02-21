@@ -51,10 +51,13 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 	private client: Client<SpreadsheetProtocol>;
   private webviews: WebviewCollection;
 
+	private traceRpc: boolean;
+
 	constructor(private readonly context: vscode.ExtensionContext, client: Client<SpreadsheetProtocol>) {
     this.extensionUri = context.extensionUri;
     this.client = client;
     this.webviews = new WebviewCollection();
+		this.traceRpc = true;
   }
 
   /* custom change events */
@@ -92,6 +95,10 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
     // when the client receives a notification, forward it to all webviews associated with that uri
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		this.client.onNotification((method: string, params: any) => {
+			if (this.traceRpc) {
+				this.client.logger.log(`<<< ${method}: ${JSON.stringify(params)}`);
+			}
+
 			switch (method) {
 				case "setCells":
 					// forward updated sheets to all webviews subscribed to uri ({uri: {sheet: {..}, ..}, ..})
@@ -108,6 +115,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 
     // when a webview sends a message, forward it to the server via client and pass back result
 		webviewPanel.webview.onDidReceiveMessage(<M extends keyof SpreadsheetProtocol>(message: LogMessage | Message<M>) => {
+
 			if ("notification" in message && message.notification) {
 				vscode.window.showErrorMessage(`A webview sent an invalid message: ${JSON.stringify(message)}`);
 			} else if (
@@ -134,6 +142,10 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 						...message.params,
 						uri: document.uri.toString()
 					} as Params<SpreadsheetProtocol, M>;
+
+					if (this.traceRpc) {
+						this.client.logger.log(`>>> ${message.method}: ${JSON.stringify(params)}`);
+					}
 
 					this.client
 						.request(message.method, params)

@@ -1,3 +1,5 @@
+import React from 'react';
+
 import type { ICellDataForSheetInterceptor, Nullable, Workbook } from '@univerjs/core';
 import { Disposable, Inject, IUniverInstanceService, UniverInstanceType } from '@univerjs/core';
 import { IRenderManagerService } from '@univerjs/engine-render';
@@ -33,8 +35,7 @@ export class HoverController extends Disposable {
         if (cellData?.custom && (cellData?.custom.errors || cellData?.custom.warnings)) {
           const skeleton = this._renderManagerService.getRenderById(cellPos.location.unitId)
             ?.with(SheetSkeletonManagerService)
-            ?.getWorksheetSkeleton(cellPos.location.subUnitId)
-            ?.skeleton;
+            ?.getSkeleton(cellPos.location.subUnitId);
 
           if (skeleton != undefined) {
             let i = 0;
@@ -42,7 +43,7 @@ export class HoverController extends Disposable {
               _cellAlertManagerService.showAlert({
                 type: CellAlertType.ERROR,
                 title: err.title,
-                message: err.message,
+                message: MessageElement(err.message),
                 location: cellPos.location,
                 width: 320,
                 height: 74 + (i++)*75,
@@ -54,7 +55,7 @@ export class HoverController extends Disposable {
               _cellAlertManagerService.showAlert({
                 type: CellAlertType.WARNING,
                 title: err.title,
-                message: err.message,
+                message: MessageElement(err.message),
                 location: cellPos.location,
                 width: 320,
                 height: 74 + (i++)*75,
@@ -68,4 +69,21 @@ export class HoverController extends Disposable {
       }
     }));
   }
+}
+
+/**
+ * Split a raw string on its newlines and produce HTML from it.
+ *
+ * @param errorMessage newline-separated string containing an error message (example: a rendered Megaparsec error message)
+ * @returns React element with proper line breaks (as <br>)
+ */
+function MessageElement(errorMessage: string) {
+  return React.createElement(
+    React.Fragment,
+    {},
+    ...(errorMessage.split("\n").map(line => [
+      line,
+      React.createElement("br"),
+    ])).flat()
+  )
 }

@@ -1,0 +1,17 @@
+.univer-cell-alert {
+  width: auto;
+  max-width: 20vw;
+  white-space: pre;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.univer-cell-alert-title {
+  font-weight: bold;
+}
+
+.univer-cell-alert-content {
+  background-color: #F8F8F8;
+  font-family: "Consolas", "Courier New", monospace;
+  overflow-x: auto;
+  padding: 8px 8px 0 8px;
+}

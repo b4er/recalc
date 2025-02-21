@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-|
@@ -72,7 +73,7 @@ middleChar = Char.alphaNumChar
 isKeyword :: String -> Bool
 isKeyword x =
   map toLower x
-    `elem` map (map toLower) ["Bool", "False", "True", "not", "or", "and"]
+    `elem` map (map toLower) ["bool", "false", "true", "int"]
 
 word :: Parser String
 word = (:) <$> startChar <*> many middleChar
@@ -183,6 +184,7 @@ termI =
   atom =
     choice
       [ cellReferenceOrFree
+      , intOf <$> decimal
       , parens termI
       , Set 0 <$ symbol "*"
       ]
@@ -191,18 +193,22 @@ cellReferenceOrFree :: Parser (Term Infer)
 cellReferenceOrFree = choice [noUri, withUri, quoted]
  where
   cellRef = lexeme $ do
-    ca' <- word
-    case readExcel (Text.pack ca') of
-      Just ca -> pure ca
-      _ -> fail $ "‘" ++ ca' ++ "’ is not a cell reference"
+    cr' <- word
+    case readExcel (Text.pack cr') of
+      Just cr -> pure cr
+      _ -> fail $ "‘" ++ cr' ++ "’ is not a cell reference"
 
-  cellRange = cellRef
-  readExcelCellRange = readExcel
+  range x y = (min x y, max x y)
+
+  cellRange = do
+    start <- cellRef
+    range start <$> option start (symbol ":" *> cellRef)
 
   simpleWord =
-    (:)
-      <$> choice (Char.letterChar : map Char.char "_~")
-      <*> many (choice (Char.alphaNumChar : map Char.char "._~"))
+    lexeme
+      $ (:)
+        <$> choice (Char.letterChar : map Char.char "_~")
+        <*> many (choice (Char.alphaNumChar : map Char.char "._~"))
 
   escapedWord = many (try escaped <|> normalChar)
    where
@@ -210,21 +216,24 @@ cellReferenceOrFree = choice [noUri, withUri, quoted]
     normalChar = satisfy $ \c -> isPrint c && c `notElem` map fst specialChars
     specialChars = [(c, '\\' : [c]) | c <- "'[]\\"]
 
-  -- for example: @bool@, @sheet!A3@, or @A3@
+  -- for example: @bool@, @sheet!A3@, @A3@, or @C12:A3@
   noUri = do
     (uri, sheetName) <- ask
     prefix <- Text.pack <$> lexeme simpleWord
     (symbol "!" *> (Ref (uri, prefix) SheetOnly <$> cellRange))
-      <|> pure
-        ( case readExcelCellRange prefix of
-            Just ca -> Ref (uri, sheetName) Unspecified ca
-            Nothing
-              | Text.toLower prefix == "bool" -> Lit Bool
-              | Text.toLower prefix == "false" -> boolOf False
-              | Text.toLower prefix == "true" -> boolOf True
-              | Text.toLower prefix == "int" -> Lit Int
-              | otherwise -> Free (Global (CaseInsensitive prefix))
-        )
+      <|> ( case readExcel prefix of
+              Just start ->
+                Ref (uri, sheetName) Unspecified . range start
+                  <$> option start (symbol ":" *> cellRef)
+              Nothing ->
+                pure
+                  $ if
+                    | Text.toLower prefix == "bool" -> Lit Bool
+                    | Text.toLower prefix == "false" -> boolOf False
+                    | Text.toLower prefix == "true" -> boolOf True
+                    | Text.toLower prefix == "int" -> Lit Int
+                    | otherwise -> Free (Global (CaseInsensitive prefix))
+          )
 
   -- eg. @[file]data!A1@
   withUri = do
@@ -235,7 +244,7 @@ cellReferenceOrFree = choice [noUri, withUri, quoted]
   -- eg. @'Sheet 1'!B3@, or @'[file name]sheet!A1'@
   quoted =
     uncurry Ref
-      <$> between (symbol "'") (symbol "'") quotedSheetId
+      <$> lexeme (between (symbol "'") (symbol "'") quotedSheetId)
       <*> (symbol "!" *> cellRange)
 
   -- eg. @[file name]sheet@, or @Sheet 13@
@@ -244,7 +253,7 @@ cellReferenceOrFree = choice [noUri, withUri, quoted]
     (uri, spec) <-
       option
         (currentUri, SheetOnly)
-        ((,FullySpecified) <$> between (symbol "[") (symbol "]") (escapedWord >>= checkUri))
+        ((,FullySpecified) <$> between (Char.char '[') (Char.char ']') (escapedWord >>= checkUri))
     sheetId <- Text.pack <$> escapedWord
     pure ((uri, sheetId), spec)
 

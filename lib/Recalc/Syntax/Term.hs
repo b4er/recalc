@@ -113,7 +113,7 @@ data Term (m :: Mode) where
   -- | free variable
   Free :: !Name -> Term Infer
   -- | cell references
-  Ref :: !(URI, Text) -> RefInfo -> CellAddr -> Term Infer
+  Ref :: !(URI, Text) -> RefInfo -> CellRange -> Term Infer
   -- | literal types
   Lit :: !Lit -> Term Infer
   -- | literal terms
@@ -135,7 +135,7 @@ instance Eq (Term m) where
   Pi _ dom range == Pi _ dom' range' = dom == dom' && range == range'
   Bound i == Bound j = i == j
   Free name == Free name' = name == name'
-  Ref sheetId _ ca == Ref sheetId' _ ca' = sheetId == sheetId' && ca == ca'
+  Ref sheetId _ cr == Ref sheetId' _ cr' = sheetId == sheetId' && cr == cr'
   Lit lit == Lit lit' = lit == lit'
   LitOf val == LitOf val' = val == val'
   Tensor td == Tensor td' = td == td'
@@ -172,7 +172,7 @@ subst i r = \case
     | i == j -> r
     | otherwise -> Bound j
   Free n -> Free n
-  Ref sheetId refInfo ca -> Ref sheetId refInfo ca
+  Ref sheetId refInfo cr -> Ref sheetId refInfo cr
   Lit lit -> Lit lit
   LitOf val -> LitOf val
   Tensor td -> Tensor (substTensor i r td)
@@ -242,10 +242,10 @@ instance Pretty (Term m) where
       Free n -> pretty n
       Lit lit -> pretty lit
       LitOf val -> pretty val
-      Ref (uri, sheetName) refInfo ca -> case refInfo of
-        FullySpecified -> quoteSheetRef True (brackets (prettyURI uri) <> escapeUri sheetName) <> "!" <> prettyCellAddr ca
-        SheetOnly -> quoteSheetRef False (escapeUri sheetName) <> "!" <> prettyCellAddr ca
-        Unspecified -> prettyCellAddr ca
+      Ref (uri, sheetName) refInfo cr -> case refInfo of
+        FullySpecified -> quoteSheetRef True (brackets (prettyURI uri) <> escapeUri sheetName) <> "!" <> prettyCellRef cr
+        SheetOnly -> quoteSheetRef False (escapeUri sheetName) <> "!" <> prettyCellRef cr
+        Unspecified -> prettyCellRef cr
        where
         quoteSheetRef showUri
           | (showUri && requireQuotes (prettyURI' uri))
@@ -258,7 +258,12 @@ instance Pretty (Term m) where
         let (y, ys) = splitApp app
         in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0) ys)
 
+    prettyCellRef (start, end)
+      | start == end = prettyCellAddr start
+      | otherwise = prettyCellAddr start <> ":" <> prettyCellAddr end
+
     prettyCellAddr = pretty . Text.pack . showExcel26
+
     requireQuotes =
       Text.any
         (\c -> not (isAlphaNum c) && c `notElem` ("._~" :: String))
@@ -294,6 +299,7 @@ escapeUri =
     . Text.replace "]" "\\]"
     . Text.replace "\\" "\\\\"
 
+-- FIXME: the binders for which we generated a variable are not re-labelled!
 genFresh :: [CaseInsensitive] -> CaseInsensitive
 genFresh env =
   head . filter (`notElem` env)

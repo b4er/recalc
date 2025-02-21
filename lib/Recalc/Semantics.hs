@@ -16,6 +16,7 @@ and a few declarations to interact with them.
 -}
 module Recalc.Semantics where
 
+import Control.Applicative ((<|>))
 import Control.Monad (void, when)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
@@ -28,6 +29,7 @@ import Data.Map qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
+import Data.Text qualified as Text
 import GHC.Generics (Generic)
 import Prettyprinter
 
@@ -43,7 +45,7 @@ import Recalc.Engine
   , localEnv
   )
 import Recalc.Engine.Core
-import Recalc.Syntax.Parser (Parser, keyword)
+import Recalc.Syntax.Parser (Parser, decimal, keyword)
 import Recalc.Syntax.Term
 
 data Decl = Decl
@@ -93,7 +95,7 @@ deps' = go mempty
     Pi _ ty1 ty2 -> go (go acc ty1) ty2
     Bound{} -> acc
     Free{} -> acc
-    Ref _sheetId _ ca -> Set.singleton (ca, ca)
+    Ref _sheetId _ cr -> Set.singleton cr
     Lit{} -> acc
     LitOf{} -> acc
     Tensor td -> goTensor acc td
@@ -118,7 +120,9 @@ eval' term = do
         dom' <- go valueEnv dom
         pure $ VPi p dom' (\v -> go (v : valueEnv) range)
       Bound i -> pure (valueEnv !! i)
-      Ref sheetId _ ca -> fetchValue sheetId ca
+      Ref sheetId _ (start, end)
+        | start == end -> fetchValue sheetId start
+        | otherwise -> fetchValue sheetId start -- FIXME
       Free name
         | Just Decl{declValue = Just v} <- Map.lookup name globals -> pure v
         | otherwise -> pure (vfree name)
@@ -171,7 +175,9 @@ infer' i = \case
     case Map.lookup name globals of
       Just Decl{declType} -> pure declType
       Nothing -> throwSemanticError (UnknownIdentifier name)
-  Ref sheetId _ ca -> fetchType sheetId ca
+  Ref sheetId _ (start, end)
+    | start == end -> fetchType sheetId start
+    | otherwise -> fetchType sheetId start -- FIXME
   Lit{} -> pure (VSet 0)
   LitOf val -> case val of
     BoolOf{} -> pure (VLit Bool)
@@ -234,7 +240,7 @@ instance Language (Term Infer) where
 
 data Neutral
   = NFree !Name
-  | NRef !SheetId !CellAddr
+  | NRef !SheetId !CellRange
   | NApp !Neutral !Value
   deriving (Generic)
 
@@ -303,7 +309,7 @@ quote = go 0
 
   goNeutral i = \case
     NFree n -> Free n
-    NRef sheetId ca -> Ref sheetId FullySpecified ca
+    NRef sheetId cr -> Ref sheetId FullySpecified cr
     NApp n v -> goNeutral i n :$ go i v
 
   goTensor i (VTensorDescriptor vdims) =
@@ -313,7 +319,7 @@ quote = go 0
   quoteAbs v = either (error . show) id $ do
     let
       fetch = \case
-        Cell _ sheetId ca -> pure (VNeutral (NRef sheetId ca))
+        Cell _ sheetId ca -> pure (VNeutral (NRef sheetId (ca, ca)))
         _ -> throwSemanticError undefined
      in
       runExcept $ runReaderT v (fetch, Env undefined mempty)
@@ -322,7 +328,16 @@ instance Pretty Value where
   pretty = pretty . quote
 
 valueP :: Parser Value
-valueP = vfree . Global <$> keyword
+valueP = VLitOf . IntOf <$> decimal <|> constant
+ where
+  constant = do
+    w <- originalText <$> keyword
+    case Text.toLower w of
+      "bool" -> pure (VLit Bool)
+      "false" -> pure (VLitOf (BoolOf False))
+      "true" -> pure (VLitOf (BoolOf True))
+      "int" -> pure (VLit Int)
+      _ -> fail $ "invalid keyword ‘" <> Text.unpack w <> "’"
 
 {- Prelude -}
 

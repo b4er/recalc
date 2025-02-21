@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.4.0 -- 2025-02-20
+## 0.7.5.0 -- 2025-02-21
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -28,3 +28,6 @@
 * Add route for sheet-defined functions to protocol and implement dummy handler.
 * Add literals (Boolean values and integers) to core language, add integral
   tensors.
+* Implement value parser for constants and integers, make references refer to
+  whole cell-ranges and adapt parser. Implement some test cases and a few
+  bugfixes.

@@ -113,6 +113,10 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
         <> [(ca, m) | (ca, m, _) <- values]
         <> [(ca, m) | (ca, m, _) <- formulas]
 
+    isValue ca = case Map.lookup ca rcMap of
+      Just CellData{cellData'v = Is _} -> True
+      _ -> False
+
   scheduleJob
     $
     -- update meta-changes and recompute
@@ -123,18 +127,23 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
       )
       -- send back the results
       >>= liftIO . sendResult . \case
-        Left cycle' -> [(ca, cellCyclicalError) | ca <- cycle']
+        Left cycle' -> [(cref, cellCyclicalError) | cref <- cycle']
         Right okChanges ->
-          [ either ((ca,) . cellFetchError) ((ca,) . cellValue) x
-          | (ca, x) <- okChanges
+          [ either
+            ((cref,) . cellFetchError (if isValue ca then Missing else Is "#error"))
+            ((cref,) . cellValue)
+            x
+          | (cref@(_, ca), x) <- okChanges
           ]
 
   -- return syntax errors
   pure
     $ Cells
     $ Map.fromList
-      [ (ca, cellFetchError (Engine.InvalidFormula @(Engine.ErrorOf (Term Infer)) err))
+      [ (ca, cellFetchError xv (Engine.InvalidFormula @(Engine.ErrorOf (Term Infer)) err))
       | (ca, _, err) <- errors
+      , -- only write value for formulas!
+      let xv = if isValue ca then Missing else Is "#syntax"
       ]
  where
   sendResult = sendIO . JsonRpcNotification "setCells" . nestedMap
@@ -154,11 +163,13 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
       . quotientOn' (fst . fst . fst) -- quotient by uri
   quotientOn' f = quotientOn f . sortOn f
 
-  cellErrors = CellData Missing Missing Missing Missing Missing . Is . (`CustomData` [])
+  -- Univer cell data construtors
   cellValue v = CellData Missing (Is (renderPretty v)) Missing Missing Missing Missing
 
-  cellCyclicalError = cellErrors [Annotation "Cyclic Dependency" "This cell is part of a cycle."]
-  cellFetchError err = cellErrors [Annotation (Engine.errorTitle semanticErrorTitle err) (renderPretty err)]
+  cellErrors' xv = CellData Missing xv Missing Missing Missing . Is . (`CustomData` [])
+
+  cellCyclicalError = cellErrors' (Is "cycle") [Annotation "Cyclic Dependency" "This cell is part of a cycle."]
+  cellFetchError xv err = cellErrors' xv [Annotation (Engine.errorTitle semanticErrorTitle err) (renderPretty err)]
 
 rpcInsertSheet :: InsertSheetParams -> Handler EngineState ()
 rpcInsertSheet InsertSheetParams{..} =

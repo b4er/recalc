@@ -1,6 +1,8 @@
 import { IScale, IRange, Range, IDisposable } from "@univerjs/core";
 import { IDrawInfo, SheetExtension, SpreadsheetExtensionRegistry, SpreadsheetSkeleton, UniverRenderingContext } from "@univerjs/engine-render";
 
+import './cell-diagnostics.css'
+
 export class CellFormatting extends SheetExtension {
   public static addExtension(): IDisposable {
     SpreadsheetExtensionRegistry.add(CellFormatting);
@@ -21,7 +23,7 @@ export class CellFormatting extends SheetExtension {
 
       const cellData = worksheet.getCell(row, col);
       if (cellData?.custom !== undefined && (cellData?.custom?.errors || cellData?.custom?.warnings)) {
-        let { isMerged, isMergedMainCell, mergeInfo, startY, endY, startX, endX } = skeleton.getCellByIndex(row, col);
+        let { isMerged, isMergedMainCell, mergeInfo, startY, endY, startX, endX } = skeleton.getCellWithCoordByIndex(row, col);
         if (isMerged) {
             return;
         }
