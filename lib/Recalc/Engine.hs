@@ -39,7 +39,9 @@ module Recalc.Engine
   , modifyDocs
   , insertDocument
   , insertSheet
+  , deleteSheet
   , updateDocument
+  , updateSheet
   , fetchType
   , fetchValue
   , getEnv

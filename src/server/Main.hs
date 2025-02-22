@@ -177,11 +177,15 @@ rpcInsertSheet InsertSheetParams{..} =
     $ Engine.updateDocument
       insertSheet'uri
       (insertAt insertSheet'index (insertSheet'sheetId, insertSheet'sheetName))
+      . Engine.insertSheet
+        (insertSheet'uri, insertSheet'sheetId)
+        insertSheet'sheetName
 
 rpcRemoveSheet :: RemoveSheetParams -> Handler EngineState ()
 rpcRemoveSheet RemoveSheetParams{..} =
   modifyDocs
     $ Engine.updateDocument removeSheet'uri (removeAt removeSheet'sheetId)
+      . Engine.deleteSheet (removeSheet'uri, removeSheet'sheetId)
 
 rpcSetWorksheetOrder :: SetWorksheetOrderParams -> Handler EngineState ()
 rpcSetWorksheetOrder SetWorksheetOrderParams{..} =
@@ -196,6 +200,9 @@ rpcSetWorksheetName SetWorksheetNameParams{..} =
     $ Engine.updateDocument
       setWorksheetName'uri
       (updateList setWorksheetName'sheetId setWorksheetName'sheetName)
+      . Engine.updateSheet
+        (setWorksheetName'uri, setWorksheetName'sheetId)
+        (const setWorksheetName'sheetName)
 
 rpcDefineFunction :: DefineFunctionParams -> Handler EngineState ()
 rpcDefineFunction def@DefineFunctionParams{} = debug "rpcDefineFunction" def

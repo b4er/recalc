@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.5.1 -- 2025-02-21
+## 0.7.5.2 -- 2025-02-22
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -31,3 +31,5 @@
 * Implement value parser for constants and integers, make references refer to
   whole cell-ranges and adapt parser. Implement some test cases and a few
   bugfixes.
+* Bugfixes: sheet operations should behave now (the `DocumentStore` was not
+  properly updated before)

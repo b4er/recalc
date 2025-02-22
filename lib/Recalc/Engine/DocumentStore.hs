@@ -24,6 +24,7 @@ module Recalc.Engine.DocumentStore
     -- * Setters
   , insertDocument
   , insertSheet
+  , deleteSheet
   , setCell
   , setCellError
   , setCellType
@@ -32,6 +33,7 @@ module Recalc.Engine.DocumentStore
     -- * Updates
   , alterCellMeta
   , updateDocument
+  , updateSheet
 
     -- * Lookups
   , lookupCellDeps
@@ -134,11 +136,24 @@ insertSheet
   -> sheet
   -> DocumentStore doc sheet cell term value
   -> DocumentStore doc sheet cell term value
-insertSheet (uri, sheetName) s (DocumentStore docs) =
+insertSheet (uri, sheetId) s (DocumentStore docs) =
   DocumentStore
     $ Map.update
       ( Just . \case
-          Document (d, doc) -> Document (Map.insert sheetName (Sheet (mempty, s)) d, doc)
+          Document (d, doc) -> Document (Map.insert sheetId (Sheet (mempty, s)) d, doc)
+      )
+      uri
+      docs
+
+deleteSheet
+  :: SheetId
+  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value
+deleteSheet (uri, sheetId) (DocumentStore docs) =
+  DocumentStore
+    $ Map.update
+      ( Just . \case
+          Document (d, doc) -> Document (Map.delete sheetId d, doc)
       )
       uri
       docs
@@ -265,3 +280,21 @@ updateDocument uri f (DocumentStore docs) =
     $ (`Map.update` uri)
       (Just . \(Document (sheets, doc)) -> Document (sheets, f doc))
       docs
+
+updateSheet
+  :: SheetId
+  -> (sheet -> sheet)
+  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value
+updateSheet (uri, sheetId) f (DocumentStore docs) =
+  DocumentStore
+    $ (`Map.update` uri)
+      ( Just . \(Document (sheets, doc)) ->
+          let
+            sheets' = Map.update (Just . update) sheetId sheets
+          in
+            Document (sheets', doc)
+      )
+      docs
+ where
+  update (Sheet (m, x)) = Sheet (m, f x)
