@@ -1,6 +1,6 @@
 import { WebviewApi } from "vscode-webview";
 
-import { Disposable, ICommandInfo, ICommandService, IExecutionOptions, IUniverInstanceService } from "@univerjs/core";
+import { Disposable, ICommandInfo, ICommandService, IExecutionOptions, IUniverInstanceService, UniverInstanceType, Workbook } from "@univerjs/core";
 import { IInsertSheetMutationParams, IRemoveSheetMutationParams, ISetRangeValuesMutationParams, ISetWorksheetNameMutationParams, ISetWorksheetOrderMutationParams, InsertSheetMutation, RemoveSheetMutation, SetRangeValuesMutation, SetWorksheetNameMutation, SetWorksheetOrderMutation } from "@univerjs/sheets";
 
 import { Loglevel } from "../../rpc/logging";
@@ -90,7 +90,16 @@ export class MessageController extends Disposable {
       return;
     }
 
-    for (const [sheetId, value] of Object.entries(event.data.params)) {
+    const workbook = this._instanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET);
+
+    for (const [sheetName, value] of Object.entries(event.data.params)) {
+      const sheetId = workbook?.getSheetBySheetName(sheetName)?.getSheetId();
+
+      if (!sheetId) {
+        logger.warn(`invalid call to 'setCells': cannot get sheet ID (${JSON.stringify({sheetName: sheetName, value: value})})`)
+        continue;
+      }
+
       this._commandService.executeCommand(SetRangeValuesMutation.id, {
         unitId: data.id,
         subUnitId: sheetId,
@@ -105,8 +114,16 @@ export class MessageController extends Disposable {
   private handleSetRangeValues(params: ISetRangeValuesMutationParams & {loop?: boolean}) {
     if (params.loop) return;
 
+    const workbook = this._instanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET);
+    const sheetName = workbook?.getSheetBySheetId(params.subUnitId)?.getName();
+
+    if (!sheetName) {
+      logger.error(`invalid call to 'setRangeValues': cannot get sheet name (${JSON.stringify(params)})`)
+      return;
+    }
+
     postMessage({method: "setRangeValues", params: {
-      sheetId: params.subUnitId,
+      sheetId: sheetName,
       cells: params.cellValue,
     }});
   }
@@ -121,7 +138,7 @@ export class MessageController extends Disposable {
 
   private handleRemoveSheet(params: IRemoveSheetMutationParams) {
     postMessage({method: "removeSheet", params: {
-      sheetId: params.subUnitId,
+      sheetName: params.subUnitId,
     }});
   }
 
@@ -135,8 +152,8 @@ export class MessageController extends Disposable {
 
   private handleSetWorksheetName(params: ISetWorksheetNameMutationParams) {
     postMessage({method: "setWorksheetName", params: {
-      sheetId: params.subUnitId,
-      sheetName: params.name,
+      sheetName: params.subUnitId,
+      newName: params.name,
     }});
   }
 }

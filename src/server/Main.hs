@@ -26,14 +26,14 @@ import Recalc.Syntax.Term
 
 -- | the 'EngineState' describes which additional state per element in the
 -- 'DocumentStore' we keep
-type EngineState = Engine.EngineState DocState SheetName CellState (Term Infer)
+type EngineState = Engine.EngineState DocState SheetState CellState (Term Infer)
 
-type DocumentStore = Engine.DS DocState SheetName CellState (Term Infer)
+type DocumentStore = Engine.DS DocState SheetState CellState (Term Infer)
 
--- | the document tracks the sheet order
-type DocState = [(Text, Text)]
+-- | the document tracks the sheet order (by name not @subUnitId@)
+type DocState = [Text]
 
-type SheetName = Text
+type SheetState = ()
 
 type CellState = Engine.MetaOf CellData
 
@@ -87,7 +87,7 @@ rpcOpen OpenParams{open'uri = uri, open'sheetOrder = sheetOrder} = do
   -- insert the document at uri, then insert each sheet
   let insertDocAndSheets =
         foldl'
-          (\f (s, n) -> Engine.insertSheet (uri, s) n . f)
+          (\f n -> Engine.insertSheet (uri, n) () . f)
           (Engine.insertDocument uri sheetOrder)
           sheetOrder
   modifyDocs insertDocAndSheets
@@ -176,16 +176,14 @@ rpcInsertSheet InsertSheetParams{..} =
   modifyDocs
     $ Engine.updateDocument
       insertSheet'uri
-      (insertAt insertSheet'index (insertSheet'sheetId, insertSheet'sheetName))
-      . Engine.insertSheet
-        (insertSheet'uri, insertSheet'sheetId)
-        insertSheet'sheetName
+      (insertAt insertSheet'index insertSheet'sheetName)
+      . Engine.insertSheet (insertSheet'uri, insertSheet'sheetName) ()
 
 rpcRemoveSheet :: RemoveSheetParams -> Handler EngineState ()
 rpcRemoveSheet RemoveSheetParams{..} =
   modifyDocs
-    $ Engine.updateDocument removeSheet'uri (removeAt removeSheet'sheetId)
-      . Engine.deleteSheet (removeSheet'uri, removeSheet'sheetId)
+    $ Engine.updateDocument removeSheet'uri (filter (/= removeSheet'sheetName))
+      . Engine.deleteSheet (removeSheet'uri, removeSheet'sheetName)
 
 rpcSetWorksheetOrder :: SetWorksheetOrderParams -> Handler EngineState ()
 rpcSetWorksheetOrder SetWorksheetOrderParams{..} =
@@ -199,10 +197,7 @@ rpcSetWorksheetName SetWorksheetNameParams{..} =
   modifyDocs
     $ Engine.updateDocument
       setWorksheetName'uri
-      (updateList setWorksheetName'sheetId setWorksheetName'sheetName)
-      . Engine.updateSheet
-        (setWorksheetName'uri, setWorksheetName'sheetId)
-        (const setWorksheetName'sheetName)
+      (updateList setWorksheetName'sheetName setWorksheetName'newName)
 
 rpcDefineFunction :: DefineFunctionParams -> Handler EngineState ()
 rpcDefineFunction def@DefineFunctionParams{} = debug "rpcDefineFunction" def

@@ -4,11 +4,11 @@ Description : List manipulation utility functions.
 -}
 module List_add where
 
--- | updates an existing key in an association list
-updateList :: Eq k => k -> a -> [(k, a)] -> [(k, a)]
-updateList k v ((k', v') : kvs)
-  | k' == k = (k, v) : kvs
-  | otherwise = (k', v') : updateList k v kvs
+-- | updates an existing value in a list (first match)
+updateList :: Eq a => a -> a -> [a] -> [a]
+updateList old new (v : vs)
+  | v == old = new : vs
+  | otherwise = v : updateList old new vs
 updateList _ _ _ = []
 
 -- | removes the first occurrence of a key in an association list

@@ -21,7 +21,7 @@ class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
 				this.initialData = openFile(uri, this.client.logger);
 				this.client.request("open", {
 					uri: this.uri.toString(),
-					sheetOrder: this.initialData.sheetOrder
+					sheetOrder: this.initialData.sheetOrder.map(([, name]) => name)
 				}).catch(err =>
 					this.client.logger.error(`erroor: ${err.message}`)
 				);

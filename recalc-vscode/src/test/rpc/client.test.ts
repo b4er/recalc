@@ -7,8 +7,6 @@ import { Client, MessageTransports } from "../../rpc/client";
 import { ChildProcessWithoutNullStreams, execSync, spawn } from "node:child_process";
 import { logger } from "../logging";
 
-const nanoid = require("nanoid")
-
 const NAME = "test";
 
 class TestClient extends Client<SpreadsheetProtocol> {
@@ -53,7 +51,7 @@ describe('testClient', function () {
     await testClient.start();
 
     logger.info(`>>> send open request to TestClient`)
-    const result = await testClient.request("open", {uri: "test://file.rc", sheetOrder: [[nanoid.nanoid(), "Sheet 1"]]})
+    const result = await testClient.request("open", {uri: "test://file.rc", sheetOrder: ["Sheet 1"]})
 
     assert.deepEqual(result, []);
 

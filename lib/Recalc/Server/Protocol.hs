@@ -37,7 +37,7 @@ data SpreadsheetProtocol mode = SpreadsheetProtocol
 
 data OpenParams = OpenParams
   { open'uri :: URI
-  , open'sheetOrder :: [(Text, Text)]
+  , open'sheetOrder :: [Text]
   }
   deriving (Show, Generic)
 
@@ -64,7 +64,7 @@ data InsertSheetParams = InsertSheetParams
 
 data RemoveSheetParams = RemoveSheetParams
   { removeSheet'uri :: URI
-  , removeSheet'sheetId :: Text
+  , removeSheet'sheetName :: Text
   }
   deriving (Show, Generic)
 
@@ -81,8 +81,8 @@ instance Json.FromJSON SetWorksheetOrderParams where
 
 data SetWorksheetNameParams = SetWorksheetNameParams
   { setWorksheetName'uri :: URI
-  , setWorksheetName'sheetId :: Text
   , setWorksheetName'sheetName :: Text
+  , setWorksheetName'newName :: Text
   }
   deriving (Show, Generic)
 
