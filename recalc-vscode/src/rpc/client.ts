@@ -286,15 +286,15 @@ export type Params<Protocol, M extends keyof Protocol> =
  * };
  */
 
+export type Reply<Protocol, M extends keyof Protocol> =
+	Promise<Protocol[M] extends { result: infer R } ? R : never>;
+
 export abstract class Client<Protocol> extends BaseClient {
 	notify(method: string): Promise<void> {
 		return this.sendNotification(method);
 	}
 
-	request<M extends keyof Protocol>(
-    method: M,
-    params: Protocol[M] extends { params: infer T } ? T : never
-  ): Promise<Protocol[M] extends { result: infer R } ? R : never>
+	request<M extends keyof Protocol>(method: M, params: Params<Protocol, M>): Reply<Protocol, M>
 	{
 		return this.sendRequest(method as string, params)
 	}

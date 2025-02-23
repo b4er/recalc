@@ -48,7 +48,9 @@
     {
       "label": "npm: install",
       "command": "[ -d recalc-vscode/node_modules ] || npm --prefix recalc-vscode ci",
-      "type": "shell"
+      "type": "shell",
+      "problemMatcher": [],
+      "isBackground": true
     },
     {
       "label": "npm: compile",

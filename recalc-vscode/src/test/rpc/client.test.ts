@@ -1,14 +1,30 @@
 import assert from "node:assert";
-import 'mocha';
+import { ChildProcessWithoutNullStreams, execSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
+import 'mocha';
 import * as rpc from 'vscode-jsonrpc/node';
 
-import { Client, MessageTransports } from "../../rpc/client";
-import { ChildProcessWithoutNullStreams, execSync, spawn } from "node:child_process";
+import { Client, MessageTransports, Params } from "../../rpc/client";
 import { logger } from "../logging";
+import { Semaphore } from "./semaphore";
 
 const NAME = "test";
 
+// sort by key when object (just for printing - makes deciphering errors much easier)
+function json(value: unknown) {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const keys = new Set<string>();
+    JSON.stringify(value, (key, value) => (keys.add(key), value));
+    return JSON.stringify(value, Array.from(keys).sort());
+  }
+
+  return JSON.stringify(value);
+}
+
+/**
+ * Pretty much the same way we extend `Client<SpreadsheetProtocol>` in the
+ * extension's `activate` function, except a different logger and config values.
+ */
 class TestClient extends Client<SpreadsheetProtocol> {
   public name = NAME;
 
@@ -17,7 +33,6 @@ class TestClient extends Client<SpreadsheetProtocol> {
   constructor() { super(1, logger); }
 
   protected createMessageTransports(encoding: "utf-8" | "ascii"): Promise<MessageTransports> {
-
     const _binName = "recalc-server";
     const binPath = fs.existsSync(`bin/recalc-server`)
       ? `bin/${_binName}`
@@ -35,13 +50,17 @@ class TestClient extends Client<SpreadsheetProtocol> {
     const writer = new rpc.StreamMessageWriter(this.process.stdin, encoding);
 
     const binName = binPath.split("/").at(-1);
-    this.process.stderr.on('data', data => this.logger.info(`(${binName}) ${data.toString().trim()}`));
+    this.process.stderr.on('data', data =>
+      this.logger.log(`(${binName}) ${data.toString().trim()}`)
+    );
 
     return Promise.resolve({reader: reader, writer: writer})
   }
 };
 
-describe('testClient', function () {
+/* End-to-end tests, spawn a recalc-server using `TestClient` and send some requests: */
+
+describe('testClient (end-to-end tests)', function () {
   this.timeout(5000);
 
   it('should successfully send a "open" request and receive a response', async () => {
@@ -61,5 +80,127 @@ describe('testClient', function () {
       testClient.process!.on('exit', (_code) => resolve());
       testClient.process!.on('error', reject);
     });
+  });
+
+  it('should successfully perform some simple cell operations using references', async () => {
+    const uri = "test://file.rc";
+    const sheetId = "Sheet 1";
+
+    const testClient = new TestClient();
+
+    logger.info(`>>> starting TestClient`)
+    await testClient.start();
+
+    logger.info(`>>> send open request to TestClient`)
+    const result = await testClient.request("open", {uri, sheetOrder: [sheetId]})
+    logger.log(`result: ${json(result)}`)
+    assert.deepEqual(result, []);
+
+    // need to signal and await to make sure the notification handler fires everytime,
+    // collect the errors and raise at the end
+    let errors: Error[] = [];
+
+    // helper function asserts that when sending a {method,params} we get back the expected reply
+    async function assertReply<M extends keyof SpreadsheetProtocol>(
+      method: M, params: Params<SpreadsheetProtocol, M>,
+      expectedMethod: string,
+      expectedParams: unknown,
+    ) {
+      const sem = new Semaphore();
+      logger.log(`>>> ${method}: ${json(params)}`);
+
+      testClient.onNotification((rmethod, rparams) => {
+        logger.log(`<<< ${rmethod}: ${json(rparams)}`);
+        try {
+          const message = `when sending\n>>> ${method}: ${JSON.stringify(params)}\ngot\n<<< ${rmethod}: ${json(rparams)}\nbut expected\n!!! ${expectedMethod}: ${json(expectedParams)}`;
+
+          assert.strictEqual(expectedMethod, rmethod, message);
+          assert.deepEqual(expectedParams, rparams, message);
+        } catch (err) {
+          errors.push(err as Error);
+        } finally {
+          sem.signal();
+        }
+      });
+
+      await testClient.request(method, params);
+      await sem.wait();
+    }
+
+    // single Cell at `(i,j)` is set to `{v}`
+    const Cell = (i: number, j: number,v: string, custom?: unknown) =>
+      ({[uri]:{[sheetId]:[[[i,j],{v, ...(custom !== undefined ? {custom} : {})}]]}});
+
+    // set `A1` to `=1` should give `1`
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {0:{0:{f:"=1"}}},
+    },
+      "setCells", Cell(0,0, "1")
+    );
+
+    // set `A2` to `2` should give `2`
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {1:{0:{v:"2"}}},
+    },
+      "setCells", Cell(1,0, "2")
+    );
+
+    // set `B1` to `=not(False)` should give `True`
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {0:{1:{f:"=not(False)",si:null,v:null,p:null}}}
+    },
+      "setCells", Cell(0,1, "True")
+    );
+
+    // set `C1` to `=and(B1,True)` should give `True`
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {0:{2:{f:"=and(B1, True)"}}}
+    },
+      "setCells", Cell(0,2, "True")
+    );
+
+    // set `C2` to `=A2` should give `2`
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {1:{2:{f:"=A2"}}}
+    },
+      "setCells", Cell(1,2, "2")
+    );
+
+    // set `A2` to 3 should give 3; update C2
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {1:{0:{v:"3"}}},
+    },
+      "setCells", {[uri]: {[sheetId]: [
+          [[1,0],{v: "3"}],
+          [[1,2],{v: "3"}],
+      ]}}
+    );
+
+    // set `C2` to =and(B1,A1) should give error
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {1:{2:{f:"=and(B1,A1 )"}}}
+    },
+      "setCells", Cell(1,2, "#error", {
+        errors: [{
+          message: "#REF",
+          title: "Illegal Application",
+        }],
+        warnings: [],
+      })
+    );
+
+    logger.info(`>>> shutting down TestClient`)
+    await testClient.stop();
+    await new Promise<void>((resolve, reject) => {
+      testClient.process!.on('exit', (_code) => resolve());
+      testClient.process!.on('error', reject);
+    });
+
+    // lift errors from the notification handler (after shutting down client.)
+    if (errors.length > 0) {
+      const message = errors.map((e, i) => `\n(${i + 1}) ${e.message}`).join("\n");
+      const sometimes = errors.length > 1 ? ` (${errors.length}x)` : "";
+      throw new Error(`assertReply failed${sometimes}:\n${message}`);
+    }
   });
 });
