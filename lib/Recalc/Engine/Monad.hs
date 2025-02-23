@@ -50,7 +50,7 @@ type Spreadsheets value = Tasks Monad Ix value
 spreadsheetsOf
   :: Language term
   => EnvOf term
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term (ValueOf term) (FetchError (ErrorOf term))
   -> Ix
   -> Maybe (Spreadsheet (Either (FetchError (ErrorOf term)) (ValueOf term)))
 spreadsheetsOf env ds = \case
@@ -59,13 +59,14 @@ spreadsheetsOf env ds = \case
     | k == Value -> runFetch env . eval <$> lookupCellTerm sheetId ca ds
   _ -> Nothing -- FIXME: implement volatile functions
 
-type DS doc sheet cell term = DocumentStore doc sheet cell term (ValueOf term)
+type DS doc sheet cell term =
+  DocumentStore doc sheet cell term (ValueOf term) (FetchError (ErrorOf term))
 
 data EngineState dm doc sheet cell term
   = EngineState !(Chain Ix) !(DS doc sheet cell term) !(dm CellAddr)
 
 instance
-  (Show doc, Show sheet, Show cell, Show term, Show (ValueOf term))
+  (Show doc, Show sheet, Show cell, Show term, Show (ValueOf term), Show (ErrorOf term))
   => Show (EngineState dm doc sheet cell term)
   where
   show (EngineState _ ds _) = show ds

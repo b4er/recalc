@@ -52,37 +52,37 @@ import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
 import Recalc.Engine.Language hiding (Cell)
 
 -- | The document store keeps a 'Document' for each resource id.
-newtype DocumentStore doc sheet cell term value
+newtype DocumentStore doc sheet cell term value err
   = DocumentStore
-      (Map URI (Document doc sheet cell term value))
+      (Map URI (Document doc sheet cell term value err))
 
 instance
-  (Show doc, Show sheet, Show cell, Show term, Show value)
-  => Show (DocumentStore doc sheet cell term value)
+  (Show doc, Show sheet, Show cell, Show term, Show value, Show err)
+  => Show (DocumentStore doc sheet cell term value err)
   where
   show (DocumentStore m) = show m
 
-newDocumentStore :: DocumentStore doc sheet cell term value
+newDocumentStore :: DocumentStore doc sheet cell term value err
 newDocumentStore = DocumentStore mempty
 
 -- | A document consists of multiple named 'Sheet's
-newtype Document doc sheet cell term value
-  = Document (Map Text (Sheet sheet cell term value), doc)
+newtype Document doc sheet cell term value err
+  = Document (Map Text (Sheet sheet cell term value err), doc)
   deriving (Show)
 
 -- | A sheet stores all cells
-newtype Sheet sheet cell term value = Sheet (Map CellAddr (Cell cell term value), sheet)
+newtype Sheet sheet cell term value err = Sheet (Map CellAddr (Cell cell term value err), sheet)
   deriving (Show)
 
 -- | Each cell stores its content, pre-computed dependencies and meta data
-data Cell cell term value = Cell
-  { content :: CellContent term value
+data Cell cell term value err = Cell
+  { content :: CellContent term value err
   , range :: Set CellRange
   , cell :: cell
   }
   deriving (Show)
 
-data CellContent term value
+data CellContent term value err
   = CellTerm
       (Maybe value)
       -- ^ inferred type
@@ -95,18 +95,19 @@ data CellContent term value
       -- ^ inferred type
       value
       -- ^ value
-  | CellError
+  | -- | error
+    CellError err
   deriving (Show)
 
 {- smart ctors -}
-cellTerm :: term -> Set CellRange -> cell -> Cell cell term value
+cellTerm :: term -> Set CellRange -> cell -> Cell cell term value err
 cellTerm e = Cell (CellTerm Nothing e Nothing)
 
-cellValue :: Maybe value -> value -> cell -> Cell cell term value
+cellValue :: Maybe value -> value -> cell -> Cell cell term value err
 cellValue t v = Cell (CellValue t v) mempty
 
-cellError :: cell -> Cell cell term value
-cellError = Cell CellError mempty
+cellError :: err -> cell -> Cell cell term value err
+cellError err = Cell (CellError err) mempty
 
 {- setters -}
 
@@ -126,7 +127,10 @@ class Meta cell where
   merge :: cell -> cell -> cell
 
 insertDocument
-  :: URI -> doc -> DocumentStore doc sheet cell term value -> DocumentStore doc sheet cell term value
+  :: URI
+  -> doc
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 insertDocument uri doc (DocumentStore docs) =
   DocumentStore
     $ Map.insert uri (Document (mempty, doc)) docs
@@ -134,8 +138,8 @@ insertDocument uri doc (DocumentStore docs) =
 insertSheet
   :: SheetId
   -> sheet
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 insertSheet (uri, sheetId) s (DocumentStore docs) =
   DocumentStore
     $ Map.update
@@ -147,8 +151,8 @@ insertSheet (uri, sheetId) s (DocumentStore docs) =
 
 deleteSheet
   :: SheetId
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 deleteSheet (uri, sheetId) (DocumentStore docs) =
   DocumentStore
     $ Map.update
@@ -162,9 +166,9 @@ alterCell
   :: Isn't cell
   => SheetId
   -> CellAddr
-  -> (Maybe (Cell cell term value) -> Maybe (Cell cell term value))
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> (Maybe (Cell cell term value err) -> Maybe (Cell cell term value err))
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 alterCell (uri, sheetName) ca updateCell (DocumentStore docs) =
   DocumentStore (Map.update document uri docs)
  where
@@ -180,8 +184,8 @@ alterCellMeta
   => SheetId
   -> CellAddr
   -> (cell -> cell)
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 alterCellMeta sheetId ca updateMeta = alterCell sheetId ca $ \case
   Just c -> Just c{cell = updateMeta (cell c)}
   x -> x
@@ -190,19 +194,20 @@ setCell
   :: Isn't cell
   => SheetId
   -> CellAddr
-  -> Cell cell term value
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> Cell cell term value err
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 setCell sheetId ca = alterCell sheetId ca . const . Just
 
 setCellError
   :: Isn't cell
   => SheetId
   -> CellAddr
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
-setCellError sheetId ca = alterCell sheetId ca $ \case
-  Just Cell{..} -> Just Cell{content = CellError, range = range, cell = cell}
+  -> err
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
+setCellError sheetId ca err = alterCell sheetId ca $ \case
+  Just Cell{..} -> Just Cell{content = CellError err, range = range, cell = cell}
   x -> x
 
 setCellType
@@ -210,8 +215,8 @@ setCellType
   => SheetId
   -> CellAddr
   -> value
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 setCellType sheetId ca ty = alterCell sheetId ca $ \case
   Just Cell{content = CellTerm _ e v, ..} -> Just Cell{content = CellTerm (Just ty) e v, range = range, cell = cell}
   Just Cell{content = CellValue _ v, ..} -> Just Cell{content = CellValue (Just ty) v, range = range, cell = cell}
@@ -222,8 +227,8 @@ setCellValue
   => SheetId
   -> CellAddr
   -> value
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 setCellValue sheetId ca v' = alterCell sheetId ca $ \case
   Just Cell{content = CellTerm ty e _, ..} -> Just Cell{content = CellTerm ty e (Just v'), range = range, cell = cell}
   x -> x
@@ -233,8 +238,8 @@ setCellValue sheetId ca v' = alterCell sheetId ca $ \case
 lookupCell'
   :: SheetId
   -> CellAddr
-  -> DocumentStore doc sheet cell term value
-  -> Maybe (Cell cell term value)
+  -> DocumentStore doc sheet cell term value err
+  -> Maybe (Cell cell term value err)
 lookupCell' (uri, sheetName) ca (DocumentStore docs) = do
   Document (sheets, _) <- Map.lookup uri docs
   Sheet (sheet, _) <- Map.lookup sheetName sheets
@@ -242,24 +247,24 @@ lookupCell' (uri, sheetName) ca (DocumentStore docs) = do
 
 -- | Look up the pre-computed dependencies of a cell
 lookupCellDeps
-  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value -> Maybe (Set CellRange)
+  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value err -> Maybe (Set CellRange)
 lookupCellDeps sheetId ca = fmap range . lookupCell' sheetId ca
 
 -- | Look up the term associated to a cell
 lookupCellTerm
-  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value -> Maybe term
+  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value err -> Maybe term
 lookupCellTerm sheetId ca = unpack <=< lookupCell' sheetId ca
  where
   unpack = (\case CellTerm _ e _ -> Just e; _ -> Nothing) . content
 
 lookupCellType
-  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value -> Maybe value
+  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value err -> Maybe value
 lookupCellType sheetId ca = unpack <=< lookupCell' sheetId ca
  where
   unpack = (\case CellTerm ty _ _ -> ty; CellValue ty _ -> ty; _ -> Nothing) . content
 
 lookupCellValue
-  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value -> Maybe value
+  :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value err -> Maybe value
 lookupCellValue sheetId ca = unpack <=< lookupCell' sheetId ca
  where
   unpack =
@@ -273,8 +278,8 @@ lookupCellValue sheetId ca = unpack <=< lookupCell' sheetId ca
 updateDocument
   :: URI
   -> (doc -> doc)
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 updateDocument uri f (DocumentStore docs) =
   DocumentStore
     $ (`Map.update` uri)
@@ -284,8 +289,8 @@ updateDocument uri f (DocumentStore docs) =
 updateSheet
   :: SheetId
   -> (sheet -> sheet)
-  -> DocumentStore doc sheet cell term value
-  -> DocumentStore doc sheet cell term value
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
 updateSheet (uri, sheetId) f (DocumentStore docs) =
   DocumentStore
     $ (`Map.update` uri)

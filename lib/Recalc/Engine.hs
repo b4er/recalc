@@ -206,13 +206,16 @@ recompute sheetId (errors, values, formulas) = do
     documentStore' :: DS doc sheet (MetaOf dat) (TermOf dat)
     documentStore' =
       foldl'
-        ( \ds (ca, (e, r, c)) -> setCell sheetId ca (cellTerm e r c) ds
+        ( \ds (ca, (term, range, meta)) ->
+            setCell sheetId ca (cellTerm term range meta) ds
         )
         ( foldl'
-            ( \ds (ca, c, v) -> setCell sheetId ca (cellValue (inferValue @(TermOf dat) env v) v c) ds
+            ( \ds (ca, meta, val) ->
+                setCell sheetId ca (cellValue (inferValue @(TermOf dat) env val) val meta) ds
             )
             ( foldl'
-                ( \ds (ca, c, _) -> setCell sheetId ca (cellError c) ds
+                ( \ds (ca, meta, parseError) ->
+                    setCell sheetId ca (cellError (InvalidFormula parseError) meta) ds
                 )
                 documentStore
                 errors
@@ -254,17 +257,21 @@ recompute sheetId (errors, values, formulas) = do
 
           store'' = store' `run` [d | d <- dirty, d `notElem` map fst typeErrors]
 
-          newValues = [(u, getValue (Cell Value s ca) store'') | u@(s, ca) <- dirty]
+          newValues =
+            [ (d, getValue (Cell Value s ca) store'')
+            | d@(s, ca) <- dirty
+            , d `notElem` map fst typeErrors
+            ]
 
-          setDocumentStoreValue ((si, ca), Left _) = setCellError si ca
+          setDocumentStoreValue ((si, ca), Left e) = setCellError si ca e
           setDocumentStoreValue ((si, ca), Right v') = setCellValue si ca v'
 
           setDocumentStoreType ((si, ca), t) = setCellType si ca t
 
-          setDocumentStoreError ((si, ca), _e) = setCellError si ca
+          setDocumentStoreError ((si, ca), e) = setCellError si ca e
         in
           -- propagate new calc-chain and documentStore updated with new values
-          ( Right newValues
+          ( Right (newValues <> [(addr, Left err) | (addr, err) <- typeErrors])
           , snd (getInfo store'')
           , foldr
               setDocumentStoreError

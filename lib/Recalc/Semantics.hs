@@ -18,6 +18,7 @@ module Recalc.Semantics where
 
 import Control.Applicative ((<|>))
 import Control.Monad (void, when)
+import Control.Monad.Error.Class (MonadError (throwError))
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
 import Data.Array.Dynamic (Array)
@@ -33,7 +34,6 @@ import Data.Text qualified as Text
 import GHC.Generics (Generic)
 import Prettyprinter
 
-import Control.Monad.Error.Class (MonadError (throwError))
 import Recalc.Engine
   ( Fetch
   , FetchError (..)
@@ -179,9 +179,7 @@ infer' i = \case
     | start == end -> fetchType sheetId start
     | otherwise -> fetchType sheetId start -- FIXME
   Lit{} -> pure (VSet 0)
-  LitOf val -> case val of
-    BoolOf{} -> pure (VLit Bool)
-    IntOf{} -> pure (VLit Int)
+  LitOf val -> pure (inferLiteral val)
   Tensor (TensorDescriptor dims) -> do
     mapM_ (\x -> check' i vint x) dims
     pure (VSet 0)
@@ -196,6 +194,12 @@ infer' i = \case
         x' <- eval' x
         t' x'
       t -> throwSemanticError (IllegalApplication t)
+
+inferLiteral :: LitOf -> Type
+inferLiteral =
+  VLit . \case
+    BoolOf{} -> Bool
+    IntOf{} -> Int
 
 inferUniverse' :: Int -> Term Check -> Fetch (Term Infer) Int
 inferUniverse' i = \case
@@ -228,6 +232,8 @@ instance Language (Term Infer) where
 
   -- only called with values input by the user (cf. Parser)
   inferValue Env{globals} = \case
+    VLit{} -> Just (VSet 0)
+    VLitOf val -> Just (inferLiteral val)
     VNeutral (NFree name) -> declType <$> Map.lookup name globals
     _ -> Nothing
 

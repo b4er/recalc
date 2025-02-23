@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.5.3 -- 2025-02-22
+## 0.7.6.0 -- 2025-02-23
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -34,3 +34,4 @@
 * Bugfixes: sheet operations should behave now (the `DocumentStore` was not
   properly updated before), keep the `subUnitId` business with Univer/frontend
   (essentially fixes simple cell references).
+* Add errors to documentstore, finish typing for values (match parser).

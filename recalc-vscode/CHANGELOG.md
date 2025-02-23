@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.18 -- 2025-02-21
+## 0.0.19 -- 2025-02-23
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -29,6 +29,8 @@
 * Fix configuration and add `logLevel` setting, defaults to Info, add call for
   defining the function.
 * Trace rpc messages, improve cell diagnostics when hovering.
+* Implement simple end-to-end tests (resolve references, test type error
+  diagnostics etc.)
 
 <!-- References -->
 
