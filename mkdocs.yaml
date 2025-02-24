@@ -1,0 +1,27 @@
+site_name: Recalc
+
+static_dir: haddock
+
+nav:
+- Introduction: index.md
+- Installation: install.md
+- Building from Source: build.md
+- Architecture:
+  - Backend: backend.md
+  - Frontend: frontend.md
+- Usage:
+  - Core Language: core.md
+  - As a Library: library.md
+- Development Guide: development.md
+- GitHub: https://github.com/b4er/recalc
+
+theme: 
+  name: terminal
+
+extra_css:
+- style.css
+
+extra_javascript:
+- https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+
+markdown_extensions: [footnotes, mdx_math]

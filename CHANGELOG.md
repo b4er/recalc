@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.6.1 -- 2025-02-23
+## 0.7.6.2 -- 2025-02-24
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -14,7 +14,7 @@
 * Add server implementation that is used as backend by the TypeScript frontend.
 * Generates type-safe routing for TypeScript from Servant-like named protocols,
   implements a generic server based on the reactor pattern (single thread reads
-  json-rpc messages and queues new jobs, multiple workers handle jobs).
+  JSON-RPC messages and queues new jobs, multiple workers handle jobs).
 * Send "ok" from , gracefully terminate when the client disconnects (by eof).
 * Add more rpc routes for spreadsheet operations (set value ranges,
   sheet insertion, sheet removal, worksheet order, work sheet name).
@@ -37,3 +37,4 @@
 * Add errors to documentstore, finish typing for values (match parser).
 * Add module `Recalc.Repl` for quickly running single-sheet experiments with
   GHCi.
+* Add GitHub pages and documentation, make naming more uniform.

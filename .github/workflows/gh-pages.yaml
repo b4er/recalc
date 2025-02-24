@@ -1,0 +1,62 @@
+name: GH Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: true
+
+jobs:
+  gh-pages:
+    name: Build Documentation & Push to gh-pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set Up Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Set Up Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: recalc-cache
+
+      - name: Build Haddock
+        run: nix --accept-flake-config build .#recalc-docs
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Weekly Cache ID
+        run: echo "cache_id=$(date --utc '+%V')" >> "${GITHUB_ENV}"
+
+      - name: Setup Cache
+        uses: actions/cache@v4
+        with:
+          key: mkdocs-python-pkgs-${{env.cache_id}}
+          path: .cache
+          restore-keys: |
+            mkdocs-python-pkgs-
+
+      - name: Install mkdocs
+        run: pip install mkdocs-terminal python-markdown-math
+
+      - name: Deploy to GH Pages
+        run: |
+          cp -r result-doc/share/doc/recalc-*/html docs/haddock
+          mkdocs gh-deploy --force

@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// read vscode app-specific settings (as specified in package.json)
 	const config = vscode.workspace.getConfiguration('recalc-vscode');
 
-	// json-rpc client implementation
+	// JSON-RPC client implementation
 	const client = new class extends Client<SpreadsheetProtocol> {
 		public readonly name = "recalc";
 

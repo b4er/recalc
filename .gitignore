@@ -1,4 +1,6 @@
 **/.*.swp
 .pre-commit-config.yaml
 dist-newstyle/
+docs/haddock/
 result
+result-doc

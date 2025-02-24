@@ -21,10 +21,10 @@ The easiest is installing [`b4er.recalc-vscode`][recalc-vscode] from the Visual 
   [*A tutorial implementation of a dependently typed lambda calculus*][lambdaPi].
 
 - **[`Recalc.Server`](./lib/Recalc/Server.hs)** (Haskell): A generic implementation
-  for named handlers (from Servant-like protocol definition) of json-rpc. And the concrete
+  for named handlers (from Servant-like protocol definition) of JSON-RPC. And the concrete
   protocol definition.
 
-- **[`recalc-server`](./src/Main.hs)** (Haskell): The Spreadsheet json-rpc backend.
+- **[`recalc-server`](./src/Main.hs)** (Haskell): The Spreadsheet JSON-RPC backend.
 
 - **[`recalc-spec`](./spec/README.md)** (Haskell): Full test suite for all Haskell tests.
 

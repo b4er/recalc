@@ -4,11 +4,11 @@
 
 {-|
 Module      : Recalc.Server
-Description : Generic json-rpc backend with a Servant-like API.
+Description : Generic JSON-RPC backend with a Servant-like API.
 
 This module implements a reactor pattern for `Recalc`, ensuring asynchronous
 processing of spreadsheet updates and computations. A single threaded loop
-listens for json-rpc messages and maintains jobs.
+listens for JSON-RPC messages and maintains jobs.
 
 Jobs are picked up by multiple "worker" threads such that long-running
 computations do not block messaging.

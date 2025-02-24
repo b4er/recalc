@@ -109,7 +109,7 @@ export class MessageController extends Disposable {
     }
   }
 
-  /* Command handlers (forward to server via json-rpc) */
+  /* Command handlers (forward to server via JSON-RPC) */
 
   private handleSetRangeValues(params: ISetRangeValuesMutationParams & {loop?: boolean}) {
     if (params.loop) return;

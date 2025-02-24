@@ -2,7 +2,7 @@
 
 {-|
 Module      : Recalc.Server.Protocol where
-Description : Named protocol implementation for the json-rpc api.
+Description : Named protocol implementation for the JSON-RPC api.
 -}
 module Recalc.Server.Protocol where
 

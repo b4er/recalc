@@ -54,7 +54,6 @@
           npmDepsHash = "sha256-G51jafBaKLMSXob+IJOhqrXspNe/ST+gpr1ZegkUvhg=";
 
           buildPhase = ''
-            ls src/
             ${tsDefsDynamic}/bin/${packageName}-ts-defs > src/messages.d.ts
             npm run build
           '';
@@ -92,6 +91,7 @@
         packages = {
           recalc-lib = dynamic;
           recalc-vscode = vscodeExtensionStatic;
+          recalc-docs = dynamic.doc;
 
           default = self.packages.${system}.recalc-vscode;
         };

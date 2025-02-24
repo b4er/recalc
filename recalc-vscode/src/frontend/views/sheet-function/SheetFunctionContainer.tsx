@@ -261,7 +261,7 @@ function tuplifyCellRange(range: CellRange): CellRangeHs {
 
 /**
  * Move element from index to another keeping the array otherwise
- * in the same order (ie. this does not swap the elements!)
+ * in the same order (i.e. this does not swap the elements!)
  *
  * Example: [1,2,3] 0 2 -> [2,3,1]
  *

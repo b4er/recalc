@@ -8,7 +8,7 @@
 {-|
 Module      : Recalc.Server.Generic
 Description : Servant-like combinators for defining and handling
-              json-rpc APIs.
+              JSON-RPC APIs.
 
 Provides a generic way to define and handle JSON-RPC APIs using
 a Servant-like approach. Given a protocol type with named routes,
@@ -129,7 +129,7 @@ instance Json.ToJSON rsp => Json.ToJSON (JsonRpcResult rsp) where
 
 data JsonRpcErrorObject = JsonRpcErrorObject
   { errorObject'code :: Int
-  -- ^ -32099 to -32000 are server-defined json-rpc codes
+  -- ^ -32099 to -32000 are server-defined JSON-RPC codes
   , errorObject'message :: Text
   }
   deriving (Generic, Show)
@@ -158,7 +158,7 @@ stdoutLock = Unsafe.unsafePerformIO (newMVar ())
 putLbs :: LB.ByteString -> IO ()
 putLbs lbs = withMVar stdoutLock $ \_ -> BS.putStr (BS.toStrict lbs)
 
--- | send json-rpc message on stdout (locked to prevent interleaving)
+-- | send JSON-RPC message on stdout (locked to prevent interleaving)
 sendIO :: Json.ToJSON a => a -> IO ()
 sendIO = putLbs . toRpc . Json.encode
  where

@@ -1,0 +1,19 @@
+.menu-item:not([href="#"]) {
+  visibility: hidden;
+}
+
+#terminal-mkdocs-footer-copyright-info {
+  font-size: 0.750rem;
+}
+
+#terminal-mkdocs-side-panel > hr {
+  margin-bottom: 0;
+}
+
+/* this only behaves if the markdown files have
+ * proper titles (checked with markdownlint)
+ */
+#terminal-mkdocs-side-panel > nav:nth-child(3) {
+  height: 0;
+  visibility: hidden;
+}
