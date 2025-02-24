@@ -1,4 +1,5 @@
 .menu-item:not([href="#"]) {
+  height: 0;
   visibility: hidden;
 }
 

@@ -1,6 +1,7 @@
 {
     "files.exclude": {
         "**/dist-newstyle": true,
+        "docs/haddock": true,
         "**/*.dyn_hi": true,
         "**/*.dyn_o": true,
         "**/.ghc.environment.*": true,
@@ -14,7 +15,8 @@
         "flake.lock": true,
         ".pre-commit-config.yaml": true,
         "recalc-vscode/dist": true,
-        "result": true
+        "result": true,
+        "result-doc": true
     },
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
