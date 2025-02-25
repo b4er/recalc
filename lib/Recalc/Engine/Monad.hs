@@ -34,6 +34,8 @@ fetchValue sheetId ca = lift . ($ Cell Value sheetId ca) =<< asks fst
 getEnv :: Fetch env err value env
 getEnv = asks snd
 
+type FetchErrorOf term = FetchError (ErrorOf term)
+
 localEnv :: (env -> env) -> Fetch env err value a -> Fetch env err value a
 localEnv f x = local (second f) x
 
@@ -50,9 +52,9 @@ type Spreadsheets value = Tasks Monad Ix value
 spreadsheetsOf
   :: Language term
   => EnvOf term
-  -> DocumentStore doc sheet cell term (ValueOf term) (FetchError (ErrorOf term))
+  -> DocumentStore doc sheet cell term (ValueOf term) (FetchErrorOf term)
   -> Ix
-  -> Maybe (Spreadsheet (Either (FetchError (ErrorOf term)) (ValueOf term)))
+  -> Maybe (Spreadsheet (Either (FetchErrorOf term) (ValueOf term)))
 spreadsheetsOf env ds = \case
   Cell k sheetId ca
     | k == Type -> runFetch env . infer <$> lookupCellTerm sheetId ca ds
@@ -60,10 +62,16 @@ spreadsheetsOf env ds = \case
   _ -> Nothing -- FIXME: implement volatile functions
 
 type DS doc sheet cell term =
-  DocumentStore doc sheet cell term (ValueOf term) (FetchError (ErrorOf term))
+  DocumentStore doc sheet cell term (ValueOf term) (FetchErrorOf term)
 
 data EngineState dm doc sheet cell term
   = EngineState !(Chain Ix) !(DS doc sheet cell term) !(dm CellAddr)
+
+mapDS
+  :: (DS doc sheet cell term -> DS doc sheet cell term)
+  -> EngineState dm doc sheet cell term
+  -> EngineState dm doc sheet cell term
+mapDS f (EngineState chain ds dm) = EngineState chain (f ds) dm
 
 instance
   (Show doc, Show sheet, Show cell, Show term, Show (ValueOf term), Show (ErrorOf term))
@@ -83,16 +91,8 @@ runEngineT
   -> f (a, EngineState dm doc sheet cell term)
 runEngineT = runStateT
 
-docs
-  :: Monad f
-  => (DS doc sheet cell term -> (a, DS doc sheet cell term))
-  -> EngineT dm doc sheet cell term f a
-docs f = state $ \(EngineState chain documentStore depMap) ->
-  let (x, documentStore') = f documentStore
-  in  (x, EngineState chain documentStore' depMap)
-
 modifyDocs
   :: Monad f
   => (DS doc sheet cell term -> DS doc sheet cell term)
   -> EngineT dm doc sheet cell term f ()
-modifyDocs f = docs (((),) . f)
+modifyDocs = modify . mapDS

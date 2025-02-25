@@ -140,6 +140,12 @@ updateMeta sheetId meta =
  where
   alg ds (ca, c) = alterCellMeta sheetId ca (merge c) ds
 
+-- | recomputing will return new (value, type)s per cell (or an error)
+type NewValues dat =
+  [((SheetId, CellAddr), Either (FetchErrorOf (TermOf dat)) (ValueOf (TermOf dat), TypeAnnotation dat))]
+
+type TypeAnnotation dat = Maybe (ValueOf (TermOf dat))
+
 -- | recompute new store from validated new inputs
 recompute
   :: forall dat doc sheet f
@@ -155,10 +161,7 @@ recompute
       (MetaOf dat)
       (TermOf dat)
       f
-      ( Either
-          [(SheetId, CellAddr)]
-          [((SheetId, CellAddr), Either (FetchError (ErrorOf (TermOf dat))) (ValueOf (TermOf dat)))]
-      )
+      (Either [(SheetId, CellAddr)] (NewValues dat))
 recompute sheetId (errors, values, formulas) = do
   Recalc.Engine.Monad.EngineState chain documentStore depMap <- get
   let
@@ -232,7 +235,7 @@ recompute sheetId (errors, values, formulas) = do
 
           -- current store
           store
-            :: Store (Ix -> Bool, Chain Ix) Ix (Either (FetchError (ErrorOf (TermOf dat))) (ValueOf (TermOf dat)))
+            :: Store (Ix -> Bool, Chain Ix) Ix (Either (FetchErrorOf (TermOf dat)) (ValueOf (TermOf dat)))
           store = initialise (setDirty dirty, chain) $ \case
             Cell kind sheetId' ca'
               | Just v <- (if kind == Type then lookupCellType else lookupCellValue) sheetId' ca' documentStore' ->
@@ -263,6 +266,8 @@ recompute sheetId (errors, values, formulas) = do
             , d `notElem` map fst typeErrors
             ]
 
+          newTypedValues = [(d, (,lookup d newTypes) <$> v) | (d, v) <- newValues]
+
           setDocumentStoreValue ((si, ca), Left e) = setCellError si ca e
           setDocumentStoreValue ((si, ca), Right v') = setCellValue si ca v'
 
@@ -270,8 +275,8 @@ recompute sheetId (errors, values, formulas) = do
 
           setDocumentStoreError ((si, ca), e) = setCellError si ca e
         in
-          -- propagate new calc-chain and documentStore updated with new values
-          ( Right (newValues <> [(addr, Left err) | (addr, err) <- typeErrors])
+          -- propagate new calc-chain and documentStore updated with new values and errors
+          ( Right (newTypedValues <> [(addr, Left err) | (addr, err) <- typeErrors])
           , snd (getInfo store'')
           , foldr
               setDocumentStoreError

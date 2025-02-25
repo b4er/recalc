@@ -1,12 +1,23 @@
 .univer-cell-alert {
   width: auto;
-  max-width: 20vw;
+  max-width: 400px;
   white-space: pre;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #454545;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.univer-cell-alert:has(.hide-title) {
+  padding: 4px;
 }
 
 .univer-cell-alert-title {
   font-weight: bold;
+}
+
+.univer-cell-alert-title:has(.hide-title) {
+  display: none;
 }
 
 .univer-cell-alert-content {

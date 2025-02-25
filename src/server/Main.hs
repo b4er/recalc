@@ -164,12 +164,18 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
   quotientOn' f = quotientOn f . sortOn f
 
   -- Univer cell data construtors
-  cellValue v = CellData Missing (Is (renderPretty v)) Missing Missing Missing Missing
+  cellValue (v, xty) =
+    CellData Missing (Is (renderPretty v)) Missing Missing Missing
+      $ maybe Missing (Is . typeAnnotation) xty
 
-  cellErrors' xv = CellData Missing xv Missing Missing Missing . Is . (`CustomData` [])
+  -- set custom data (info) for diagnostics
+  typeAnnotation ty = CustomData [] [] [Annotation "Inferred Type" (renderPretty ty)]
 
   cellCyclicalError = cellErrors' (Is "cycle") [Annotation "Cyclic Dependency" "This cell is part of a cycle."]
   cellFetchError xv err = cellErrors' xv [Annotation (Engine.errorTitle semanticErrorTitle err) (renderPretty err)]
+
+  -- set custom data (error) for diagnostics
+  cellErrors' xv = CellData Missing xv Missing Missing Missing . Is . (\errs -> CustomData errs [] [])
 
 rpcInsertSheet :: InsertSheetParams -> Handler EngineState ()
 rpcInsertSheet InsertSheetParams{..} =

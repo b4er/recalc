@@ -22,7 +22,8 @@ export class CellFormatting extends SheetExtension {
       }
 
       const cellData = worksheet.getCell(row, col);
-      if (cellData?.custom !== undefined && (cellData?.custom?.errors || cellData?.custom?.warnings)) {
+      // make sure only errors and warnings are highlighted
+      if (cellData?.custom !== undefined && (0 < cellData?.custom?.errors?.length || 0 < cellData?.custom?.warnings?.length)) {
         let { isMerged, isMergedMainCell, mergeInfo, startY, endY, startX, endX } = skeleton.getCellWithCoordByIndex(row, col);
         if (isMerged) {
             return;

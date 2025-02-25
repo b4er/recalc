@@ -48,6 +48,7 @@ import Text.Megaparsec (eof, parse)
 import Recalc.Engine (Input (termOrValueOf), Isn't (..))
 import Recalc.Engine qualified as Engine
 import Recalc.Engine.Core
+import Recalc.Engine.Monad (mapDS)
 import Recalc.Semantics
 import Recalc.Server.Types (Nullable (..))
 import Recalc.Syntax.Parser (Parser, formulaP)
@@ -127,31 +128,30 @@ exampleData input = case input of
 type EngineState = Engine.EngineState () () ExampleData (Term Infer)
 
 newEngineState :: EngineState
-newEngineState = Engine.newEngineState
+newEngineState = mapDS initialise Engine.newEngineState
+ where
+  initialise = Engine.insertSheet testId () . Engine.insertDocument uri ()
+
+-- | since it's a single sheet we only keep the "CellAddr"s around
+type NewValues =
+  [(CellAddr, Either (Engine.FetchError SemanticError) (Value, Maybe Type))]
 
 -- | run a recomputation of a single spreadsheet
-runRecompute
-  :: [(CellAddr, String)]
-  -> EngineState
-  -> ( Either [CellAddr] [(CellAddr, Either (Engine.FetchError SemanticError) Value)]
-     , EngineState
-     )
+runRecompute :: [(CellAddr, String)] -> EngineState -> (Either [CellAddr] NewValues, EngineState)
 runRecompute rawChanges st =
   first (bimap (map snd) (map (first snd)))
     . runIdentity
-    $ Engine.runEngineT (initialise >> step) st
+    $ Engine.runEngineT step st
  where
   inputs = map (second exampleData) rawChanges
-  (_, changes) = Engine.validateCells @ExampleData testId inputs
-
-  initialise = Engine.modifyDocs (Engine.insertSheet testId () . Engine.insertDocument uri ())
+  (_metaChanges, changes) = Engine.validateCells @ExampleData testId inputs
   step = Engine.recompute @ExampleData testId changes
 
 -- | run recomputation but only return result
 evalRecompute
   :: [(CellAddr, String)]
   -> EngineState
-  -> Either [CellAddr] [(CellAddr, Either (Engine.FetchError SemanticError) Value)]
+  -> Either [CellAddr] NewValues
 evalRecompute rawChanges = fst . runRecompute rawChanges
 
 instance (Pretty a, Pretty b) => Pretty (Either a b) where

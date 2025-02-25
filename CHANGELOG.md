@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.6.2 -- 2025-02-24
+## 0.7.7.0 -- 2025-02-25
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -38,3 +38,4 @@
 * Add module `Recalc.Repl` for quickly running single-sheet experiments with
   GHCi.
 * Add GitHub pages and documentation, make naming more uniform.
+* Extend cell diagnostics (show inferred types at info level), fix bug in Repl.

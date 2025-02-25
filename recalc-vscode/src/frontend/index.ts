@@ -50,7 +50,7 @@ univer.registerPlugin(UniverSheetsPlugin, {notExecuteFormula: true});
 univer.registerPlugin(UniverSheetsUIPlugin);
 
 // using the default UI plugin
-univer.registerPlugin(UniverSheetsFormulaUIPlugin, { notExecuteFormula: true });
+univer.registerPlugin(UniverSheetsFormulaUIPlugin, {notExecuteFormula: true});
 
 // register the recalc-plugin (lazy loading would break UI bits)
 univer.registerPlugin(RecalcPlugin);

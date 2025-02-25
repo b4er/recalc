@@ -4,7 +4,7 @@
 
 module Recalc.EngineSpec where
 
-import Control.Arrow (Arrow (first))
+import Control.Arrow (first, second)
 import Control.Monad (foldM)
 import Data.List (sortOn)
 import Data.Maybe (catMaybes, fromJust)
@@ -156,7 +156,7 @@ runSheet inputss = fmap (concatMap (map (first snd)) . fst) . (`runEngineT` newE
  where
   go :: [(CellAddr, String)] -> EngineT () () () Term IO [[((SheetId, CellAddr), Err (Maybe Int))]]
   go inputs =
-    either (\x -> fail ("cycle: " ++ show x)) pure
+    either (\x -> fail ("cycle: " ++ show x)) (pure . map (second (fmap fst)))
       <$> recompute @String sheetId1 (snd (validateCells @String sheetId1 inputs))
 
 uri1 :: URI

@@ -62,6 +62,18 @@ export class HoverController extends Disposable {
                 key: HoverController.KEY
               })
             );
+
+            (cellData?.custom.info || []).forEach((info: Annotation) =>
+              _cellAlertManagerService.showAlert({
+                type: CellAlertType.INFO,
+                title: React.createElement("div", {className: "hide-title"}),
+                message: MessageElement(info.message),
+                location: cellPos.location,
+                width: 320,
+                height: 74 + (i++)*75,
+                key: HoverController.KEY
+              })
+            );
           }
         } else {
           _cellAlertManagerService.removeAlert(HoverController.KEY)

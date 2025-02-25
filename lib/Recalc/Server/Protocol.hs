@@ -106,11 +106,12 @@ data Annotation = Annotation
 data CustomData = CustomData
   { customData'errors :: [Annotation]
   , customData'warnings :: [Annotation]
+  , customData'info :: [Annotation]
   }
   deriving (Generic, Show)
 
 instance Isn't CustomData where
-  isn't (CustomData es ws) = null es && null ws
+  isn't (CustomData es ws nfo) = null es && null ws && null nfo
 
 -- | corresponds to ICellData
 -- (see: https://univer.ai/typedoc/@univerjs/core/interfaces/ICellData)
