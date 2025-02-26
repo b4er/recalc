@@ -17,7 +17,7 @@ and a few declarations to interact with them.
 module Recalc.Semantics where
 
 import Control.Applicative ((<|>))
-import Control.Monad (void, when)
+import Control.Monad (unless, void, when)
 import Control.Monad.Error.Class (MonadError (throwError))
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
@@ -32,8 +32,9 @@ import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
 import GHC.Generics (Generic)
-import Prettyprinter
+import Prettyprinter hiding (column)
 
+import Debug.Trace (traceShowM)
 import Recalc.Engine
   ( Fetch
   , FetchError (..)
@@ -71,6 +72,7 @@ data SemanticError
   | TypeOfBound
   | ExpectedSet (Term Check)
   | IllegalApplication Type
+  | IllegalArrayType [(CellAddr, Type)]
   | UnknownIdentifier Name
   | UnknownError Text
   deriving (Eq, Show)
@@ -120,21 +122,31 @@ eval' term = do
         dom' <- go valueEnv dom
         pure $ VPi p dom' (\v -> go (v : valueEnv) range)
       Bound i -> pure (valueEnv !! i)
-      Ref sheetId _ (start, end)
+      Ref sheetId _ cr@(start, end)
         | start == end -> fetchValue sheetId start
-        | otherwise -> fetchValue sheetId start -- FIXME
+        | otherwise -> do
+            let
+              m = row end - row start + 1
+              n = column end - column start + 1
+
+              addrs = cellRangeAddrs cr
+            VTensorOf (cellRangeDescriptor cr) . Array.fromList [m, n]
+              <$> mapM (\ca -> fetchValue sheetId ca) addrs
       Free name
         | Just Decl{declValue = Just v} <- Map.lookup name globals -> pure v
         | otherwise -> pure (vfree name)
       Lit lit -> pure (VLit lit)
       LitOf val -> pure (VLitOf val)
-      Tensor (TensorDescriptor dims) ->
-        VTensor . VTensorDescriptor <$> mapM (\x -> go valueEnv x) dims
-      TensorOf td arr -> error (show (td, arr))
+      Tensor td -> vtensor <$> goTensor valueEnv td
+      TensorOf td arr ->
+        vtensorOf <$> goTensor valueEnv td <*> mapM (\x -> go valueEnv x) arr
       f :$ x -> do
         f' <- go valueEnv f
         x' <- go valueEnv x
         vapp f' x'
+
+    goTensor :: [Value] -> TensorDescriptor -> Fetch (Term Infer) [Value]
+    goTensor valueEnv (TensorDescriptor dims) = mapM (\x -> go valueEnv x) dims
 
   go [] term
 
@@ -158,7 +170,7 @@ infer' :: Int -> Term Infer -> Fetch (Term Infer) Type
 infer' i = \case
   Ann e t -> do
     void $ inferUniverse' i (Inf t)
-    t' <- eval t
+    t' <- eval' t
     t' <$ check' i t' e
   Set k -> pure $ VSet (k + 1)
   Pi p dom range -> do
@@ -175,9 +187,16 @@ infer' i = \case
     case Map.lookup name globals of
       Just Decl{declType} -> pure declType
       Nothing -> throwSemanticError (UnknownIdentifier name)
-  Ref sheetId _ (start, end)
+  Ref sheetId _ cr@(start, end)
     | start == end -> fetchType sheetId start
-    | otherwise -> fetchType sheetId start -- FIXME
+    | otherwise -> do
+        -- make sure all references are integers
+        types <- mapM (\ca -> (ca,) <$> fetchType sheetId ca) (cellRangeAddrs cr)
+        traceShowM ("types" :: String, types)
+        let errors = filter ((vint /=) . snd) types
+        unless (null errors)
+          $ throwSemanticError (IllegalArrayType errors)
+        pure (VTensor (cellRangeDescriptor cr))
   Lit{} -> pure (VSet 0)
   LitOf val -> pure (inferLiteral val)
   Tensor (TensorDescriptor dims) -> do
@@ -288,6 +307,24 @@ vint = VLit Int
 vboolOf :: Bool -> Value
 vboolOf = VLitOf . BoolOf
 
+vintOf :: Int -> Value
+vintOf = VLitOf . IntOf
+
+vtensor :: [Value] -> Value
+vtensor = VTensor . VTensorDescriptor
+
+vtensorOf :: [Value] -> Array Value -> Value
+vtensorOf = VTensorOf . VTensorDescriptor
+
+cellRangeDescriptor :: CellRange -> VTensorDescriptor
+cellRangeDescriptor (start, end) = VTensorDescriptor [vintOf m, vintOf n]
+ where
+  m = row end - row start + 1
+  n = column end - column start + 1
+
+cellRangeAddrs :: CellRange -> [CellAddr]
+cellRangeAddrs (start, end) = [(i, j) | i <- [row start .. row end], j <- [column start .. column end]]
+
 instance Show Value where show = show . pretty
 
 -- ** Quoting
@@ -382,6 +419,7 @@ semanticErrorTitle = \case
   TypeOfBound{} -> "Error"
   ExpectedSet{} -> "Illegal Kind"
   IllegalApplication{} -> "Illegal Application"
+  IllegalArrayType{} -> "Unexpected Type in Array"
   UnknownIdentifier{} -> "Uknown Identifier"
   UnknownError{} -> "Error"
 
@@ -412,6 +450,11 @@ instance Pretty SemanticError where
         [ "Cannot apply a term to value with type ‘"
         , pretty ty
         , "’."
+        ]
+      IllegalArrayType locs ->
+        [ "Expected ‘int’ but got "
+        , hsep . punctuate comma
+            $ map (\(ca, ty) -> "‘" <> pretty ty <> "’ at" <+> pretty (showExcel26 ca)) locs
         ]
       UnknownIdentifier name ->
         [ "Unknown identifier ‘"

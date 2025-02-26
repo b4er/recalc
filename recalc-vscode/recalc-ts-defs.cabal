@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc-ts-defs
-version:            0.7.7.0
+version:            0.7.8.0
 synopsis:           functional spreadsheet programming
 -- description:
 license:            MIT

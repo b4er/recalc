@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.7.7.0
+version:            0.7.8.0
 synopsis:           functional spreadsheet programming
 description:        A functional programming language embedded in a spreadsheet environment.
 license:            MIT
@@ -72,7 +72,9 @@ executable recalc-server
 
     other-modules:  List_add
 
-    build-depends:  recalc
+    build-depends:
+        orthotope,
+        recalc
 
 test-suite recalc-spec
     -- | Full test-suite for all libraries.
