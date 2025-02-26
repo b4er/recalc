@@ -37,6 +37,7 @@ library
     hs-source-dirs: lib
 
     exposed-modules:
+        Recalc.Array
         Recalc.Engine
         Recalc.Engine.Core
         Recalc.Semantics
@@ -59,6 +60,7 @@ library
     build-depends:
         build,
         bytestring,
+        hmatrix,
         orthotope,
         parser-combinators,
         stm
@@ -86,6 +88,7 @@ test-suite recalc-spec
     build-tool-depends: hspec-discover:hspec-discover == 2.*
 
     other-modules:
+        Recalc.ArraySpec
         Recalc.EngineSpec
         Recalc.SemanticsSpec
         Recalc.Syntax.Arbitrary
@@ -94,6 +97,7 @@ test-suite recalc-spec
         Recalc.Syntax.Test
 
     build-depends:
+        hmatrix,
         hspec >= 2.7,
         hspec-megaparsec,
         QuickCheck,

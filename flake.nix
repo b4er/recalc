@@ -135,14 +135,16 @@
           default = pkgs.mkShell {
             inherit (self.checks.${system}.pre-commit) shellHook;
 
-            buildInputs = [
-              ghc.cabal-install
-              ghc.haskell-language-server
-              pkgs.jq
-              pkgs.nodejs
-              pkgs.vsce
-              self.checks.${system}.pre-commit.enabledPackages
-            ];
+          buildInputs = [
+            ghc.cabal-install
+            ghc.haskell-language-server
+            pkgs.blas
+            pkgs.jq
+            pkgs.lapack
+            pkgs.nodejs
+            pkgs.vsce
+            self.checks.${system}.pre-commit.enabledPackages
+          ];
 
             inputsFrom = [ dynamic ];
           };

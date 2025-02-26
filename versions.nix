@@ -15,6 +15,13 @@ let
         # we need aeson at least 2.2.0.0 (`omitField`)
         aeson = ghc.callCabal2nix "aeson" aesonSrc { };
 
+        # # we use openblas (defaults to false, so we set it here)
+        # hmatrix = super.hmatrix.overrideAttrs (old: {
+        #   configureFlags = (old.configureFlags or []) ++ [
+        #     "-fopenblas"
+        #   ];
+        # });
+
         # build-1.1 is marked as broken
         build = ghc.callCabal2nix "build"
           (pkgs.fetchgit {
