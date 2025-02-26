@@ -131,19 +131,32 @@
           # };
         };
 
-        devShells.default = pkgs.mkShell {
-          inherit (self.checks.${system}.pre-commit) shellHook;
+        devShells = rec {
+          default = pkgs.mkShell {
+            inherit (self.checks.${system}.pre-commit) shellHook;
 
-          buildInputs = [
-            ghc.cabal-install
-            ghc.haskell-language-server
-            pkgs.jq
-            pkgs.nodejs
-            pkgs.vsce
-            self.checks.${system}.pre-commit.enabledPackages
-          ];
+            buildInputs = [
+              ghc.cabal-install
+              ghc.haskell-language-server
+              pkgs.jq
+              pkgs.nodejs
+              pkgs.vsce
+              self.checks.${system}.pre-commit.enabledPackages
+            ];
 
-          inputsFrom = [ dynamic ];
+            inputsFrom = [ dynamic ];
+          };
+
+          ghci = pkgs.mkShell {
+            inherit (default) buildInputs;
+            inputsFrom = [ dynamic ];
+
+            shellHook = ''
+              echo "Launching GHCi with relaxed warnings.."
+              cabal repl --ghc-options="-Wno-all -fno-warn-missing-home-modules"
+              exit
+            '';
+          };
         };
       }
     );
