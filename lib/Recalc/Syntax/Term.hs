@@ -93,8 +93,10 @@ data LitOf
 
 -- | a tensor (type) is described by the number of dimensions
 -- of each component
-newtype TensorDescriptor = TensorDescriptor
-  {dims :: [Term Check]}
+data TensorDescriptor = TensorDescriptor
+  { base :: Term Infer
+  , dims :: [Int]
+  }
   deriving (Eq, Show)
 
 data Term (m :: Mode) where
@@ -118,9 +120,9 @@ data Term (m :: Mode) where
   Lit :: !Lit -> Term Infer
   -- | literal terms
   LitOf :: !LitOf -> Term Infer
-  -- | tensor type
+  -- | tensor type (only for quoting)
   Tensor :: !TensorDescriptor -> Term Infer
-  -- | tensor value (represented as a multi-dimensional array)
+  -- | tensor value (represented as a multi-dimensional array, only for quoting)
   TensorOf :: !TensorDescriptor -> !(Array (Term Check)) -> Term Infer
   -- | application
   (:$) :: !(Term Infer) -> !(Term Check) -> Term Infer
@@ -180,8 +182,8 @@ subst i r = \case
   x :$ y -> subst i r x :$ subst i r y
 
 substTensor :: Int -> Term Infer -> TensorDescriptor -> TensorDescriptor
-substTensor i r (TensorDescriptor dims) =
-  TensorDescriptor (subst i r `map` dims)
+substTensor i r (TensorDescriptor base dims) =
+  TensorDescriptor (subst i r base) dims
 
 instance Pretty CaseInsensitive where
   pretty = pretty . originalText
@@ -190,11 +192,6 @@ instance Pretty Name where
   pretty = \case
     Global n -> pretty n
     x -> "{" <> viaShow x <> "}"
-
-instance Pretty TensorDescriptor where
-  pretty (TensorDescriptor dims) =
-    align
-      $ encloseSep "⟨" "⟩" comma (map pretty dims)
 
 instance Pretty Lit where
   pretty = \case
@@ -252,11 +249,18 @@ instance Pretty (Term m) where
               || requireQuotes sheetName =
               enclose "'" "'"
           | otherwise = id
-      Tensor td -> pretty td
-      TensorOf td arr -> pretty td <+> pretty (Array.toList arr)
+      Tensor td -> prTensor td
+      TensorOf _ arr -> pretty (Array.toList arr)
       app@(:$){} ->
         let (y, ys) = splitApp app
         in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0) ys)
+
+    prTensor (TensorDescriptor base dims) =
+      align
+        $ encloseSep "⟨" "⟩" comma (map pretty dims)
+          <> "["
+          <> pretty base
+          <> "]"
 
     prettyCellRef (start, end)
       | start == end = prettyCellAddr start

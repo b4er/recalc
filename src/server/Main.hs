@@ -7,7 +7,6 @@ module Main where
 
 import Control.Arrow (first, second)
 import Control.Monad.Reader (liftIO, runReaderT)
-import Data.Array.Dynamic qualified as Array
 import Data.List (foldl', sortOn)
 import Data.Map qualified as Map
 import Data.Text (Text)
@@ -19,13 +18,7 @@ import Text.Megaparsec (ParseErrorBundle, eof, parse)
 
 import List_add
 import Recalc.Engine qualified as Engine
-import Recalc.Semantics
-  ( VTensorDescriptor (VTensorDescriptor)
-  , Value (VLitOf, VTensor, VTensorOf)
-  , semanticErrorTitle
-  , valueP
-  , vint
-  )
+import Recalc.Semantics (semanticErrorTitle, valueP)
 import Recalc.Server
 import Recalc.Server.Protocol
 import Recalc.Syntax.Parser (Parser, formulaP)
@@ -130,26 +123,7 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
     liftEngine
       ( do
           Engine.updateMeta sheetId allMetaChanges
-          Engine.recompute @CellData sheetId (errors, values, formulas) >>= \case
-            Right newValues -> do
-              let
-                -- find (new) addresses where a value will spill to
-                newValuesWithSpilled =
-                  newValues >>= \case
-                    ( (si, (r, c))
-                      , Right
-                          (VTensorOf _ arr, Just (VTensor (VTensorDescriptor (VLitOf (IntOf _m) : VLitOf (IntOf n) : _))))
-                      ) ->
-                        [ ((si, ca'), Right new)
-                        | (ca', new) <-
-                            [ ((r + i, c + j), (new, Just vint))
-                            | (k, new) <- zip [0 ..] (Array.toList arr)
-                            , let (i, j) = divMod k n
-                            ]
-                        ]
-                    regular -> [regular]
-              pure (Right newValuesWithSpilled)
-            y -> pure y
+          Engine.recompute @CellData sheetId (errors, values, formulas)
       )
       -- send back the results
       >>= liftIO . sendResult . \case

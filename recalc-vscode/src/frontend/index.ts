@@ -21,6 +21,7 @@ import { UniverSheetsFormulaUIPlugin } from "@univerjs/sheets-formula-ui";
 
 import { locales } from './locales';
 import { RecalcPlugin } from "./plugin";
+import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula";
 
 // create a new Univer instance and set locales
 const univer = new Univer({
@@ -50,6 +51,7 @@ univer.registerPlugin(UniverSheetsPlugin, {notExecuteFormula: true});
 univer.registerPlugin(UniverSheetsUIPlugin);
 
 // using the default UI plugin
+univer.registerPlugin(UniverFormulaEnginePlugin, {notExecuteFormula: true});
 univer.registerPlugin(UniverSheetsFormulaUIPlugin, {notExecuteFormula: true});
 
 // register the recalc-plugin (lazy loading would break UI bits)

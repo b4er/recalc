@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.20 -- 2025-02-25
+## 0.0.21 -- 2025-02-26
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -33,6 +33,8 @@
   diagnostics etc.)
 * Extend cell diagnostics to show but not highlight info level diagnostics
   (for type annotations).
+* Implement reference inference (infers as them [m,n] tensors), disable built-in
+  spilling.
 
 <!-- References -->
 

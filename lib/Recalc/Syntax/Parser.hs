@@ -149,8 +149,8 @@ resolve = go []
     TensorOf td arr -> TensorOf (goTensor env td) (go env <$> arr)
     x :$ y -> go env x :$ go env y
 
-  goTensor env (TensorDescriptor dims) =
-    TensorDescriptor (map (go env) dims)
+  goTensor env (TensorDescriptor base vdims) =
+    TensorDescriptor (go env base) vdims
 
 termI :: Parser (Term Infer)
 termI =

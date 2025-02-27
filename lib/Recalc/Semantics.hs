@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-|
@@ -24,7 +25,6 @@ import Control.Monad.Reader (runReaderT)
 import Data.Array.Dynamic (Array)
 import Data.Array.Dynamic qualified as Array
 import Data.Function (on)
-import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
@@ -34,7 +34,6 @@ import Data.Text qualified as Text
 import GHC.Generics (Generic)
 import Prettyprinter hiding (column)
 
-import Debug.Trace (traceShowM)
 import Recalc.Engine
   ( Fetch
   , FetchError (..)
@@ -104,9 +103,14 @@ deps' = go mempty
     TensorOf td arr -> Array.foldrA (flip go) (goTensor acc td) arr
     f :$ x -> go (go acc f) x
 
-  goTensor arr (TensorDescriptor dims) = foldl' go arr dims
+  goTensor acc (TensorDescriptor base _dims) = go acc base
 
 {- Evaluation -}
+
+assertInt :: Value -> Fetch (Term Infer) Int
+assertInt = \case
+  VLitOf (IntOf n) -> pure n
+  _ -> throwSemanticError (UnknownError "tensor dim is not an ‘int’")
 
 eval' :: Term m -> Fetch (Term Infer) Value
 eval' term = do
@@ -125,30 +129,35 @@ eval' term = do
       Ref sheetId _ cr@(start, end)
         | start == end -> fetchValue sheetId start
         | otherwise -> do
-            let
-              m = row end - row start + 1
-              n = column end - column start + 1
-
-              addrs = cellRangeAddrs cr
-            VTensorOf (cellRangeDescriptor cr) . Array.fromList [m, n]
-              <$> mapM (\ca -> fetchValue sheetId ca) addrs
+            let addrs = cellRangeAddrs cr
+            vtd@(VTensorDescriptor _ vdims) <- (`cellRangeDescriptor'` cr) <$> fetchType sheetId start
+            VTensorOf vtd . Array.fromList vdims
+              <$> concatMapM (\ca -> flattenTensor <$> fetchValue sheetId ca) addrs
       Free name
         | Just Decl{declValue = Just v} <- Map.lookup name globals -> pure v
         | otherwise -> pure (vfree name)
       Lit lit -> pure (VLit lit)
       LitOf val -> pure (VLitOf val)
-      Tensor td -> vtensor <$> goTensor valueEnv td
+      Tensor td -> uncurry vtensor <$> goTensor valueEnv td
       TensorOf td arr ->
-        vtensorOf <$> goTensor valueEnv td <*> mapM (\x -> go valueEnv x) arr
+        uncurry vtensorOf <$> goTensor valueEnv td <*> mapM (\x -> go valueEnv x) arr
       f :$ x -> do
         f' <- go valueEnv f
         x' <- go valueEnv x
         vapp f' x'
 
-    goTensor :: [Value] -> TensorDescriptor -> Fetch (Term Infer) [Value]
-    goTensor valueEnv (TensorDescriptor dims) = mapM (\x -> go valueEnv x) dims
+    goTensor :: [Value] -> TensorDescriptor -> Fetch (Term Infer) (Value, [Int])
+    goTensor valueEnv (TensorDescriptor base dims) = (,dims) <$> go valueEnv base
 
   go [] term
+
+concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
+concatMapM f xs = concat <$> mapM f xs
+
+flattenTensor :: Value -> [Value]
+flattenTensor = \case
+  VTensorOf _ arr -> Array.toList arr
+  v -> [v]
 
 {- Bi-directional Type Checking -}
 
@@ -190,22 +199,24 @@ infer' i = \case
   Ref sheetId _ cr@(start, end)
     | start == end -> fetchType sheetId start
     | otherwise -> do
-        -- make sure all references are integers
+        ty0 <- fetchType sheetId start
+        -- make sure all references match
         types <- mapM (\ca -> (ca,) <$> fetchType sheetId ca) (cellRangeAddrs cr)
-        traceShowM ("types" :: String, types)
-        let errors = filter ((vint /=) . snd) types
+        let errors = filter ((ty0 /=) . snd) types
         unless (null errors)
           $ throwSemanticError (IllegalArrayType errors)
-        pure (VTensor (cellRangeDescriptor cr))
+        pure (VTensor (cellRangeDescriptor' ty0 cr))
   Lit{} -> pure (VSet 0)
   LitOf val -> pure (inferLiteral val)
-  Tensor (TensorDescriptor dims) -> do
-    mapM_ (\x -> check' i vint x) dims
+  -- infer for Tensor and TensorOf won't be called
+  -- since it's not part of surface language..
+  Tensor (TensorDescriptor base _dims) -> do
+    void $ inferUniverse' i (Inf base)
     pure (VSet 0)
-  TensorOf (TensorDescriptor dims) arr -> do
-    mapM_ (\x -> check' i vint x) dims
-    mapM_ (\x -> check' i vint x) arr
-    VTensor . VTensorDescriptor <$> mapM (\x -> eval' x) dims
+  TensorOf (TensorDescriptor base dims) arr -> do
+    baseType <- infer' i base
+    mapM_ (\x -> check' i baseType x) arr
+    pure . VTensor $ VTensorDescriptor baseType dims
   f :$ x ->
     infer' i f >>= \case
       VPi _ t t' -> do
@@ -231,7 +242,7 @@ inferUniverse' i = \case
         case Map.lookup name globals of
           Just Decl{declType = VSet k} -> pure k
           _ -> throwSemanticError (UnknownIdentifier name)
-      Inf Tensor{} -> pure 0
+      -- Inf Tensor{} -> pure 0
       ty -> throwSemanticError (ExpectedSet ty)
   ty -> throwSemanticError (ExpectedSet ty)
 
@@ -269,7 +280,7 @@ data Neutral
   | NApp !Neutral !Value
   deriving (Generic)
 
-newtype VTensorDescriptor = VTensorDescriptor [Value]
+data VTensorDescriptor = VTensorDescriptor Value [Int]
 
 data Value
   = VLam !(Maybe CaseInsensitive) !(Value -> Fetch (Term Infer) Value)
@@ -297,8 +308,24 @@ vapp f _ = throwSemanticError (IllegalApplication f)
 vlam :: Maybe CaseInsensitive -> (Value -> Value) -> Value
 vlam vname body = VLam vname $ \x -> pure (body x)
 
+vlams :: [Text] -> ([Value] -> Value) -> Value
+vlams vars body =
+  let
+    go var f vs =
+      vlam (Just (CaseInsensitive var)) $ \v -> f (v : vs)
+  in
+    foldr go (body . reverse) vars []
+
 vpi :: Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
 vpi vname dom range = VPi vname dom $ \x -> pure (range x)
+
+vpis :: [(Text, Value)] -> ([Value] -> Value) -> Value
+vpis doms range =
+  let
+    go (var, val) f vs =
+      vpi (Just (CaseInsensitive var)) val $ \v -> f (v : vs)
+  in
+    foldr go (range . reverse) doms []
 
 vbool, vint :: Type
 vbool = VLit Bool
@@ -310,17 +337,29 @@ vboolOf = VLitOf . BoolOf
 vintOf :: Int -> Value
 vintOf = VLitOf . IntOf
 
-vtensor :: [Value] -> Value
-vtensor = VTensor . VTensorDescriptor
+vtensor :: Value -> [Int] -> Value
+vtensor base = VTensor . VTensorDescriptor base
 
-vtensorOf :: [Value] -> Array Value -> Value
-vtensorOf = VTensorOf . VTensorDescriptor
+vtensorOf :: Value -> [Int] -> Array Value -> Value
+vtensorOf value = VTensorOf . VTensorDescriptor value
 
-cellRangeDescriptor :: CellRange -> VTensorDescriptor
-cellRangeDescriptor (start, end) = VTensorDescriptor [vintOf m, vintOf n]
+cellRangeDescriptor :: Value -> CellRange -> VTensorDescriptor
+cellRangeDescriptor base (start, end) = VTensorDescriptor base [m, n]
  where
   m = row end - row start + 1
   n = column end - column start + 1
+
+cellRangeDescriptor' :: Value -> CellRange -> VTensorDescriptor
+cellRangeDescriptor' base (start, end) = VTensorDescriptor base' dims'
+ where
+  (m, n) = (row end - row start + 1, column end - column start + 1)
+
+  dim' x = if x == 1 then id else (x :)
+
+  (base', dims') =
+    dim' m . dim' n <$> case base of
+      VTensor (VTensorDescriptor b ds) -> (b, ds)
+      _ -> (base, [])
 
 cellRangeAddrs :: CellRange -> [CellAddr]
 cellRangeAddrs (start, end) = [(i, j) | i <- [row start .. row end], j <- [column start .. column end]]
@@ -355,8 +394,10 @@ quote = go 0
     NRef sheetId cr -> Ref sheetId FullySpecified cr
     NApp n v -> goNeutral i n :$ go i v
 
-  goTensor i (VTensorDescriptor vdims) =
-    TensorDescriptor (map (go i) vdims)
+  goTensor i (VTensorDescriptor base vdims) =
+    TensorDescriptor
+      (case go i base of Inf x -> x; _ -> error "quote: this should not happen")
+      vdims
 
   quoteAbs :: Fetch (Term Infer) Value -> Value
   quoteAbs v = either (error . show) id $ do
@@ -391,6 +432,7 @@ prelude =
     [ ("not", Decl (vbool `vfun` vbool) (Just notImpl))
     , ("and", Decl (vbool `vfun` vbool `vfun` vbool) (Just andImpl))
     , ("or", Decl (vbool `vfun` vbool `vfun` vbool) (Just orImpl))
+    , ("mmult", Decl mmultT (Just mmultImpl))
     ]
  where
   notImpl =
@@ -409,6 +451,14 @@ prelude =
       case (x, y) of
         (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a || b))
         _ -> VNeutral (NApp (NApp (NFree "or") x) y)
+
+  mmultT = vpis [("m", vint), ("n", vint), ("k", vint)] $ \[VLitOf (IntOf m), VLitOf (IntOf n), VLitOf (IntOf k)] ->
+    vtensor vint [m, n] `vfun` vtensor vint [n, k] `vfun` vtensor vint [m, k]
+
+  mmultImpl = vlams ["m", "n", "k", "u", "v"] $ \[m, n, k, u, v] ->
+    -- case (u, v) of
+    --   (VTensorOf{}, VTensorOf{}) -> error "see static building issues on branch dev/hmatrix"
+    VNeutral $ NApp (NApp (NApp (NApp (NApp (NFree "mmult") m) n) k) u) v
 
 {- Errors -}
 

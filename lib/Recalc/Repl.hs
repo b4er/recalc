@@ -94,10 +94,9 @@ runFetch extraGlobals fx = runExcept (runReaderT fx env')
   env = Engine.newEnv @(Term Infer) testId
   env' = (fetch, env{globals = globals env <> Map.fromList extraGlobals})
 
-  -- fetching is tested in the Engine spec
   fetch _ix =
     throwSemanticError . UnknownError
-      $ "use other"
+      $ "Recalc.Repl: no cell references"
 
 data ExampleData = ExampleData
   {exampleData'f, exampleData'v :: Nullable Text}
