@@ -17,6 +17,7 @@ import Prettyprinter.Render.Text (renderStrict)
 import Text.Megaparsec (ParseErrorBundle, eof, parse)
 
 import List_add
+import Recalc.Engine (Isn't (isn't))
 import Recalc.Engine qualified as Engine
 import Recalc.Semantics (semanticErrorTitle, valueP)
 import Recalc.Server
@@ -104,8 +105,11 @@ rpcSetRangeValues :: SetRangeValuesParams -> Handler EngineState Cells
 rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} = do
   let
     sheetId = (setRangeValues'uri, setRangeValues'sheetId)
-    (metaChanges, (errors, values, formulas)) =
+    (metaChanges, (_, errors, values, formulas)) =
       Engine.validateCells sheetId (Map.assocs rcMap)
+
+    -- in case no formula/value are set and all meta-changes are null, it needs deletion
+    deleteAddrs = map fst $ filter (isn't . snd) metaChanges
 
     allMetaChanges =
       metaChanges
@@ -123,7 +127,7 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
     liftEngine
       ( do
           Engine.updateMeta sheetId allMetaChanges
-          Engine.recompute @CellData sheetId (errors, values, formulas)
+          Engine.recompute @CellData sheetId (deleteAddrs, errors, values, formulas)
       )
       -- send back the results
       >>= liftIO . sendResult . \case

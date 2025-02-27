@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.9.0 -- 2025-02-26
+## 0.7.9.1 -- 2025-02-27
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -40,3 +40,4 @@
 * Add GitHub pages and documentation, make naming more uniform.
 * Extend cell diagnostics (show inferred types at info level), fix bug in Repl.
 * Implement tensor types for cell ranges.
+* Fix some bugs to catch up with end-to-end tests (cell ranges and cell updates).

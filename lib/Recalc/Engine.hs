@@ -62,6 +62,7 @@ import Data.Set qualified as Set
 import Data.Void (Void)
 import Text.Megaparsec (ParseErrorBundle)
 
+import Debug.Trace (traceShow, traceShowWith)
 import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
@@ -108,8 +109,10 @@ class Language (TermOf dat) => Input dat where
 type MetaChangesOf dat = [(CellAddr, MetaOf dat)]
 
 -- | validated cells, all changes affect recomputation
+-- (deletions, parse errors, new values, new terms)
 type ChangesOf dat =
-  ( [(CellAddr, MetaOf dat, ParseErrorBundle String Void)]
+  ( [CellAddr]
+  , [(CellAddr, MetaOf dat, ParseErrorBundle String Void)]
   , [(CellAddr, MetaOf dat, ValueOf (TermOf dat))]
   , [(CellAddr, MetaOf dat, TermOf dat)]
   )
@@ -128,7 +131,7 @@ validateCells sheetId = go [] [] [] []
         Left e -> go meta ((ca, metaOf dat, e) : errors) values formulas cs
         Right (Left x) -> go meta errors values ((ca, metaOf dat, x) : formulas) cs
         Right (Right v) -> go meta errors ((ca, metaOf dat, v) : values) formulas cs
-  go meta errors values formulas [] = (meta, (errors, values, formulas))
+  go meta errors values formulas [] = (meta, ([], errors, values, formulas))
 
 updateMeta
   :: (Isn't cell, Meta cell, Monad f)
@@ -150,6 +153,7 @@ type TypeAnnotation dat = Maybe (ValueOf (TermOf dat))
 recompute
   :: forall dat doc sheet f
    . ( Monad f
+     , Show (ValueOf (TermOf dat))
      , Input dat
      , Isn't (MetaOf dat)
      )
@@ -162,7 +166,7 @@ recompute
       (TermOf dat)
       f
       (Either [(SheetId, CellAddr)] (NewValues dat))
-recompute sheetId (errors, values, formulas) = do
+recompute sheetId (deletions, errors, values, formulas) = do
   Recalc.Engine.Monad.EngineState chain documentStore depMap <- get
   let
     -- static environment
@@ -172,14 +176,14 @@ recompute sheetId (errors, values, formulas) = do
     deleteOldDeps :: [(CellAddr, d, a)] -> Slow CellAddr -> Slow CellAddr
     deleteOldDeps xs dm =
       foldl'
-        ( \dm' (ca, _, _) ->
+        ( \dm' ca ->
             let
               oldDeps = fromMaybe mempty (lookupCellDeps sheetId ca documentStore)
             in
               updateDeps Deps.delete ca oldDeps dm'
         )
         dm
-        xs
+        (map (\(ca, _, _) -> ca) xs)
 
     -- delete outdated ranges and insert new ones computed from expressions
     insertNewDeps
@@ -202,8 +206,9 @@ recompute sheetId (errors, values, formulas) = do
 
     -- cells that need recomputation for each changed address (or circular error)
     xrecompute =
-      dfs (Deps.query depMap')
-        $ map (sheetId,) (map fst3 errors ++ map fst3 values ++ map fst3 formulas)
+      fmap (filter ((`notElem` deletions) . snd))
+        $ dfs (Deps.query depMap')
+        $ map (sheetId,) (deletions ++ map fst3 errors ++ map fst3 values ++ map fst3 formulas)
 
     {- update document store (insert updated cells, keeping track of 1dependencies) -}
     documentStore' :: DS doc sheet (MetaOf dat) (TermOf dat)
@@ -218,9 +223,13 @@ recompute sheetId (errors, values, formulas) = do
             )
             ( foldl'
                 ( \ds (ca, meta, parseError) ->
-                    setCell sheetId ca (cellError (InvalidFormula parseError) meta) ds
+                    setCell sheetId ca (cellError Nothing (InvalidFormula parseError) meta) ds
                 )
-                documentStore
+                ( foldl'
+                    (\ds ca -> deleteCell sheetId ca ds)
+                    documentStore
+                    (traceShowWith ("DELET" :: String,) deletions)
+                )
                 errors
             )
             values
@@ -236,13 +245,14 @@ recompute sheetId (errors, values, formulas) = do
           -- current store
           store
             :: Store (Ix -> Bool, Chain Ix) Ix (Either (FetchErrorOf (TermOf dat)) (ValueOf (TermOf dat)))
-          store = initialise (setDirty dirty, chain) $ \case
+          store = initialise (setDirty dirty, traceShowWith ("chain" :: String,) chain) $ \case
             Cell kind sheetId' ca'
               | Just v <- (if kind == Type then lookupCellType else lookupCellValue) sheetId' ca' documentStore' ->
-                  pure v
+                  pure (traceShowWith ("found in DS" :: String,ca',("dirty" :: String, dirty),) v)
               | Just err <- lookup ca' [(k, v) | (k, _, v) <- errors] ->
                   throwError (InvalidFormula err)
-              | otherwise -> throwError RefError
+              | otherwise ->
+                  throwError (traceShow ("JEERROR in DS" :: String, ca', ("dirty" :: String, dirty)) RefError)
             Volatile -> error "not implemented"
 
           -- typecheck
@@ -268,12 +278,15 @@ recompute sheetId (errors, values, formulas) = do
 
           newTypedValues = [(d, (,lookup d newTypes) <$> v) | (d, v) <- newValues]
 
-          setDocumentStoreValue ((si, ca), Left e) = setCellError si ca e
+          -- preserve terms
+          setCellError' si ca = setCellError si ca (lookupCellTerm si ca documentStore')
+
+          setDocumentStoreValue ((si, ca), Left e) = setCellError' si ca e
           setDocumentStoreValue ((si, ca), Right v') = setCellValue si ca v'
 
           setDocumentStoreType ((si, ca), t) = setCellType si ca t
 
-          setDocumentStoreError ((si, ca), e) = setCellError si ca e
+          setDocumentStoreError ((si, ca), e) = setCellError' si ca e
         in
           -- propagate new calc-chain and documentStore updated with new values and errors
           ( Right (newTypedValues <> [(addr, Left err) | (addr, err) <- typeErrors])

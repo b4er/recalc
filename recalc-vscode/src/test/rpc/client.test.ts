@@ -205,6 +205,47 @@ describe('testClient (end-to-end tests)', function () {
       })
     );
 
+    // matrix tests
+
+    // set `M1:M2` to 1,2
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {0:{12:{v:"1"}},1:{12:{v:"2"}}},
+    },
+      "setCells", {[uri]: {[sheetId]: [
+          [[0,12],{v: "1"}],
+          [[1,12],{v: "2"}],
+      ]}}
+    );
+
+    // set `N1` to `M1:M2` should give `⟨2,1⟩ [1, 2]`
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {0:{13:{f:"=M1:M2"}}},
+    },
+      "setCells", {[uri]: {[sheetId]: [
+          [[0,13],{"v":"[1, 2]", custom: {errors:[], warnings: [], info: [{message:"*"}]}}],
+      ]}}
+    );
+
+    const refError = {"custom":{"errors":[{"message":"#REF","title":"Invalid Reference"}],"info":[],"warnings":[]},"v":"#error"};
+
+    // set `N2` to `M2:M3` should give #error (ref)
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {1:{13:{f:"=M2:M3"}}},
+    },
+      "setCells", {[uri]: {[sheetId]: [
+          [[1,13],refError],
+      ]}}
+    );
+
+    // when deleting M1, the reference in N1 (referring to M1:M2) should give a ref-error for both
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {0:{12:{"v":null,"p":null,"f":null,"si":null,"custom":null}}},
+    },
+      "setCells", {[uri]: {[sheetId]: [
+          [[0,13],refError],
+      ]}}
+    );
+
     logger.info(`>>> shutting down TestClient`)
     await testClient.stop();
     await new Promise<void>((resolve, reject) => {

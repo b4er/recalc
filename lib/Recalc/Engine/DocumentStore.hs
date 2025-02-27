@@ -26,6 +26,7 @@ module Recalc.Engine.DocumentStore
   , insertSheet
   , deleteSheet
   , setCell
+  , deleteCell
   , setCellError
   , setCellType
   , setCellValue
@@ -96,7 +97,7 @@ data CellContent term value err
       value
       -- ^ value
   | -- | error
-    CellError err
+    CellError (Maybe term) err
   deriving (Show)
 
 {- smart ctors -}
@@ -106,8 +107,8 @@ cellTerm e = Cell (CellTerm Nothing e Nothing)
 cellValue :: Maybe value -> value -> cell -> Cell cell term value err
 cellValue t v = Cell (CellValue t v) mempty
 
-cellError :: err -> cell -> Cell cell term value err
-cellError err = Cell (CellError err) mempty
+cellError :: Maybe term -> err -> cell -> Cell cell term value err
+cellError term err = Cell (CellError term err) mempty
 
 {- setters -}
 
@@ -199,15 +200,24 @@ setCell
   -> DocumentStore doc sheet cell term value err
 setCell sheetId ca = alterCell sheetId ca . const . Just
 
+deleteCell
+  :: Isn't cell
+  => SheetId
+  -> CellAddr
+  -> DocumentStore doc sheet cell term value err
+  -> DocumentStore doc sheet cell term value err
+deleteCell sheetId ca = alterCell sheetId ca (const Nothing)
+
 setCellError
   :: Isn't cell
   => SheetId
   -> CellAddr
+  -> Maybe term
   -> err
   -> DocumentStore doc sheet cell term value err
   -> DocumentStore doc sheet cell term value err
-setCellError sheetId ca err = alterCell sheetId ca $ \case
-  Just Cell{..} -> Just Cell{content = CellError err, range = range, cell = cell}
+setCellError sheetId ca term err = alterCell sheetId ca $ \case
+  Just Cell{..} -> Just Cell{content = CellError term err, range = range, cell = cell}
   x -> x
 
 setCellType
@@ -255,7 +265,7 @@ lookupCellTerm
   :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value err -> Maybe term
 lookupCellTerm sheetId ca = unpack <=< lookupCell' sheetId ca
  where
-  unpack = (\case CellTerm _ e _ -> Just e; _ -> Nothing) . content
+  unpack = (\case CellTerm _ e _ -> Just e; CellError xt _ -> xt; _ -> Nothing) . content
 
 lookupCellType
   :: SheetId -> CellAddr -> DocumentStore doc sheet cell term value err -> Maybe value
