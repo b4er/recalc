@@ -1,0 +1,259 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="annot"><span class="hs-comment">{-|
+Module      : Recalc.Engine.DependencyMap
+Description : A dependency map interface for managing cell dependencies.
+
+Simple (slow but fast enough) implementation.
+-}</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Recalc.Engine.DependencyMap</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#DependencyMap"><span class="hs-identifier">DependencyMap</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier">Slow</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Arrow</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">second</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Functor.Classes</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Show1</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromMaybe</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html"><span class="hs-identifier">Recalc.Engine.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.Core.html#CellAddr"><span class="hs-identifier">CellAddr</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#CellRange"><span class="hs-identifier">CellRange</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#SheetId"><span class="hs-identifier">SheetId</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- point :: x -&gt; (x, x)</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- point x = (x, x)</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#contains"><span class="hs-identifier hs-type">contains</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#CellRange"><span class="hs-identifier hs-type">CellRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#CellAddr"><span class="hs-identifier hs-type">CellAddr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-21"></span><span id="contains"><span class="annot"><span class="annottext">contains :: CellRange -&gt; CellAddr -&gt; Bool
+</span><a href="Recalc.Engine.DependencyMap.html#contains"><span class="hs-identifier hs-var hs-var">contains</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679126941"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126941"><span class="hs-identifier hs-var">x0</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126942"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126942"><span class="hs-identifier hs-var">y0</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126943"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126943"><span class="hs-identifier hs-var">x1</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126944"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126944"><span class="hs-identifier hs-var">y1</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126945"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126945"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126946"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126946"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-22"></span><span>  </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+forall (t :: * -&gt; *). Foldable t =&gt; t Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">and</span></span><span>
+</span><span id="line-23"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126941"><span class="hs-identifier hs-var">x0</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126943"><span class="hs-identifier hs-var">x1</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126945"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126945"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126941"><span class="hs-identifier hs-var">x0</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126943"><span class="hs-identifier hs-var">x1</span></a></span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126942"><span class="hs-identifier hs-var">y0</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126944"><span class="hs-identifier hs-var">y1</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126946"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126946"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126942"><span class="hs-identifier hs-var">y0</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126944"><span class="hs-identifier hs-var">y1</span></a></span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">class</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show1</span></span><span> </span><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="DependencyMap"><span class="annot"><a href="Recalc.Engine.DependencyMap.html#DependencyMap"><span class="hs-identifier hs-var">DependencyMap</span></a></span></span><span> </span><span id="local-6989586621679126861"><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-30"></span><span>  </span><span id="query"><span class="annot"><a href="Recalc.Engine.DependencyMap.html#query"><span class="hs-identifier hs-type">query</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679126901"><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679126901"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.Core.html#SheetId"><span class="hs-identifier hs-type">SheetId</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#CellAddr"><span class="hs-identifier hs-type">CellAddr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.Core.html#SheetId"><span class="hs-identifier hs-type">SheetId</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679126901"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-31"></span><span>  </span><span id="delete"><span class="annot"><a href="Recalc.Engine.DependencyMap.html#delete"><span class="hs-identifier hs-type">delete</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679126902"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679126902"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#SheetId"><span class="hs-identifier hs-type">SheetId</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#CellRange"><span class="hs-identifier hs-type">CellRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679126902"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679126902"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679126902"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-32"></span><span>  </span><span id="insert"><span class="annot"><a href="Recalc.Engine.DependencyMap.html#insert"><span class="hs-identifier hs-type">insert</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679126903"><span class="annot"><a href="Recalc.Engine.Core.html#SheetId"><span class="hs-identifier hs-type">SheetId</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#CellRange"><span class="hs-identifier hs-type">CellRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679126903"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679126903"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679126903"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-33"></span><span>  </span><span id="empty"><span class="annot"><a href="Recalc.Engine.DependencyMap.html#empty"><span class="hs-identifier hs-type">empty</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679126904"><span class="annot"><a href="#local-6989586621679126861"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679126904"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- FIXME: use sth. like Data.IntervalMap.FingerTree</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">newtype</span><span> </span><span id="Slow"><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-var">Slow</span></a></span></span><span> </span><span id="local-6989586621679126915"><span class="annot"><a href="#local-6989586621679126915"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Slow"><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-var">Slow</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="Recalc.Engine.Core.html#SheetId"><span class="hs-identifier hs-type">SheetId</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.Core.html#CellRange"><span class="hs-identifier hs-type">CellRange</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.Core.html#SheetId"><span class="hs-identifier hs-type">SheetId</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679126915"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126959"><span id="local-6989586621679126966"><span id="local-6989586621679126970"><span class="annot"><span class="annottext">Int -&gt; Slow a -&gt; ShowS
+[Slow a] -&gt; ShowS
+Slow a -&gt; String
+(Int -&gt; Slow a -&gt; ShowS)
+-&gt; (Slow a -&gt; String) -&gt; ([Slow a] -&gt; ShowS) -&gt; Show (Slow a)
+forall a. Show a =&gt; Int -&gt; Slow a -&gt; ShowS
+forall a. Show a =&gt; [Slow a] -&gt; ShowS
+forall a. Show a =&gt; Slow a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Slow a -&gt; ShowS
+showsPrec :: Int -&gt; Slow a -&gt; ShowS
+$cshow :: forall a. Show a =&gt; Slow a -&gt; String
+show :: Slow a -&gt; String
+$cshowList :: forall a. Show a =&gt; [Slow a] -&gt; ShowS
+showList :: [Slow a] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679126991"><span class="annot"><span class="hs-identifier hs-type">Show1</span></span><span> </span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-type">Slow</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679127017"><span class="annot"><span class="annottext">liftShowsPrec :: forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; ([a] -&gt; ShowS) -&gt; Int -&gt; Slow a -&gt; ShowS
+</span><a href="#local-6989586621679127017"><span class="hs-identifier hs-var hs-var hs-var hs-var">liftShowsPrec</span></a></span></span><span> </span><span id="local-6989586621679127019"><span class="annot"><span class="annottext">Int -&gt; a -&gt; ShowS
+</span><a href="#local-6989586621679127019"><span class="hs-identifier hs-var">sp</span></a></span></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; ShowS
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679127020"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127020"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-type">Slow</span></a></span><span> </span><span id="local-6989586621679127021"><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127021"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-41"></span><span>    </span><span class="annot"><span class="annottext">String -&gt; ShowS
+</span><span class="hs-identifier hs-var">showString</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; ShowS)
+-&gt; ([(SheetId, [(CellRange, (SheetId, String))])] -&gt; String)
+-&gt; [(SheetId, [(CellRange, (SheetId, String))])]
+-&gt; ShowS
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[(SheetId, [(CellRange, (SheetId, String))])] -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span>
+</span><span id="line-42"></span><span>      </span><span class="annot"><span class="annottext">([(SheetId, [(CellRange, (SheetId, String))])] -&gt; ShowS)
+-&gt; [(SheetId, [(CellRange, (SheetId, String))])] -&gt; ShowS
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">([(CellRange, (SheetId, a))] -&gt; [(CellRange, (SheetId, String))])
+-&gt; (SheetId, [(CellRange, (SheetId, a))])
+-&gt; (SheetId, [(CellRange, (SheetId, String))])
+forall b c d. (b -&gt; c) -&gt; (d, b) -&gt; (d, c)
+forall (a :: * -&gt; * -&gt; *) b c d.
+Arrow a =&gt;
+a b c -&gt; a (d, b) (d, c)
+</span><span class="hs-identifier hs-var">second</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((CellRange, (SheetId, a)) -&gt; (CellRange, (SheetId, String)))
+-&gt; [(CellRange, (SheetId, a))] -&gt; [(CellRange, (SheetId, String))]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((SheetId, a) -&gt; (SheetId, String))
+-&gt; (CellRange, (SheetId, a)) -&gt; (CellRange, (SheetId, String))
+forall b c d. (b -&gt; c) -&gt; (d, b) -&gt; (d, c)
+forall (a :: * -&gt; * -&gt; *) b c d.
+Arrow a =&gt;
+a b c -&gt; a (d, b) (d, c)
+</span><span class="hs-identifier hs-var">second</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; String) -&gt; (SheetId, a) -&gt; (SheetId, String)
+forall b c d. (b -&gt; c) -&gt; (d, b) -&gt; (d, c)
+forall (a :: * -&gt; * -&gt; *) b c d.
+Arrow a =&gt;
+a b c -&gt; a (d, b) (d, c)
+</span><span class="hs-identifier hs-var">second</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShowS -&gt; ShowS
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ShowS -&gt; String) -&gt; (a -&gt; ShowS) -&gt; a -&gt; String
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; ShowS
+</span><a href="#local-6989586621679127019"><span class="hs-identifier hs-var">sp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127020"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((SheetId, [(CellRange, (SheetId, a))])
+ -&gt; (SheetId, [(CellRange, (SheetId, String))]))
+-&gt; [(SheetId, [(CellRange, (SheetId, a))])]
+-&gt; [(SheetId, [(CellRange, (SheetId, String))])]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+-&gt; [(SheetId, [(CellRange, (SheetId, a))])]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.assocs</span></span><span> </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127021"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#DependencyMap"><span class="hs-identifier hs-type">DependencyMap</span></a></span><span> </span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-type">Slow</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679127041"><span class="annot"><span class="annottext">query :: forall a. Slow a -&gt; (SheetId, CellAddr) -&gt; [(SheetId, a)]
+</span><a href="Recalc.Engine.DependencyMap.html#query"><span class="hs-identifier hs-var hs-var hs-var hs-var">query</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-type">Slow</span></a></span><span> </span><span id="local-6989586621679127042"><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127042"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679127043"><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127043"><span class="hs-identifier hs-var">sid</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127044"><span class="annot"><span class="annottext">CellAddr
+</span><a href="#local-6989586621679127044"><span class="hs-identifier hs-var">ca</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-special">[</span><span class="annot"><span class="annottext">(SheetId, a)
+</span><a href="#local-6989586621679127045"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679127046"><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679127046"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127045"><span class="annot"><span class="annottext">(SheetId, a)
+</span><a href="#local-6989586621679127045"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))]
+-&gt; Maybe [(CellRange, (SheetId, a))] -&gt; [(CellRange, (SheetId, a))]
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId
+-&gt; Map SheetId [(CellRange, (SheetId, a))]
+-&gt; Maybe [(CellRange, (SheetId, a))]
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127043"><span class="hs-identifier hs-var">sid</span></a></span><span> </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127042"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679127046"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">CellRange -&gt; CellAddr -&gt; Bool
+</span><a href="Recalc.Engine.DependencyMap.html#contains"><span class="hs-operator hs-var">`contains`</span></a></span><span> </span><span class="annot"><span class="annottext">CellAddr
+</span><a href="#local-6989586621679127044"><span class="hs-identifier hs-var">ca</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679127066"><span class="annot"><span class="annottext">delete :: forall a. Eq a =&gt; SheetId -&gt; CellRange -&gt; a -&gt; Slow a -&gt; Slow a
+</span><a href="Recalc.Engine.DependencyMap.html#delete"><span class="hs-identifier hs-var hs-var hs-var hs-var">delete</span></a></span></span><span> </span><span id="local-6989586621679127067"><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127067"><span class="hs-identifier hs-var">sid</span></a></span></span><span> </span><span id="local-6989586621679127068"><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679127068"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679127069"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679127069"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-type">Slow</span></a></span><span> </span><span id="local-6989586621679127070"><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127070"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-48"></span><span>    </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+forall a. Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+</span><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-var">Slow</span></a></span><span>
+</span><span id="line-49"></span><span>      </span><span class="annot"><span class="annottext">(Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a)
+-&gt; Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">([(CellRange, (SheetId, a))] -&gt; Maybe [(CellRange, (SheetId, a))])
+-&gt; SheetId
+-&gt; Map SheetId [(CellRange, (SheetId, a))]
+-&gt; Map SheetId [(CellRange, (SheetId, a))]
+forall k a. Ord k =&gt; (a -&gt; Maybe a) -&gt; k -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.update</span></span><span>
+</span><span id="line-50"></span><span>        </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679127072"><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127072"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">((CellRange, (SheetId, a)) -&gt; Bool)
+-&gt; [(CellRange, (SheetId, a))] -&gt; [(CellRange, (SheetId, a))]
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(CellRange, (SheetId, a)) -&gt; (CellRange, (SheetId, a)) -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679127068"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127067"><span class="hs-identifier hs-var">sid</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679127069"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127072"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-keyword">of</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe [(CellRange, (SheetId, a))]
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">;</span><span> </span><span id="local-6989586621679127074"><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127074"><span class="hs-identifier hs-var">xs'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))] -&gt; Maybe [(CellRange, (SheetId, a))]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127074"><span class="hs-identifier hs-var">xs'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>        </span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127067"><span class="hs-identifier hs-var">sid</span></a></span><span>
+</span><span id="line-52"></span><span>        </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127070"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679127078"><span class="annot"><span class="annottext">insert :: forall a. SheetId -&gt; CellRange -&gt; a -&gt; Slow a -&gt; Slow a
+</span><a href="Recalc.Engine.DependencyMap.html#insert"><span class="hs-identifier hs-var hs-var hs-var hs-var">insert</span></a></span></span><span> </span><span id="local-6989586621679127079"><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127079"><span class="hs-identifier hs-var">sid</span></a></span></span><span> </span><span id="local-6989586621679127080"><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679127080"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679127081"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679127081"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-type">Slow</span></a></span><span> </span><span id="local-6989586621679127082"><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127082"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+forall a. Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+</span><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-var">Slow</span></a></span><span> </span><span class="annot"><span class="annottext">(Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a)
+-&gt; Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Maybe [(CellRange, (SheetId, a))]
+ -&gt; Maybe [(CellRange, (SheetId, a))])
+-&gt; SheetId
+-&gt; Map SheetId [(CellRange, (SheetId, a))]
+-&gt; Map SheetId [(CellRange, (SheetId, a))]
+forall k a.
+Ord k =&gt;
+(Maybe a -&gt; Maybe a) -&gt; k -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.alter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))] -&gt; Maybe [(CellRange, (SheetId, a))]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">([(CellRange, (SheetId, a))] -&gt; Maybe [(CellRange, (SheetId, a))])
+-&gt; (Maybe [(CellRange, (SheetId, a))]
+    -&gt; [(CellRange, (SheetId, a))])
+-&gt; Maybe [(CellRange, (SheetId, a))]
+-&gt; Maybe [(CellRange, (SheetId, a))]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679127080"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127079"><span class="hs-identifier hs-var">sid</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679127081"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">:</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(CellRange, (SheetId, a))] -&gt; [(CellRange, (SheetId, a))])
+-&gt; (Maybe [(CellRange, (SheetId, a))]
+    -&gt; [(CellRange, (SheetId, a))])
+-&gt; Maybe [(CellRange, (SheetId, a))]
+-&gt; [(CellRange, (SheetId, a))]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[(CellRange, (SheetId, a))]
+-&gt; Maybe [(CellRange, (SheetId, a))] -&gt; [(CellRange, (SheetId, a))]
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679127079"><span class="hs-identifier hs-var">sid</span></a></span><span> </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+</span><a href="#local-6989586621679127082"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679127089"><span class="annot"><span class="annottext">empty :: forall a. Slow a
+</span><a href="Recalc.Engine.DependencyMap.html#empty"><span class="hs-identifier hs-var hs-var hs-var hs-var">empty</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+forall a. Map SheetId [(CellRange, (SheetId, a))] -&gt; Slow a
+</span><a href="Recalc.Engine.DependencyMap.html#Slow"><span class="hs-identifier hs-var">Slow</span></a></span><span> </span><span class="annot"><span class="annottext">Map SheetId [(CellRange, (SheetId, a))]
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-55"></span></pre></body></html>

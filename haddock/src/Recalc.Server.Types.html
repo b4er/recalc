@@ -1,0 +1,165 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-orphans #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Recalc.Server.Types</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.html"><span class="hs-identifier">Data.Aeson</span></a></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Json</span></span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Engine.html"><span class="hs-identifier">Recalc.Engine</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#Isn%27t"><span class="hs-identifier">Isn't</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#Meta"><span class="hs-identifier">Meta</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#Isn%27t"><span class="hs-identifier hs-type">Isn't</span></a></span><span> </span><span class="annot"><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.Internal.html#Value"><span class="hs-identifier hs-type">Json.Value</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>  </span><span id="local-6989586621679130634"><span class="annot"><span class="annottext">isn't :: Value -&gt; Bool
+</span><a href="#local-6989586621679130634"><span class="hs-identifier hs-var hs-var hs-var hs-var">isn't</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
+</span><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.Internal.html#Null"><span class="hs-identifier hs-var">Json.Null</span></a></span><span> </span><span class="hs-operator">==</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">data</span><span> </span><span id="Nullable"><span class="annot"><a href="Recalc.Server.Types.html#Nullable"><span class="hs-identifier hs-var">Nullable</span></a></span></span><span> </span><span id="local-6989586621679130615"><span class="annot"><a href="#local-6989586621679130615"><span class="hs-identifier hs-type">t</span></a></span></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="Missing"><span class="annot"><a href="Recalc.Server.Types.html#Missing"><span class="hs-identifier hs-var">Missing</span></a></span></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Null"><span class="annot"><a href="Recalc.Server.Types.html#Null"><span class="hs-identifier hs-var">Null</span></a></span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Is"><span class="annot"><a href="Recalc.Server.Types.html#Is"><span class="hs-identifier hs-var">Is</span></a></span></span><span> </span><span class="annot"><a href="#local-6989586621679130615"><span class="hs-identifier hs-type">t</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679130642"><span id="local-6989586621679130645"><span class="annot"><span class="annottext">Nullable t -&gt; Nullable t -&gt; Bool
+(Nullable t -&gt; Nullable t -&gt; Bool)
+-&gt; (Nullable t -&gt; Nullable t -&gt; Bool) -&gt; Eq (Nullable t)
+forall t. Eq t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: forall t. Eq t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+== :: Nullable t -&gt; Nullable t -&gt; Bool
+$c/= :: forall t. Eq t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+/= :: Nullable t -&gt; Nullable t -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679130654"><span id="local-6989586621679130657"><span id="local-6989586621679130660"><span id="local-6989586621679130664"><span id="local-6989586621679130667"><span id="local-6989586621679130670"><span id="local-6989586621679130673"><span class="annot"><span class="annottext">Eq (Nullable t)
+Eq (Nullable t) =&gt;
+(Nullable t -&gt; Nullable t -&gt; Ordering)
+-&gt; (Nullable t -&gt; Nullable t -&gt; Bool)
+-&gt; (Nullable t -&gt; Nullable t -&gt; Bool)
+-&gt; (Nullable t -&gt; Nullable t -&gt; Bool)
+-&gt; (Nullable t -&gt; Nullable t -&gt; Bool)
+-&gt; (Nullable t -&gt; Nullable t -&gt; Nullable t)
+-&gt; (Nullable t -&gt; Nullable t -&gt; Nullable t)
+-&gt; Ord (Nullable t)
+Nullable t -&gt; Nullable t -&gt; Bool
+Nullable t -&gt; Nullable t -&gt; Ordering
+Nullable t -&gt; Nullable t -&gt; Nullable t
+forall a.
+Eq a =&gt;
+(a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall t. Ord t =&gt; Eq (Nullable t)
+forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Ordering
+forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Nullable t
+$ccompare :: forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Ordering
+compare :: Nullable t -&gt; Nullable t -&gt; Ordering
+$c&lt; :: forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+&lt; :: Nullable t -&gt; Nullable t -&gt; Bool
+$c&lt;= :: forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+&lt;= :: Nullable t -&gt; Nullable t -&gt; Bool
+$c&gt; :: forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+&gt; :: Nullable t -&gt; Nullable t -&gt; Bool
+$c&gt;= :: forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Bool
+&gt;= :: Nullable t -&gt; Nullable t -&gt; Bool
+$cmax :: forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Nullable t
+max :: Nullable t -&gt; Nullable t -&gt; Nullable t
+$cmin :: forall t. Ord t =&gt; Nullable t -&gt; Nullable t -&gt; Nullable t
+min :: Nullable t -&gt; Nullable t -&gt; Nullable t
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679130679"><span id="local-6989586621679130684"><span id="local-6989586621679130688"><span class="annot"><span class="annottext">Int -&gt; Nullable t -&gt; ShowS
+[Nullable t] -&gt; ShowS
+Nullable t -&gt; String
+(Int -&gt; Nullable t -&gt; ShowS)
+-&gt; (Nullable t -&gt; String)
+-&gt; ([Nullable t] -&gt; ShowS)
+-&gt; Show (Nullable t)
+forall t. Show t =&gt; Int -&gt; Nullable t -&gt; ShowS
+forall t. Show t =&gt; [Nullable t] -&gt; ShowS
+forall t. Show t =&gt; Nullable t -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: forall t. Show t =&gt; Int -&gt; Nullable t -&gt; ShowS
+showsPrec :: Int -&gt; Nullable t -&gt; ShowS
+$cshow :: forall t. Show t =&gt; Nullable t -&gt; String
+show :: Nullable t -&gt; String
+$cshowList :: forall t. Show t =&gt; [Nullable t] -&gt; ShowS
+showList :: [Nullable t] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679130607"><span class="annot"><a href="Recalc.Engine.DocumentStore.html#Isn%27t"><span class="hs-identifier hs-type">Isn't</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679130607"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#Isn%27t"><span class="hs-identifier hs-type">Isn't</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Server.Types.html#Nullable"><span class="hs-identifier hs-type">Nullable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679130607"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679130695"><span class="annot"><span class="annottext">isn't :: Nullable a -&gt; Bool
+</span><a href="Recalc.Engine.DocumentStore.html#isn%27t"><span class="hs-identifier hs-var hs-var hs-var hs-var">isn't</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Server.Types.html#Is"><span class="hs-identifier hs-type">Is</span></a></span><span> </span><span id="local-6989586621679130696"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679130696"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
+forall cell. Isn't cell =&gt; cell -&gt; Bool
+</span><a href="Recalc.Engine.DocumentStore.html#isn%27t"><span class="hs-identifier hs-var">isn't</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679130696"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#isn%27t"><span class="hs-identifier hs-var">isn't</span></a></span><span> </span><span class="annot"><span class="annottext">Nullable a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679130612"><span id="local-6989586621679130700"><span class="annot"><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.FromJSON.html#FromJSON"><span class="hs-identifier hs-type">Json.FromJSON</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679130612"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.FromJSON.html#FromJSON"><span class="hs-identifier hs-type">Json.FromJSON</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Server.Types.html#Nullable"><span class="hs-identifier hs-type">Nullable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679130612"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>  </span><span id="local-6989586621679130710"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser (Nullable t)
+</span><a href="#local-6989586621679130710"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.Internal.html#Null"><span class="hs-identifier hs-var">Json.Null</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Nullable t -&gt; Parser (Nullable t)
+forall a. a -&gt; Parser a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Nullable t
+forall t. Nullable t
+</span><a href="Recalc.Server.Types.html#Null"><span class="hs-identifier hs-var">Null</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="annot"><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.FromJSON.html#parseJSON"><span class="hs-identifier hs-var">parseJSON</span></a></span><span> </span><span id="local-6989586621679130712"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679130712"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t -&gt; Nullable t
+forall t. t -&gt; Nullable t
+</span><a href="Recalc.Server.Types.html#Is"><span class="hs-identifier hs-var">Is</span></a></span><span> </span><span class="annot"><span class="annottext">(t -&gt; Nullable t) -&gt; Parser t -&gt; Parser (Nullable t)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Parser t
+forall a. FromJSON a =&gt; Value -&gt; Parser a
+</span><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.FromJSON.html#parseJSON"><span class="hs-identifier hs-var">Json.parseJSON</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679130712"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span>  </span><span id="local-6989586621679130714"><span class="annot"><span class="annottext">omittedField :: Maybe (Nullable t)
+</span><a href="#local-6989586621679130714"><span class="hs-identifier hs-var hs-var hs-var hs-var">omittedField</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Nullable t -&gt; Maybe (Nullable t)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Nullable t
+forall t. Nullable t
+</span><a href="Recalc.Server.Types.html#Missing"><span class="hs-identifier hs-var">Missing</span></a></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679130624"><span id="local-6989586621679130719"><span id="local-6989586621679130723"><span id="local-6989586621679130726"><span class="annot"><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.ToJSON.html#ToJSON"><span class="hs-identifier hs-type">Json.ToJSON</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679130624"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.ToJSON.html#ToJSON"><span class="hs-identifier hs-type">Json.ToJSON</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Server.Types.html#Nullable"><span class="hs-identifier hs-type">Nullable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679130624"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-29"></span><span>  </span><span id="local-6989586621679130731"><span class="annot"><span class="annottext">toJSON :: Nullable t -&gt; Value
+</span><a href="#local-6989586621679130731"><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-30"></span><span>    </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="Recalc.Server.Types.html#Null"><span class="hs-identifier hs-var">Null</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.Internal.html#Null"><span class="hs-identifier hs-var">Json.Null</span></a></span><span>
+</span><span id="line-31"></span><span>    </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="Recalc.Server.Types.html#Missing"><span class="hs-identifier hs-var">Missing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.Internal.html#Null"><span class="hs-identifier hs-var">Json.Null</span></a></span><span>
+</span><span id="line-32"></span><span>    </span><span class="annot"><a href="Recalc.Server.Types.html#Is"><span class="hs-identifier hs-type">Is</span></a></span><span> </span><span id="local-6989586621679130733"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679130733"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">t -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><a href="file:///nix/store/xz7236144684sq48ksl906mfmg6amkaa-aeson-2.2.0.0-doc/share/doc/aeson-2.2.0.0/html/src/Data.Aeson.Types.ToJSON.html#toJSON"><span class="hs-identifier hs-var">Json.toJSON</span></a></span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679130733"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span>  </span><span id="local-6989586621679130734"><span class="annot"><span class="annottext">omitField :: Nullable t -&gt; Bool
+</span><a href="#local-6989586621679130734"><span class="hs-identifier hs-var hs-var hs-var hs-var">omitField</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span> </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="Recalc.Server.Types.html#Missing"><span class="hs-identifier hs-var">Missing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">;</span><span> </span><span class="annot"><span class="annottext">Nullable t
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679130628"><span class="annot"><a href="Recalc.Engine.DocumentStore.html#Meta"><span class="hs-identifier hs-type">Meta</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Server.Types.html#Nullable"><span class="hs-identifier hs-type">Nullable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679130628"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="Recalc.Server.Types.html#Missing"><span class="hs-identifier hs-var">Missing</span></a></span><span> </span><span id="local-6989586621679130739"><span class="annot"><span class="annottext">merge :: Nullable t -&gt; Nullable t -&gt; Nullable t
+</span><a href="#local-6989586621679130739"><span class="hs-operator hs-var hs-var hs-var hs-var">`merge`</span></a></span></span><span> </span><span id="local-6989586621679130741"><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130741"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130741"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679130742"><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130742"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#merge"><span class="hs-operator hs-var">`merge`</span></a></span><span> </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="Recalc.Server.Types.html#Missing"><span class="hs-identifier hs-var">Missing</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130742"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="Recalc.Server.Types.html#Null"><span class="hs-identifier hs-var">Null</span></a></span><span> </span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#merge"><span class="hs-operator hs-var">`merge`</span></a></span><span> </span><span id="local-6989586621679130743"><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130743"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130743"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="annot"><span class="annottext">Nullable t
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><a href="Recalc.Engine.DocumentStore.html#merge"><span class="hs-operator hs-var">`merge`</span></a></span><span> </span><span id="local-6989586621679130744"><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130744"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Nullable t
+</span><a href="#local-6989586621679130744"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-41"></span></pre></body></html>
