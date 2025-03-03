@@ -1,8 +1,7 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    git-hooks.url = "github:cachix/git-hooks.nix";
   };
 
   nixConfig = {
@@ -14,37 +13,33 @@
     ];
   };
 
-  outputs = { flake-utils, nixpkgs, git-hooks, self, ... }:
+  outputs = { flake-utils, nixpkgs, self, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        packageName = "recalc";
-
-        pkgs = import nixpkgs { inherit system; };
-
-        ## Pin GHC version
-        versions = import ./versions.nix { inherit pkgs; };
-        ghc = versions.ghc;
-
-        ## Build static exe (override configure flags for callCabal2nix)
-        staticHaskell = import ./static-haskell.nix { inherit pkgs ghc; };
-
-        ## read manifest file for extension
-        vscodeManifest = builtins.fromJSON (builtins.readFile ./${packageName}-vscode/package.json);
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import ./haskell-overlay.nix) ];
+        };
 
         # Derivations:
 
-        dynamic = ghc.callCabal2nix packageName self { };
-        static = staticHaskell packageName self;
+        dynamic = pkgs.hsPackages.callCabal2nix "recalc" ./. { };
+        static = pkgs.pkgsStatic.hsPackages.callCabal2nix "recalc" ./. { };
 
-        tsDefsDynamic = (ghc.extend (pkgs.haskell.lib.packageSourceOverrides {
-          recalc = ./.;
-        })).callCabal2nix "${packageName}-ts-defs" ./recalc-vscode
+        ts-defs = (pkgs.hsPackages.extend
+          (pkgs.haskell.lib.packageSourceOverrides {
+            recalc = ./.;
+          })
+        ).callCabal2nix "recalc-ts-defs" ./recalc-vscode
           { };
 
+        ## read manifest file for extension
+        manifest = builtins.fromJSON (builtins.readFile ./recalc-vscode/package.json);
+
         mkVscodeExtension = pkg: pkgs.buildNpmPackage {
-          name = "${packageName}-vscode";
-          src = ./${packageName}-vscode;
-          version = vscodeManifest.version;
+          name = "recalc-vscode";
+          src = ./recalc-vscode;
+          version = manifest.version;
 
           doCheck = true;
 
@@ -54,13 +49,13 @@
           npmDepsHash = "sha256-G51jafBaKLMSXob+IJOhqrXspNe/ST+gpr1ZegkUvhg=";
 
           buildPhase = ''
-            ${tsDefsDynamic}/bin/${packageName}-ts-defs > src/messages.d.ts
+            ${ts-defs}/bin/recalc-ts-defs > src/messages.d.ts
             npm run build
           '';
 
           checkPhase = ''
             mkdir bin/
-            cp ${pkg}/bin/${packageName}-server bin/
+            cp ${pkg}/bin/recalc-server bin/
 
             npm test
           '';
@@ -72,76 +67,40 @@
             vsce package
           '';
         };
-
-        # vscodeExtensionDynamic = mkVscodeExtension dynamic;
-        vscodeExtensionStatic = mkVscodeExtension static;
       in
       {
         apps = {
           publish = {
             type = "app";
             program = "${pkgs.writeShellScript "publish" ''
-              cd ${vscodeExtensionStatic}
-              echo "* Publishing ${packageName}-vscode-${vscodeManifest.version}.vsix"
+              cd ${self.packages.${system}.recalc-static}
+              echo "* Publishing recalc-vscode-${manifest.version}.vsix"
               ${pkgs.vsce}/bin/vsce publish
             ''}";
           };
         };
 
         packages = {
-          recalc-lib = dynamic;
-          recalc-vscode = vscodeExtensionStatic;
+          recalc = mkVscodeExtension dynamic;
           recalc-docs = dynamic.doc;
+          recalc-static = mkVscodeExtension static;
 
-          default = self.packages.${system}.recalc-vscode;
-        };
-
-        checks = {
-          pre-commit = git-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = {
-              actionlint.enable = true;
-              fourmolu.enable = true;
-              hlint.enable = true;
-              markdownlint.enable = true;
-              nixpkgs-fmt.enable = true;
-              shellcheck.enable = true;
-              cabal-version-check = {
-                name = "Check Version and Changelog (cabal)";
-                enable = true;
-                entry = "./scripts/version-check.sh cabal";
-                files = "^(CHANGELOG\\.md|${packageName}\\.cabal)$";
-                language = "system";
-              };
-              vscode-version-check = {
-                name = "Check Version and Changelog (vscode)";
-                enable = true;
-                entry = "./scripts/version-check.sh vscode";
-                # extraPackages = [ pkgs.jq ];
-                files = "^${packageName}-vscode/(CHANGELOG\\.md|package\\.json)$";
-                language = "system";
-              };
-            };
-          };
-
-          # raises Error: Cannot find module '@typescript-eslint/eslint-plugin'
-          # pre-commit-vscode = git-hooks.lib.${system}.run {
-          #   src = ./${packageName}-vscode;
-          #   hooks.eslint.enable = true;
-          # };
+          default = self.packages.${system}.recalc;
         };
 
         devShells = rec {
           default = pkgs.mkShell {
-            inherit (self.checks.${system}.pre-commit) shellHook;
-
-            buildInputs = [
-              ghc.cabal-install
-              ghc.haskell-language-server
-              pkgs.jq
-              pkgs.nodejs
-              pkgs.vsce
-              self.checks.${system}.pre-commit.enabledPackages
+            buildInputs = with pkgs; [
+              actionlint
+              haskellPackages.cabal-install
+              haskellPackages.haskell-language-server
+              jq
+              markdownlint-cli
+              nixpkgs-fmt
+              nodejs
+              pre-commit
+              shellcheck
+              vsce
             ];
 
             inputsFrom = [ dynamic ];

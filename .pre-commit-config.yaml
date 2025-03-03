@@ -1,0 +1,55 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v3.2.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+  - id: check-yaml
+  - id: check-added-large-files
+- repo: local
+  hooks:
+  - id: actionlint
+    name: actionlint
+    files: ^.github/workflows/
+    language: system
+    entry: actionlint
+  - id: fourmolu
+    name: fourmolu
+    files: \.l?hs(-boot)?$
+    language: system
+    entry: fourmolu --mode inplace
+  - id: hlint
+    name: hlint
+    files: \.l?hs(-boot)?$
+    language: system
+    entry: hlint
+  - id: markdownlint
+    name: markdownlint
+    files: \.md$
+    language: system
+    entry: markdownlint
+  - id: nixpkgs-fmt
+    name: nixpkgs-fmt
+    files: \.nix$
+    language: system
+    entry: nixpkgs-fmt
+  - id: eslint
+    name: eslint
+    files: ^recalc-vscode/src/
+    language: system
+    entry: npm --prefix recalc-vscode run lint
+  - id: shellcheck
+    name: shellcheck
+    types: [shell]
+    language: system
+    entry: shellcheck
+  - id: cabal-version-check
+    name: Check Version and Changelog (cabal)
+    files: ^(CHANGELOG\.md|recalc\.cabal)$
+    language: system
+    entry: ./scripts/version-check.sh cabal
+  - id: vscode-version-check
+    name: Check Version and Changelog (vscode)
+    files: ^recalc-vscode/(CHANGELOG\.md|package\.json)$
+    language: system
+    entry: ./scripts/version-check.sh vscode

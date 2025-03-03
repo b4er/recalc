@@ -62,7 +62,7 @@ import Data.Set qualified as Set
 import Data.Void (Void)
 import Text.Megaparsec (ParseErrorBundle)
 
-import Debug.Trace (traceShow, traceShowWith)
+import Debug.Trace (traceShow)
 import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
@@ -228,7 +228,7 @@ recompute sheetId (deletions, errors, values, formulas) = do
                 ( foldl'
                     (\ds ca -> deleteCell sheetId ca ds)
                     documentStore
-                    (traceShowWith ("DELET" :: String,) deletions)
+                    deletions
                 )
                 errors
             )
@@ -245,10 +245,10 @@ recompute sheetId (deletions, errors, values, formulas) = do
           -- current store
           store
             :: Store (Ix -> Bool, Chain Ix) Ix (Either (FetchErrorOf (TermOf dat)) (ValueOf (TermOf dat)))
-          store = initialise (setDirty dirty, traceShowWith ("chain" :: String,) chain) $ \case
+          store = initialise (setDirty dirty, chain) $ \case
             Cell kind sheetId' ca'
               | Just v <- (if kind == Type then lookupCellType else lookupCellValue) sheetId' ca' documentStore' ->
-                  pure (traceShowWith ("found in DS" :: String,ca',("dirty" :: String, dirty),) v)
+                  pure v
               | Just err <- lookup ca' [(k, v) | (k, _, v) <- errors] ->
                   throwError (InvalidFormula err)
               | otherwise ->

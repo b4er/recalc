@@ -15,7 +15,7 @@ nav:
 - Development Guide: development.md
 - GitHub: https://github.com/b4er/recalc
 
-theme: 
+theme:
   name: terminal
 
 extra_css:
