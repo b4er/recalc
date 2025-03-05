@@ -50,9 +50,9 @@ spec = do
       runInfer [] (Free "not" :$ Inf (boolOf False)) `shouldBe` Right vbool
       runInfer
         [ ("any", typeDecl (VSet 0))
-        , (Local Nothing 0, typeDecl (vpi Nothing (VSet 0) id))
+        , ("f", typeDecl (vpi Nothing (VSet 0) id))
         ]
-        (Free (Local Nothing 0) :$ Inf (Free "any"))
+        (Free "f" :$ Inf (Free "any"))
         `shouldBe` Right (vfree "any")
 
   describe "eval" $ do
@@ -142,7 +142,7 @@ runCheck :: [(Name, Decl)] -> Type -> Term Check -> Result ()
 runCheck extra ty = runFetch extra . check' [] ty
 
 runEval :: Term m -> Result Value
-runEval = runFetch mempty . eval'
+runEval = runFetch mempty . eval' []
 
 typeDecl :: Type -> Decl
 typeDecl = (`Decl` Nothing)

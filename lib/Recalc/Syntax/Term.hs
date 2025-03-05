@@ -48,24 +48,18 @@ instance Show CaseInsensitive where
 
 data Name
   = Global !CaseInsensitive
-  | -- | when passing binder, bound names are converted to locally free ones
-    Local !(Maybe CaseInsensitive) !Int
   | -- | same but during quoting
     Quote !Int
   deriving (Generic, Show)
 
 instance Eq Name where
   Global n == Global n' = n == n'
-  Local _ i == Local _ j = i == j
   Quote i == Quote j = i == j
   _ == _ = False
 
 instance Ord Name where
   compare (Global n) (Global n') = compare n n'
   compare Global{} _ = LT
-  compare Local{} Global{} = GT
-  compare (Local _ i) (Local _ j) = compare i j
-  compare Local{} _ = LT
   compare (Quote i) (Quote j) = compare i j
   compare Quote{} _ = GT
 

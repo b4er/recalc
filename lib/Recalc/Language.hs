@@ -62,6 +62,8 @@ import Recalc.Syntax.Parser (formulaP, valueP)
 import Recalc.Syntax.Term
 import Recalc.Univer (Annotation (Annotation), UniverError (..))
 
+-- import Debug.Trace (traceShowWith, traceShowM)
+
 data SemanticError
   = TypeMismatch Type Type
   | TypeMismatchPi (Term Check) Type
@@ -249,30 +251,32 @@ quote = go 0
 -- * Bi-directional typechecking
 
 check' :: [Type] -> Type -> Term Check -> Spreadsheet ()
-check' tyEnv ty = \case
+check' ctxt ty = \case
   Inf x -> do
-    ty' <- infer' tyEnv x
+    ty' <- infer' ctxt x
     when (quote ty' /= quote ty)
       $ throwSemanticError (TypeMismatch ty' ty)
   x@(Lam _ body) -> case ty of
-    VPi p t t' -> do
-      t'' <- t' (vfree (Local p (length tyEnv)))
-      check' (t : tyEnv) t'' body
+    VPi _p t t' -> do
+      t'' <- t' t
+      check' (t : ctxt) t'' body
     ty' -> throwSemanticError (TypeMismatchPi x ty')
 
+-- . traceShowWith ("check'"::String,ctxt,ty,)
+
 infer' :: [Type] -> Term Infer -> Spreadsheet Type
-infer' tyEnv = \case
+infer' ctxt = \case
   Ann e t -> do
-    void $ inferUniverse' tyEnv (Inf t)
-    t' <- eval' t
-    t' <$ check' tyEnv t' e
+    void $ inferUniverse' ctxt (Inf t)
+    t' <- eval' ctxt t
+    t' <$ check' ctxt t' e
   Set k -> pure $ VSet (k + 1)
   Pi _p dom range -> do
-    m <- inferUniverse' tyEnv dom
-    dom' <- eval' dom
-    n <- inferUniverse' (dom' : tyEnv) range
+    m <- inferUniverse' ctxt dom
+    dom' <- eval' ctxt dom
+    n <- inferUniverse' (dom' : ctxt) range
     pure $ VSet (max m n)
-  Bound i -> pure (tyEnv !! i)
+  Bound i -> pure (ctxt !! i)
   Free name -> do
     Env{globals} <- ask
     case Map.lookup name globals of
@@ -295,19 +299,21 @@ infer' tyEnv = \case
   ---
   -- implement them anyway:
   Tensor (TensorDescriptor base _dims) -> do
-    void $ inferUniverse' tyEnv (Inf base)
+    void $ inferUniverse' ctxt (Inf base)
     pure (VSet 0)
   TensorOf (TensorDescriptor base dims) arr -> do
-    baseType <- infer' tyEnv base
-    mapM_ (\x -> check' tyEnv baseType x) arr
+    baseType <- infer' ctxt base
+    mapM_ (\x -> check' ctxt baseType x) arr
     pure . VTensor $ VTensorDescriptor baseType dims
   f :$ x ->
-    infer' tyEnv f >>= \case
+    infer' ctxt f >>= \case
       VPi _ t t' -> do
-        check' tyEnv t x
-        x' <- eval' x
+        check' ctxt t x
+        x' <- eval' ctxt x
         t' x'
       t -> throwSemanticError (IllegalApplication t)
+
+-- . traceShowWith ("infer'"::String,ctxt,)
 
 inferLiteral :: LitOf -> Type
 inferLiteral =
@@ -316,12 +322,12 @@ inferLiteral =
     IntOf{} -> Int
 
 inferUniverse' :: [Type] -> Term Check -> Spreadsheet Int
-inferUniverse' tyEnv = \case
+inferUniverse' ctxt = \case
   Inf e -> do
-    t <- infer' tyEnv e
+    t <- infer' ctxt e
     case quote t of
       Inf (Set k) -> pure k
-      Inf (Bound i) -> inferUniverse' tyEnv (quote (tyEnv !! i))
+      Inf (Bound i) -> inferUniverse' ctxt (quote (ctxt !! i))
       Inf (Free name) -> do
         Env{globals} <- ask
         case Map.lookup name globals of
@@ -333,44 +339,40 @@ inferUniverse' tyEnv = \case
 
 -- * Evaluation
 
-eval' :: Term m -> Spreadsheet Value
-eval' term = do
-  Env{globals} <- ask
-  let
-    go :: [Value] -> Term m -> Spreadsheet Value
-    go valueEnv = \case
-      Inf x -> go valueEnv x
-      Lam p body -> pure $ VLam p (\x -> go (x : valueEnv) body)
-      Ann x _ty -> go valueEnv x
-      Set k -> pure (VSet k)
-      Pi p dom range -> do
-        dom' <- go valueEnv dom
-        pure $ VPi p dom' (\v -> go (v : valueEnv) range)
-      Bound i -> pure (valueEnv !! i)
-      Ref sheetId _ cr@(start, end)
-        | start == end -> fetchValue (sheetId, start)
-        | otherwise -> do
-            let addrs = cellRangeAddrs cr
-            vtd@(VTensorDescriptor _ vdims) <- (`cellRangeDescriptor'` cr) <$> fetchType (sheetId, start)
-            VTensorOf vtd . Array.fromList vdims
-              <$> concatMapM (\ca -> flattenTensor <$> fetchValue (sheetId, ca)) addrs
-      Free name
-        | Just Decl{declValue = Just v} <- Map.lookup name globals -> pure v
-        | otherwise -> pure (vfree name)
-      Lit lit -> pure (VLit lit)
-      LitOf val -> pure (VLitOf val)
-      Tensor td -> uncurry vtensor <$> goTensor valueEnv td
-      TensorOf td arr ->
-        uncurry vtensorOf <$> goTensor valueEnv td <*> mapM (\x -> go valueEnv x) arr
-      f :$ x -> do
-        f' <- go valueEnv f
-        x' <- go valueEnv x
-        vapp f' x'
+eval' :: [Value] -> Term m -> Spreadsheet Value
+eval' ctxt = \case
+  Inf x -> eval' ctxt x
+  Lam p body -> pure $ VLam p (\x -> eval' (x : ctxt) body)
+  Ann x _ty -> eval' ctxt x
+  Set k -> pure (VSet k)
+  Pi p dom range -> do
+    dom' <- eval' ctxt dom
+    pure $ VPi p dom' (\v -> eval' (v : ctxt) range)
+  Bound i -> pure (ctxt !! i)
+  Ref sheetId _ cr@(start, end)
+    | start == end -> fetchValue (sheetId, start)
+    | otherwise -> do
+        let addrs = cellRangeAddrs cr
+        vtd@(VTensorDescriptor _ vdims) <- (`cellRangeDescriptor'` cr) <$> fetchType (sheetId, start)
+        VTensorOf vtd . Array.fromList vdims
+          <$> concatMapM (\ca -> flattenTensor <$> fetchValue (sheetId, ca)) addrs
+  Free name -> do
+    Env{globals} <- ask
+    case Map.lookup name globals of
+      Just Decl{declValue = Just v} -> pure v
+      _ -> pure (vfree name)
+  Lit lit -> pure (VLit lit)
+  LitOf val -> pure (VLitOf val)
+  Tensor td -> uncurry vtensor <$> evalTensor' ctxt td
+  TensorOf td arr ->
+    uncurry vtensorOf <$> evalTensor' ctxt td <*> mapM (\x -> eval' ctxt x) arr
+  f :$ x -> do
+    f' <- eval' ctxt f
+    x' <- eval' ctxt x
+    vapp f' x'
 
-    goTensor :: [Value] -> TensorDescriptor -> Spreadsheet (Value, [Int])
-    goTensor valueEnv (TensorDescriptor base dims) = (,dims) <$> go valueEnv base
-
-  go [] term
+evalTensor' :: [Value] -> TensorDescriptor -> Spreadsheet (Value, [Int])
+evalTensor' ctxt (TensorDescriptor base dims) = (,dims) <$> eval' ctxt base
 
 -- auxiliary functions
 concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
@@ -395,7 +397,7 @@ instance Recalc (Term Infer) where
   depsOf = deps'
 
   infer = infer' []
-  eval = eval'
+  eval = eval' []
 
 {- prettier errors -}
 
