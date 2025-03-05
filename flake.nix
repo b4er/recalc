@@ -91,9 +91,11 @@
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
               actionlint
+              blas
               haskellPackages.cabal-install
               haskellPackages.haskell-language-server
               jq
+              lapack
               markdownlint-cli
               nixpkgs-fmt
               nodejs

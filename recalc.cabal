@@ -35,6 +35,7 @@ library
   build-depends:
     base,
     containers,
+    hmatrix,
     megaparsec,
     mtl,
     network-uri,
@@ -68,12 +69,14 @@ test-suite recalc-spec
   build-tool-depends: hspec-discover:hspec-discover == 2.*
 
   other-modules:
+    Recalc.ArraySpec
     Recalc.SemanticsSpec
     Recalc.Syntax.Arbitrary
     Recalc.Syntax.FixitySpec
     Recalc.Syntax.ParserSpec
     Recalc.Syntax.Test
 
+    Recalc.Array
     Recalc.Language
     Recalc.Syntax.Fixity
     Recalc.Syntax.Parser
@@ -82,6 +85,7 @@ test-suite recalc-spec
   build-depends:
     base,
     containers,
+    hmatrix,
     hspec >= 2.7,
     hspec-megaparsec,
     megaparsec,
