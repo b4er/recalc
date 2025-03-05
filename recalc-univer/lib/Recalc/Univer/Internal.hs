@@ -1,8 +1,8 @@
 {-|
-Module      : List_add
-Description : List manipulation utility functions.
+Module      : Recalc.Univer.Internal
+Description : List manipulation utility functions for manipulating the sheet order.
 -}
-module List_add where
+module Recalc.Univer.Internal where
 
 -- | updates an existing value in a list (first match)
 updateList :: Eq a => a -> a -> [a] -> [a]

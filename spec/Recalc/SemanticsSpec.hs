@@ -4,16 +4,13 @@
 module Recalc.SemanticsSpec where
 
 import Control.Monad (void)
-import Control.Monad.Except (runExcept)
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Except (throwError)
 import Data.Map qualified as Map
-import Data.Maybe (fromJust)
-import Network.URI (parseURI)
 import Test.Hspec (Spec, describe, it, shouldBe, shouldNotBe)
 import Test.Hspec.QuickCheck (prop)
 
-import Recalc.Engine
-import Recalc.Semantics
+import Recalc.Engine hiding (runFetch)
+import Recalc.Language
 import Recalc.Syntax.Arbitrary (Set0 (..))
 import Recalc.Syntax.Term
 
@@ -130,31 +127,22 @@ spec = do
         `shouldBe` Right
           (VNeutral (NApp (NFree "f") (VNeutral (NApp (NFree "g") (VNeutral (NFree "x"))))))
 
-{-- Utilities to run tests: --}
-
-typeDecl :: Value -> Decl
-typeDecl = (`Decl` Nothing)
-
 type Result = Either (FetchError SemanticError)
 
-runFetch :: [(Name, Decl)] -> Fetch (Term Infer) a -> Result a
-runFetch extraGlobals fx = runExcept (runReaderT fx env')
+runFetch :: [(Name, Decl)] -> Fetch Env SemanticError Value a -> Result a
+runFetch extra = runFetchWith env f
  where
-  sheetId1 = (fromJust (parseURI "file:///SemanticSpec.rc"), "Test Sheet 1")
-
-  env = newEnv @(Term Infer) sheetId1
-  env' = (fetch, env{globals = globals env <> Map.fromList extraGlobals})
-
-  -- fetching is tested in the Engine spec
-  fetch _ix =
-    throwSemanticError . UnknownError
-      $ "fetching not supported during tests."
-
-runEval :: Term m -> Result Value
-runEval x = runFetch [] (eval' x)
-
-runCheck :: [(Name, Decl)] -> Value -> Term Check -> Result ()
-runCheck extra x ty = runFetch extra (check' 0 x ty)
+  env = Env (prelude <> Map.fromList extra)
+  f _ _ = throwError RefError
 
 runInfer :: [(Name, Decl)] -> Term Infer -> Result Type
-runInfer extra x = runFetch extra (infer x)
+runInfer extra = runFetch extra . infer' []
+
+runCheck :: [(Name, Decl)] -> Type -> Term Check -> Result ()
+runCheck extra ty = runFetch extra . check' [] ty
+
+runEval :: Term m -> Result Value
+runEval = runFetch mempty . eval'
+
+typeDecl :: Type -> Decl
+typeDecl = (`Decl` Nothing)

@@ -22,16 +22,15 @@
         };
 
         # Derivations:
-
         dynamic = pkgs.hsPackages.callCabal2nix "recalc" ./. { };
-        static = pkgs.pkgsStatic.hsPackages.callCabal2nix "recalc" ./. { };
 
-        ts-defs = (pkgs.hsPackages.extend
-          (pkgs.haskell.lib.packageSourceOverrides {
-            recalc = ./.;
-          })
-        ).callCabal2nix "recalc-ts-defs" ./recalc-vscode
+        static = (pkgs.pkgsStatic.hsPackages.extend (_: hprev: {
+          # for static builds: disable the ts-defs since they rely on TH and it does not play nice
+          recalc-univer = pkgs.haskell.lib.enableCabalFlag hprev.recalc-univer "disable-exe";
+        })).callCabal2nix "recalc" ./.
           { };
+
+        # ts-defs = pkgs.hsPackages.callCabal2nix "recalc-ts-defs" ./recalc-univer { };
 
         ## read manifest file for extension
         manifest = builtins.fromJSON (builtins.readFile ./recalc-vscode/package.json);
@@ -49,7 +48,7 @@
           npmDepsHash = "sha256-G51jafBaKLMSXob+IJOhqrXspNe/ST+gpr1ZegkUvhg=";
 
           buildPhase = ''
-            ${ts-defs}/bin/recalc-ts-defs > src/messages.d.ts
+            ${pkgs.hsPackages.recalc-univer}/bin/recalc-ts-defs > src/messages.d.ts
             npm run build
           '';
 

@@ -76,7 +76,7 @@
   },
   "scripts": {
     "ts-defs": "cd .. && cabal v2-run recalc-ts-defs -v0 > recalc-vscode/src/messages.d.ts",
-    "cabal-build": "cd .. && cabal build",
+    "cabal-build": "cd .. && cabal build recalc-server",
     "build": "node esbuild.mjs",
     "prelint": "test -d node_modules || npm ci",
     "lint": "eslint .",

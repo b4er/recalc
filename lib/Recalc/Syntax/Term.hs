@@ -17,13 +17,14 @@ import Data.Char (isAlphaNum)
 import Data.Function (on)
 import Data.Maybe (fromMaybe)
 import Data.String
+import Data.Text (Text)
 import Data.Text qualified as Text
 import GHC.Generics (Generic)
 import Network.URI
 import Numeric
 import Prettyprinter
 
-import Recalc.Engine
+import Recalc.Engine (CellAddr, CellRange)
 
 -- * Terms
 

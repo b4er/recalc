@@ -4,7 +4,7 @@
 Module      : Recalc.Server.Protocol where
 Description : Named protocol implementation for the JSON-RPC api.
 -}
-module Recalc.Server.Protocol where
+module Recalc.Univer.Protocol where
 
 import Control.Arrow (first, second)
 import Data.Aeson qualified as Json
@@ -16,11 +16,9 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.URI
 
-import Recalc.Engine (Isn't (..), Meta (..))
-import Recalc.Engine.Core
-import Recalc.Server.Generic
-import Recalc.Server.Json
-import Recalc.Server.Types
+-- import Recalc.Engine (Isn't (..), Meta (..))
+import Recalc.Engine
+import Recalc.Server
 
 data SpreadsheetProtocol mode = SpreadsheetProtocol
   { rpcOpen :: mode :- JsonRpc "open" OpenParams ()
@@ -110,13 +108,23 @@ data CustomData = CustomData
   }
   deriving (Generic, Show)
 
-instance Isn't CustomData where
-  isn't (CustomData es ws nfo) = null es && null ws && null nfo
+-- instance Isn't CustomData where
+--  isn't (CustomData es ws nfo) = null es && null ws && null nfo
+
+newtype BooleanInt = BooleanInt {boolean :: Bool}
+
+data CellStyle f = CellStyle
+  { cellStyle'bl :: f BooleanInt
+  -- ^ bold
+  , cellStyle'it :: f BooleanInt
+  -- ^ italic
+  }
+  deriving (Generic)
 
 -- | corresponds to ICellData
 -- (see: https://univer.ai/typedoc/@univerjs/core/interfaces/ICellData)
 data CellData = CellData
-  { cellData's :: Nullable Json.Value
+  { cellData's :: Nullable (CellStyle Maybe)
   -- ^ Cell style id or style object
   , cellData'v :: Nullable Text
   -- ^ Cell original value
@@ -134,26 +142,26 @@ data CellData = CellData
 instance Show CellData where
   show = show . Json.encode
 
-instance Isn't CellData where
-  isn't CellData{..} =
-    and
-      [ isn't cellData's
-      , isn't cellData'v
-      , isn't cellData'f
-      , isn't cellData'si
-      , isn't cellData'p
-      , isn't cellData'custom
-      ]
+-- instance Isn't CellData where
+--  isn't CellData{..} =
+--    and
+--      [ isn't cellData's
+--      , isn't cellData'v
+--      , isn't cellData'f
+--      , isn't cellData'si
+--      , isn't cellData'p
+--      , isn't cellData'custom
+--      ]
 
-instance Meta CellData where
-  CellData s v f si p custom `merge` CellData s' v' f' si' p' custom' =
-    CellData
-      (s `merge` s')
-      (v `merge` v')
-      (f `merge` f')
-      (si `merge` si')
-      (p `merge` p')
-      (custom `merge` custom')
+-- instance Meta CellData where
+--  CellData s v f si p custom `merge` CellData s' v' f' si' p' custom' =
+--    CellData
+--      (s `merge` s')
+--      (v `merge` v')
+--      (f `merge` f')
+--      (si `merge` si')
+--      (p `merge` p')
+--      (custom `merge` custom')
 
 newtype Cells = Cells (Map (Int, Int) CellData)
   deriving (Show)
@@ -188,6 +196,12 @@ instance Json.FromJSON DefineFunctionParams where
 
 {-- Cells --}
 
+instance Json.FromJSON BooleanInt where
+  parseJSON v = BooleanInt . (0 /=) <$> Json.parseJSON @Int v
+
+instance Json.ToJSON BooleanInt where
+  toJSON (BooleanInt b) = Json.toJSON @Int (if b then 1 else 0)
+
 instance Json.FromJSON Annotation where
   parseJSON = Json.genericParseJSON aesonOptions
 
@@ -198,6 +212,12 @@ instance Json.FromJSON CustomData where
   parseJSON = Json.genericParseJSON aesonOptions
 
 instance Json.ToJSON CustomData where
+  toJSON = Json.genericToJSON aesonOptions
+
+instance Json.FromJSON (CellStyle Maybe) where
+  parseJSON = Json.genericParseJSON aesonOptions
+
+instance Json.ToJSON (CellStyle Maybe) where
   toJSON = Json.genericToJSON aesonOptions
 
 instance Json.FromJSON CellData where

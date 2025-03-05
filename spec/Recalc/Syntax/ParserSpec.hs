@@ -8,7 +8,7 @@ import Prettyprinter (Pretty (pretty), defaultLayoutOptions, layoutPretty)
 import Prettyprinter.Render.String (renderString)
 import Test.Hspec (Expectation, Spec, describe, it, shouldBe)
 
-import Recalc.Engine.Core (CellAddr, CellRange, SheetId)
+import Recalc.Engine (CellAddr, CellRange, SheetId)
 import Recalc.Syntax.Arbitrary ()
 import Recalc.Syntax.Parser
 import Recalc.Syntax.Term

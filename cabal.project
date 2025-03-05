@@ -1,3 +1,8 @@
 packages:
-  recalc.cabal
-  recalc-vscode/recalc-ts-defs.cabal
+  recalc-engine
+  recalc-server
+  recalc-univer
+  .
+
+constraints:
+  aeson >= 2.2.0.0

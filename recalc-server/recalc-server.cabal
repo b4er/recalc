@@ -1,0 +1,52 @@
+cabal-version:      3.0
+name:               recalc-server
+version:            0.7.9.1
+synopsis:           Generic library for JSON-RPC servers.
+description:        A servant-like approach for writing a JSON-RPC server.
+license:            MIT
+--license-file:       ../LICENSE
+author:             b4er
+maintainer:         basil.fuerer@protonmail.com
+category:           Language
+build-type:         Simple
+
+common common
+  default-language:    GHC2021
+  default-extensions:  LambdaCase, RecordWildCards
+
+  ghc-options:         -Wall -Werror
+
+library
+  import: common
+
+  hs-source-dirs: lib
+
+  exposed-modules:
+    Recalc.Server
+
+  other-modules:
+    Recalc.Server.Generic
+    Recalc.Server.Json
+    Recalc.Server.Types
+
+  build-depends:
+    aeson,
+    base,
+    bytestring,
+    mtl,
+    stm,
+    text
+
+test-suite recalc-server-spec
+    import:             common
+
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     spec, lib
+    main-is:            Spec.hs
+    build-tool-depends: hspec-discover:hspec-discover == 2.*
+
+    --other-modules:
+
+    build-depends:
+      hspec >= 2.7,
+      recalc-server

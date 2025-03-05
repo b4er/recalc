@@ -145,64 +145,69 @@ describe('testClient (end-to-end tests)', function () {
 
     // single Cell at `(i,j)` is set to `{v}`
     const Cell = (i: number, j: number,v: string, custom?: unknown) =>
-      ({[uri]:{[sheetId]:[[[i,j],{v, ...(custom !== undefined ? {custom} : {})}]]}});
+      [[[uri,sheetId], [i,j]], {v, ...(custom !== undefined ? {custom} : {})}]
+
+    const TypeAnnotation = (typ: string) =>
+      ({errors: [], info: [{title: "", message: typ}], warnings: []});
 
     // set `A1` to `=1` should give `1`
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {0:{0:{f:"=1"}}},
     },
-      "setCells", Cell(0,0, "1")
+      "setCells", [Cell(0,0, "1", TypeAnnotation("int"))]
     );
 
     // set `A2` to `2` should give `2`
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {1:{0:{v:"2"}}},
     },
-      "setCells", Cell(1,0, "2")
+      "setCells", [
+        [[[uri,sheetId],[1,0]],{custom:TypeAnnotation("int")}]
+      ],
     );
 
     // set `B1` to `=not(False)` should give `True`
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {0:{1:{f:"=not(False)",si:null,v:null,p:null}}}
     },
-      "setCells", Cell(0,1, "True")
+      "setCells", [Cell(0,1, "True", TypeAnnotation("bool"))]
     );
 
     // set `C1` to `=and(B1,True)` should give `True`
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {0:{2:{f:"=and(B1, True)"}}}
     },
-      "setCells", Cell(0,2, "True")
+      "setCells", [Cell(0,2, "True", TypeAnnotation("bool"))]
     );
 
     // set `C2` to `=A2` should give `2`
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {1:{2:{f:"=A2"}}}
     },
-      "setCells", Cell(1,2, "2")
+      "setCells", [Cell(1,2, "2", TypeAnnotation("int"))]
     );
 
     // set `A2` to 3 should give 3; update C2
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {1:{0:{v:"3"}}},
     },
-      "setCells", {[uri]: {[sheetId]: [
-          [[1,0],{v: "3"}],
-          [[1,2],{v: "3"}],
-      ]}}
+      "setCells", [
+          Cell(1,2, "3", TypeAnnotation("int")),
+          [[[uri,sheetId],[1,0]],{custom:TypeAnnotation("int")}],
+      ]
     );
 
     // set `C2` to =and(B1,A1) should give error
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {1:{2:{f:"=and(B1,A1 )"}}}
     },
-      "setCells", Cell(1,2, "#error", {
+      "setCells", [Cell(1,2, "#ERROR", {
         errors: [{
           title: "Type Mismatch",
           message: "*",
         }],
         warnings: [],
-      })
+      })]
     );
 
     // matrix tests
@@ -211,39 +216,32 @@ describe('testClient (end-to-end tests)', function () {
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {0:{12:{v:"1"}},1:{12:{v:"2"}}},
     },
-      "setCells", {[uri]: {[sheetId]: [
-          [[0,12],{v: "1"}],
-          [[1,12],{v: "2"}],
-      ]}}
+      "setCells", [[[[uri,sheetId], [0,12]], {}], [[[uri,sheetId], [1,12]], {}]]
     );
 
     // set `N1` to `M1:M2` should give `⟨2,1⟩ [1, 2]`
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {0:{13:{f:"=M1:M2"}}},
     },
-      "setCells", {[uri]: {[sheetId]: [
-          [[0,13],{"v":"[1, 2]", custom: {errors:[], warnings: [], info: [{message:"*"}]}}],
-      ]}}
+      "setCells", [
+        [[[uri, sheetId], [0,13]], {"v":"[1, 2]", custom: {errors:[], warnings: [], info: [{message:"*"}]}}]
+      ]
     );
 
-    const refError = {"custom":{"errors":[{"message":"#REF","title":"Invalid Reference"}],"info":[],"warnings":[]},"v":"#error"};
+    const refError = {"custom":{"errors":[{"message":"","title":"Invalid Reference"}],"info":[],"warnings":[]},"v":"#REF"};
 
-    // set `N2` to `M2:M3` should give #error (ref)
+    // set `N2` to `M2:M3` should give #ERROR (ref)
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {1:{13:{f:"=M2:M3"}}},
     },
-      "setCells", {[uri]: {[sheetId]: [
-          [[1,13],refError],
-      ]}}
+      "setCells", [[[[uri, sheetId], [1,13]], refError]]
     );
 
-    // when deleting M1, the reference in N1 (referring to M1:M2) should give a ref-error for both
+    // when deleting M1, the reference in N1 (referring to M1:M2) should give a ref-error
     await assertReply("setRangeValues", {
       uri, sheetId, cells: {0:{12:{"v":null,"p":null,"f":null,"si":null,"custom":null}}},
     },
-      "setCells", {[uri]: {[sheetId]: [
-          [[0,13],refError],
-      ]}}
+      "setCells", [[[[uri, sheetId], [0,13]], refError]]
     );
 
     logger.info(`>>> shutting down TestClient`)

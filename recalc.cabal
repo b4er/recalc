@@ -11,90 +11,88 @@ category:           Language
 build-type:         Simple
 
 extra-doc-files:
-    CHANGELOG.md
-    README.md
+  CHANGELOG.md
+  README.md
 
 common common
-    ghc-options: -Wall -Werror
+  ghc-options: -Wall -Werror
 
-    build-depends:
-        aeson >= 2.2.0.0,
-        base,
-        containers,
-        megaparsec,
-        mtl,
-        network-uri,
-        prettyprinter,
-        text
-
-    default-language:   GHC2021
-    default-extensions: LambdaCase RecordWildCards
+  default-language:   GHC2021
+  default-extensions: LambdaCase RecordWildCards
 
 library
-    -- | spreadsheet engine, language syntax & semantics,
-    -- JSON-RPC implementation.
-    import:         common
-    hs-source-dirs: lib
+  import:         common
+  hs-source-dirs: lib
 
-    exposed-modules:
-        Recalc.Engine
-        Recalc.Engine.Core
-        Recalc.Semantics
-        Recalc.Repl
-        Recalc.Server
-        Recalc.Server.Protocol
-        Recalc.Syntax.Fixity
-        Recalc.Syntax.Parser
-        Recalc.Syntax.Term
+  exposed-modules:
+    Recalc.Language
 
-    other-modules:
-        Recalc.Engine.DependencyMap
-        Recalc.Engine.DocumentStore
-        Recalc.Engine.Language
-        Recalc.Engine.Monad
-        Recalc.Server.Generic
-        Recalc.Server.Json
-        Recalc.Server.Types
+  other-modules:
+    Recalc.Syntax.Fixity
+    Recalc.Syntax.Term
+    Recalc.Syntax.Parser
 
-    build-depends:
-        build,
-        bytestring,
-        orthotope,
-        parser-combinators,
-        stm
+  build-depends:
+    base,
+    containers,
+    megaparsec,
+    mtl,
+    network-uri,
+    orthotope,
+    parser-combinators,
+    prettyprinter,
+    recalc-engine,
+    recalc-server,
+    recalc-univer,
+    text
 
 executable recalc-server
-    -- | Json-rpc server exectuable.
-    import:         common
-    hs-source-dirs: src/server
+  -- | Json-rpc server exectuable.
+  import:         common
+  hs-source-dirs: src
 
-    main-is:        Main.hs
+  main-is:        Main.hs
 
-    other-modules:  List_add
-
-    build-depends:
-        orthotope,
-        recalc
+  build-depends:
+    base,
+    recalc,
+    recalc-univer
 
 test-suite recalc-spec
-    -- | Full test-suite for all libraries.
-    import:             common
+  -- | Full test-suite for all libraries
+  import:             common
 
-    type:               exitcode-stdio-1.0
-    hs-source-dirs:     spec
-    main-is:            Spec.hs
-    build-tool-depends: hspec-discover:hspec-discover == 2.*
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     spec, lib
+  main-is:            Spec.hs
+  build-tool-depends: hspec-discover:hspec-discover == 2.*
 
-    other-modules:
-        Recalc.EngineSpec
-        Recalc.SemanticsSpec
-        Recalc.Syntax.Arbitrary
-        Recalc.Syntax.FixitySpec
-        Recalc.Syntax.ParserSpec
-        Recalc.Syntax.Test
+  other-modules:
+    Recalc.SemanticsSpec
+    Recalc.Syntax.Arbitrary
+    Recalc.Syntax.FixitySpec
+    Recalc.Syntax.ParserSpec
+    Recalc.Syntax.Test
 
-    build-depends:
-        hspec >= 2.7,
-        hspec-megaparsec,
-        QuickCheck,
-        recalc
+    Recalc.Language
+    Recalc.Syntax.Fixity
+    Recalc.Syntax.Parser
+    Recalc.Syntax.Term
+
+  build-depends:
+    base,
+    containers,
+    hspec >= 2.7,
+    hspec-megaparsec,
+    megaparsec,
+    mtl,
+    network-uri,
+    orthotope,
+    parser-combinators,
+    prettyprinter,
+    QuickCheck,
+    recalc,
+    recalc-engine,
+    recalc-server,
+    recalc-univer,
+    text

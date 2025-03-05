@@ -1,0 +1,64 @@
+cabal-version:      3.0
+name:               recalc-engine
+version:            0.7.9.1
+synopsis:           Recalculation engine for spreadsheets
+description:        A generic recalculation engine for functional programming language embedded in a spreadsheet environment.
+license:            MIT
+--license-file:       ../LICENSE
+author:             b4er
+maintainer:         basil.fuerer@protonmail.com
+category:           Language
+build-type:         Simple
+
+common common
+  default-language:    GHC2021
+  default-extensions:  LambdaCase, RecordWildCards
+
+  ghc-options:         -Wall -Werror
+
+library
+  import: common
+
+  hs-source-dirs: lib
+
+  exposed-modules:
+    Recalc.Engine
+    Recalc.Repl
+
+  other-modules:
+    Recalc.Engine.DependencyMap
+    Recalc.Engine.Core
+
+  build-depends:
+    base,
+    build,
+    bytestring,
+    containers,
+    megaparsec,
+    mtl,
+    network-uri,
+    prettyprinter,
+    stm,
+    text
+
+test-suite recalc-engine-spec
+    import:             common
+
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     spec
+    main-is:            Spec.hs
+    build-tool-depends: hspec-discover:hspec-discover == 2.*
+
+    other-modules:
+      Recalc.EngineSpec
+
+    build-depends:
+      base,
+      containers,
+      hspec >= 2.7,
+      megaparsec,
+      mtl,
+      network-uri,
+      prettyprinter,
+      recalc-engine,
+      text

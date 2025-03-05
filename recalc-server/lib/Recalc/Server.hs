@@ -84,9 +84,7 @@ debug :: Show a => String -> a -> Handler engine ()
 debug message dat = liftIO $ hPutStrLn stderr (message <> ": " <> show dat)
 
 dumpEngineState :: Show engine => Handler engine ()
-dumpEngineState = do
-  tvar <- asks engine
-  liftIO $ hPutStrLn stderr . ("EngineState: " <>) . show =<< readTVarIO tvar
+dumpEngineState = liftIO . (hPrint stderr <=< readTVarIO) =<< asks engine
 
 -- | reads lines from stdin and maintains a channel of reactor inputs with new requests,
 -- handler threads deal with requests by reading from the request channel.

@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-|
@@ -13,6 +12,8 @@ module Recalc.Syntax.Parser
   ( -- * Term Parser
     Parser
   , formulaP
+  , valueP
+  , termI
   , keyword
 
     -- * Exported as Testing Utilities
@@ -25,7 +26,7 @@ module Recalc.Syntax.Parser
 
 import Control.Monad (void)
 import Control.Monad.Reader (ReaderT, ask, asks)
-import Data.Char (isDigit, isPrint, isUpper, ord, toLower)
+import Data.Char (isPrint, toLower)
 import Data.List (elemIndex)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -35,7 +36,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char qualified as Char
 import Text.Megaparsec.Char.Lexer qualified as Lexer
 
-import Recalc.Engine.Core
+import Recalc.Engine
 import Recalc.Syntax.Term
 
 -- | simple parser keeps the "SheetId" as state
@@ -102,27 +103,14 @@ stringLiteral = between (Char.char '"') (Char.char '"') (many (try escaped <|> n
     ]
 -}
 
--- | read an spreadsheet address of the form column-row
--- (columns are labelled "A..Z, AA..", and rows enumerated)
-readExcel :: Text -> Maybe CellAddr
-readExcel txt = go . (`Text.splitAt` txt) =<< alg 0 False (Text.unpack txt)
- where
-  go (letters, digits)
-    | r >= 0 = Just (r, readExcel26 letters - 1)
-    | otherwise = Nothing
-   where
-    r = read (Text.unpack digits) - 1
+{- Value Parsing -}
 
-  alg k b (c : cs)
-    | not b, isUpper c = alg (k + 1) b cs
-    | not b, isDigit c = alg k True cs
-    | b, isDigit c = alg k True cs
-    | otherwise = Nothing
-  alg k True [] = Just k
-  alg _ _ _ = Nothing
-
-  readExcel26 :: Text -> Int
-  readExcel26 = Text.foldl' (\a c -> 26 * a + ord (toLower c) - 96) 0
+valueP :: Parser (Term Infer)
+valueP =
+  choice
+    [ LitOf . IntOf <$> decimal
+    , keywordTerm . originalText <$> keyword
+    ]
 
 {- Term Parsing -}
 
@@ -188,6 +176,14 @@ termI =
       , Set 0 <$ symbol "*"
       ]
 
+keywordTerm :: Text -> Term Infer
+keywordTerm w
+  | Text.toLower w == "bool" = Lit Bool
+  | Text.toLower w == "false" = boolOf False
+  | Text.toLower w == "true" = boolOf True
+  | Text.toLower w == "int" = Lit Int
+  | otherwise = Free (Global (CaseInsensitive w))
+
 cellReferenceOrFree :: Parser (Term Infer)
 cellReferenceOrFree = choice [noUri, withUri, quoted]
  where
@@ -225,13 +221,7 @@ cellReferenceOrFree = choice [noUri, withUri, quoted]
                 Ref (uri, sheetName) Unspecified . range start
                   <$> option start (symbol ":" *> cellRef)
               Nothing ->
-                pure
-                  $ if
-                    | Text.toLower prefix == "bool" -> Lit Bool
-                    | Text.toLower prefix == "false" -> boolOf False
-                    | Text.toLower prefix == "true" -> boolOf True
-                    | Text.toLower prefix == "int" -> Lit Int
-                    | otherwise -> Free (Global (CaseInsensitive prefix))
+                pure (keywordTerm prefix)
           )
 
   -- eg. @[file]data!A1@

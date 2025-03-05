@@ -36,14 +36,6 @@ export const logger = {
     vscode.postMessage({method: "log", params: {level: Loglevel.Debug, message: message}}),
 }
 
-function toNestedMap<T>(entries: [[number, number], T][]): Record<number, Record<number, T>> {
-  return entries.reduce((acc, [[i, j], x]) => {
-    acc[i] ??= {};
-    acc[i][j] = x;
-    return acc;
-  }, {} as Record<number, Record<number, T>>);
-}
-
 export class MessageController extends Disposable {
   constructor(
     @ICommandService private readonly _commandService: ICommandService,
@@ -86,7 +78,7 @@ export class MessageController extends Disposable {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private handleMessage(event: MessageEvent<any>) {
-    if (!event?.data?.params) {
+    if (!event?.data?.method || !event?.data?.params) {
       return;
     }
 
@@ -103,7 +95,7 @@ export class MessageController extends Disposable {
       this._commandService.executeCommand(SetRangeValuesMutation.id, {
         unitId: data.id,
         subUnitId: sheetId,
-        cellValue: toNestedMap(value as [[number, number], unknown][]),
+        cellValue: value,
         loop: true,
       })
     }

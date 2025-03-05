@@ -5,6 +5,7 @@ const nanoid = require("nanoid");
 import { SheetDocument, openFile } from '../files';
 import { Client, Params } from '../rpc/client';
 import { LogMessage, Message } from '../frontend/controllers/rpc.controller';
+import { ICellData, IObjectMatrixPrimitiveType } from '@univerjs/core';
 
 class Spreadsheet extends vscode.Disposable implements vscode.CustomDocument {
   client: Client<SpreadsheetProtocol>;
@@ -101,8 +102,21 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 
 			switch (method) {
 				case "setCells":
+					const docs = new Map<string, {[name: string]: IObjectMatrixPrimitiveType<ICellData>}>();
+
+					// adjust format a bit for Univer
+					(params as [[[string,string], [number,number]], ICellData][])
+						.forEach(([[[uri,name],[r,c]],data]) =>
+							{
+								const doc = docs.get(uri) || {};
+								const sheet = doc[name] || {};
+								const col = sheet[r] || {};
+								const cell = col[c] || {};
+								docs.set(uri, {...doc, [name]: {...sheet, [r]: {...col, [c]: {...cell, ...data}}}});
+							});
+
 					// forward updated sheets to all webviews subscribed to uri ({uri: {sheet: {..}, ..}, ..})
-					for (const [uri, sheets] of Object.entries(params)) {
+					for (const [uri, sheets] of docs) {
 						for (const webviewPanel of this.webviews.get(vscode.Uri.parse(uri))) {
 							webviewPanel.webview.postMessage({method: "setCells", params: sheets})
 						}

@@ -37,6 +37,7 @@ repos:
     name: eslint
     files: ^recalc-vscode/src/
     language: system
+    pass_filenames: false
     entry: npm --prefix recalc-vscode run lint
   - id: shellcheck
     name: shellcheck
