@@ -90,7 +90,7 @@ data LitOf
 -- of each component
 data TensorDescriptor = TensorDescriptor
   { base :: Term Infer
-  , dims :: [Int]
+  , dims :: [Term Check]
   }
   deriving (Eq, Show)
 
@@ -178,7 +178,7 @@ subst i r = \case
 
 substTensor :: Int -> Term Infer -> TensorDescriptor -> TensorDescriptor
 substTensor i r (TensorDescriptor base dims) =
-  TensorDescriptor (subst i r base) dims
+  TensorDescriptor (subst i r base) (map (subst i r) dims)
 
 instance Pretty CaseInsensitive where
   pretty = pretty . originalText
@@ -244,17 +244,17 @@ instance Pretty (Term m) where
               || requireQuotes sheetName =
               enclose "'" "'"
           | otherwise = id
-      Tensor td -> prTensor td
-      TensorOf _ arr -> pretty (Array.toList arr)
+      Tensor td -> prTensor env td
+      TensorOf _ arr -> list (map (pr env 0) (Array.toList arr))
       app@(:$){} ->
         let (y, ys) = splitApp app
         in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0) ys)
 
-    prTensor (TensorDescriptor base dims) =
+    prTensor env (TensorDescriptor base dims) =
       align
-        $ encloseSep "⟨" "⟩" comma (map pretty dims)
+        $ encloseSep "⟨" "⟩" comma (map (pr env 0) dims)
           <> "["
-          <> pretty base
+          <> pr env 0 base
           <> "]"
 
     prettyCellRef (start, end)

@@ -1,3 +1,1 @@
-# the ranks are too high (can we do this only in Semantics.hs?)
-- ignore: { name: Avoid lambda }
 - ignore: { name: Use fmap }

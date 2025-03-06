@@ -30,7 +30,7 @@ module Recalc.Language
   ) where
 
 import Control.Monad (unless, void, when)
-import Data.Array.Dynamic (Array)
+import Data.Array.Dynamic (Array, ShapeL)
 import Data.Array.Dynamic qualified as Array
 import Data.Function (on)
 import Data.Map (Map)
@@ -68,6 +68,7 @@ data SemanticError
   = TypeMismatch Type Type
   | TypeMismatchPi (Term Check) Type
   | TypeOfBound
+  | ExpectedInt Value
   | ExpectedSet (Term Check)
   | IllegalApplication Type
   | IllegalArrayType [(CellAddr, Type)]
@@ -99,7 +100,7 @@ data Neutral
   | NApp !Neutral !Value
   deriving (Generic)
 
-data VTensorDescriptor = VTensorDescriptor Value [Int]
+data VTensorDescriptor = VTensorDescriptor Value [Value]
 
 data Value
   = VLam !(Maybe CaseInsensitive) !(Value -> Spreadsheet Value)
@@ -128,24 +129,24 @@ vfun :: Value -> Value -> Value
 vfun dom range = VPi Nothing dom (const $ pure range)
 
 vlam :: Maybe CaseInsensitive -> (Value -> Value) -> Value
-vlam vname body = VLam vname $ \x -> pure (body x)
+vlam vname body = VLam vname $ pure . body
 
 vlams :: [Text] -> ([Value] -> Value) -> Value
 vlams vars body =
   let
     go var f vs =
-      vlam (Just (CaseInsensitive var)) $ \v -> f (v : vs)
+      vlam (Just (CaseInsensitive var)) $ f . (: vs)
   in
     foldr go (body . reverse) vars []
 
 vpi :: Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
-vpi vname dom range = VPi vname dom $ \x -> pure (range x)
+vpi vname dom range = VPi vname dom $ pure . range
 
 vpis :: [(Text, Value)] -> ([Value] -> Value) -> Value
 vpis doms range =
   let
     go (var, val) f vs =
-      vpi (Just (CaseInsensitive var)) val $ \v -> f (v : vs)
+      vpi (Just (CaseInsensitive var)) val $ f . (: vs)
   in
     foldr go (range . reverse) doms []
 
@@ -161,13 +162,13 @@ vint = VLit Int
 vboolOf :: Bool -> Value
 vboolOf = VLitOf . BoolOf
 
--- vintOf :: Int -> Value
--- vintOf = VLitOf . IntOf
+vintOf :: Int -> Value
+vintOf = VLitOf . IntOf
 
-vtensor :: Value -> [Int] -> Value
+vtensor :: Value -> [Value] -> Value
 vtensor base = VTensor . VTensorDescriptor base
 
-vtensorOf :: Value -> [Int] -> Array Value -> Value
+vtensorOf :: Value -> [Value] -> Array Value -> Value
 vtensorOf value = VTensorOf . VTensorDescriptor value
 
 cellRangeAddrs :: CellRange -> [CellAddr]
@@ -178,7 +179,7 @@ cellRangeDescriptor' base (start, end) = VTensorDescriptor base' dims'
  where
   (m, n) = (row end - row start + 1, column end - column start + 1)
 
-  dim' x = if x == 1 then id else (x :)
+  dim' x = if x == 1 then id else (vintOf x :)
 
   (base', dims') =
     dim' m . dim' n <$> case base of
@@ -237,7 +238,7 @@ quote = go 0
     NApp n v -> goNeutral i n :$ go i v
 
   goTensor i (VTensorDescriptor base vdims) =
-    TensorDescriptor (case go i base of Inf x -> x; _ -> damn) vdims
+    TensorDescriptor (case go i base of Inf x -> x; _ -> damn) (map (go i) vdims)
 
   quoteAbs :: Spreadsheet Value -> Value
   quoteAbs =
@@ -303,8 +304,10 @@ infer' ctxt = \case
     pure (VSet 0)
   TensorOf (TensorDescriptor base dims) arr -> do
     baseType <- infer' ctxt base
-    mapM_ (\x -> check' ctxt baseType x) arr
-    pure . VTensor $ VTensorDescriptor baseType dims
+    mapM_ (check' ctxt vint) dims
+    vdims <- mapM (eval' ctxt) dims
+    mapM_ (check' ctxt baseType) arr
+    pure . VTensor $ VTensorDescriptor baseType vdims
   f :$ x ->
     infer' ctxt f >>= \case
       VPi _ t t' -> do
@@ -342,7 +345,7 @@ inferUniverse' ctxt = \case
 eval' :: [Value] -> Term m -> Spreadsheet Value
 eval' ctxt = \case
   Inf x -> eval' ctxt x
-  Lam p body -> pure $ VLam p (\x -> eval' (x : ctxt) body)
+  Lam p body -> pure . VLam p $ \v -> eval' (v : ctxt) body
   Ann x _ty -> eval' ctxt x
   Set k -> pure (VSet k)
   Pi p dom range -> do
@@ -354,7 +357,8 @@ eval' ctxt = \case
     | otherwise -> do
         let addrs = cellRangeAddrs cr
         vtd@(VTensorDescriptor _ vdims) <- (`cellRangeDescriptor'` cr) <$> fetchType (sheetId, start)
-        VTensorOf vtd . Array.fromList vdims
+        vdims' <- evalShape vdims
+        VTensorOf vtd . Array.fromList vdims'
           <$> concatMapM (\ca -> flattenTensor <$> fetchValue (sheetId, ca)) addrs
   Free name -> do
     Env{globals} <- ask
@@ -365,14 +369,21 @@ eval' ctxt = \case
   LitOf val -> pure (VLitOf val)
   Tensor td -> uncurry vtensor <$> evalTensor' ctxt td
   TensorOf td arr ->
-    uncurry vtensorOf <$> evalTensor' ctxt td <*> mapM (\x -> eval' ctxt x) arr
+    uncurry vtensorOf <$> evalTensor' ctxt td <*> mapM (eval' ctxt) arr
   f :$ x -> do
     f' <- eval' ctxt f
     x' <- eval' ctxt x
     vapp f' x'
 
-evalTensor' :: [Value] -> TensorDescriptor -> Spreadsheet (Value, [Int])
-evalTensor' ctxt (TensorDescriptor base dims) = (,dims) <$> eval' ctxt base
+evalTensor' :: [Value] -> TensorDescriptor -> Spreadsheet (Value, [Value])
+evalTensor' ctxt (TensorDescriptor base dims) = (,) <$> eval' ctxt base <*> mapM (eval' ctxt) dims
+
+evalShape :: [Value] -> Spreadsheet ShapeL
+evalShape = mapM evalInt
+ where
+  evalInt = \case
+    VLitOf (IntOf i) -> pure i
+    v -> throwSemanticError (ExpectedInt v)
 
 -- auxiliary functions
 concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
@@ -425,6 +436,13 @@ instance UniverError SemanticError where
         , "‘, expected Π-type."
         ]
     TypeOfBound -> annotation "Error" ["Type of Bound (should not happen)."]
+    ExpectedInt x ->
+      annotation
+        "Unexpected Value"
+        [ "Unexpected value ‘"
+        , pretty x
+        , "‘, should be an ‘int‘."
+        ]
     ExpectedSet x ->
       annotation
         "Illgeal Kind"
@@ -490,7 +508,7 @@ prelude =
         (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a || b))
         _ -> VNeutral (NApp (NApp (NFree "or") x) y)
 
-  mmultT = vpis [("m", vint), ("n", vint), ("k", vint)] $ \[VLitOf (IntOf m), VLitOf (IntOf n), VLitOf (IntOf k)] ->
+  mmultT = vpis [("m", vint), ("n", vint), ("k", vint)] $ \[m, n, k] ->
     vtensor vint [m, n] `vfun` vtensor vint [n, k] `vfun` vtensor vint [m, k]
 
   mmultImpl = vlams ["m", "n", "k", "u", "v"] $ \[m, n, k, u, v] ->
