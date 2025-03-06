@@ -34,4 +34,4 @@ jobs:
           name: recalc-cache
 
       - name: Check
-        run: nix --accept-flake-config develop -c pre-commit
+        run: nix --accept-flake-config develop -c pre-commit -- run --all-files
