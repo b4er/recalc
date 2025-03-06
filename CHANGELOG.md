@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.7.9.1 -- 2025-02-27
+## 0.8.0.0 -- 2025-03-06
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -41,3 +41,6 @@
 * Extend cell diagnostics (show inferred types at info level), fix bug in Repl.
 * Implement tensor types for cell ranges.
 * Fix some bugs to catch up with end-to-end tests (cell ranges and cell updates).
+* Librarize the project (recalc-engine, recalc-server, recalc-univer and recalc),
+  simplify many things (eg. type checking, recalculation engine, tests by adding
+  `Recalc.Repl`) fix more bugs, add tests. Add hmatrix and deps.

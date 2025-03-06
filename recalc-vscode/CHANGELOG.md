@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 0.0.22 -- 2025-02-27
+## 0.0.23 -- 2025-03-06
 
 * Initial version: create project structure for a custom editor.
 * Add generic rpc implementation, client implementation and logging facilities.
@@ -36,6 +36,7 @@
 * Implement reference inference (infers as them [m,n] tensors), disable built-in
   spilling.
 * Add more end-to-end tests covering cell ranges.
+* Match new version of recalc + more tests.
 
 <!-- References -->
 
