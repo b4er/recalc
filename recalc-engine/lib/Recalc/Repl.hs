@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -73,7 +74,7 @@ eval env t = runFetch @t env (Recalc.eval @t t)
 
 recalc
   :: (Recalc t, Show (ErrorOf t))
-  => [(CellAddr, String)]
+  => [(CellAddr, Maybe String)]
   -> EngineStateOf t
   -> (Results (ErrorOf t) t (ValueOf t), EngineStateOf t)
 recalc inputs =
@@ -82,13 +83,13 @@ recalc inputs =
 
 evalRecalc
   :: (Recalc t, Show (ErrorOf t))
-  => [(CellAddr, String)]
+  => [(CellAddr, Maybe String)]
   -> EngineStateOf t
   -> Results (ErrorOf t) t (ValueOf t)
 evalRecalc inputs = fst . recalc inputs
 
 execRecalc
-  :: (Recalc t, Show (ErrorOf t)) => [(CellAddr, String)] -> EngineStateOf t -> EngineStateOf t
+  :: (Recalc t, Show (ErrorOf t)) => [(CellAddr, Maybe String)] -> EngineStateOf t -> EngineStateOf t
 execRecalc inputs = snd . recalc inputs
 
 {- internal -}
@@ -105,10 +106,10 @@ newEngineState =
  where
   sheetName = snd testId
 
-mkInputs :: [(CellAddr, String)] -> Inputs
+mkInputs :: [(CellAddr, Maybe String)] -> Inputs
 mkInputs = map (bimap (testId,) alg)
  where
   alg =
-    (,Meta) . \case
+    (,Meta) . maybe Nothing \case
       s@('=' : _) -> Just (s, CellFormula)
       s -> Just (s, CellValue)

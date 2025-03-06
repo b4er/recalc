@@ -244,6 +244,15 @@ describe('testClient (end-to-end tests)', function () {
       "setCells", [[[[uri, sheetId], [0,13]], refError]]
     );
 
+    // when setting M1 again, the reference in N1 (referring to M1:M2) should succeed again
+    await assertReply("setRangeValues", {
+      uri, sheetId, cells: {0:{12:{"v":"12","p":null,"f":null,"si":null,"custom":null}}},
+    },
+      "setCells", [
+        [[[uri, sheetId], [0,13]], {"v":"[12, 2]", custom: {errors:[], warnings: [], info: [{message:"*"}]}}]
+      ]
+    );
+
     logger.info(`>>> shutting down TestClient`)
     await testClient.stop();
     await new Promise<void>((resolve, reject) => {

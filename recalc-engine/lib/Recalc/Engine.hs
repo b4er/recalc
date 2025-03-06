@@ -206,11 +206,19 @@ setError err c = c{cellError = Just err}
 
 -- set type (setting value to @Nothing@) when a term is stored
 setType :: v -> Cell err t v -> Cell err t v
-setType typ c = c{cell = second (fmap (second (const (Just (typ, Nothing))))) <$> cell c}
+setType typ c =
+  c
+    { cell = second (fmap (second (const (Just (typ, Nothing))))) <$> cell c
+    , cellError = Nothing
+    }
 
 -- set value when a term and type are stored
 setValue :: v -> Cell err t v -> Cell err t v
-setValue val c = c{cell = second (fmap (second ((,Just val) . fst <$>))) <$> cell c}
+setValue val c =
+  c
+    { cell = second (fmap (second ((,Just val) . fst <$>))) <$> cell c
+    , cellError = Nothing
+    }
 
 alterCell
   :: CellRef
@@ -359,10 +367,12 @@ spreadsheetsOf
   -> Spreadsheets (Either (FetchError (ErrorOf t)) (ValueOf t))
 spreadsheetsOf env ds =
   (runFetch env <$>) . \case
-    CellIx k ref
-      | k == Type -> infer . fst <$> lookupCellTerm ref ds
-      | otherwise -> eval . fst <$> lookupCellTerm ref ds
+    CellIx k ref -> alg k . fst <$> lookupCellTerm ref ds
     VolatileIx -> Just (throwError RefError)
+ where
+  alg = \case
+    Type -> infer
+    Value -> eval
 
 type BuildStore err v = Store (Ix -> Bool, Chain Ix) Ix (Either (FetchError err) v)
 
