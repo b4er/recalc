@@ -95,7 +95,7 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
 
   scheduleJob $ do
     let
-      sheetId = (setRangeValues'uri, setRangeValues'sheetId)
+      sheetId = (setRangeValues'uri, setRangeValues'sheetName)
 
       inputs :: [(CellRef, (Maybe (String, CellType), Meta))]
       inputs = map (bimap (sheetId,) unpackCellData) (Map.toList rcMap)
@@ -129,12 +129,25 @@ rpcSetWorksheetOrder SetWorksheetOrderParams{..} =
     (moveList setWorksheetOrder'from setWorksheetOrder'to)
     id
 
-rpcSetWorksheetName :: SetWorksheetNameParams -> Handler (EngineState env err t v) ()
-rpcSetWorksheetName SetWorksheetNameParams{..} =
+rpcSetWorksheetName
+  :: (Recalc t, UniverError (ErrorOf t))
+  => SetWorksheetNameParams
+  -> Handler (EngineStateOf t) ()
+rpcSetWorksheetName SetWorksheetNameParams{..} = do
   modifyDocument
     setWorksheetName'uri
     (updateList setWorksheetName'sheetName setWorksheetName'newName)
-    id
+    renameSheet
+  -- recompute everything & clear the whole sheet from the deps
+  -- (since parsed cells may refer to the sheet)
+  let sheetId = (setWorksheetName'uri, setWorksheetName'sheetName)
+  scheduleJob
+    $ liftEngine (state (second (deleteSheetId sheetId) . recalcAll))
+      >>= liftIO . either sendResult sendResult
+ where
+  renameSheet m = case Map.lookup setWorksheetName'sheetName m of
+    Just el -> Map.insert setWorksheetName'newName el (Map.delete setWorksheetName'sheetName m)
+    _ -> m
 
 rpcDefineFunction :: DefineFunctionParams -> Handler (EngineState env err t v) ()
 rpcDefineFunction def@DefineFunctionParams{} = debug "rpcDefineFunction" def

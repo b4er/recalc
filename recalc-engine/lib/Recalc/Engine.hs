@@ -23,6 +23,7 @@ import Control.Monad.Except
 import Control.Monad.Reader (MonadReader (..), ReaderT (runReaderT), asks, lift)
 import Data.Bifunctor (bimap, first, second)
 import Data.Either (partitionEithers)
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes, isNothing)
@@ -37,6 +38,7 @@ import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
 import Text.Megaparsec (MonadParsec (eof), ParseErrorBundle, Parsec, parse)
 
+import Debug.Trace (traceShowWith)
 import Recalc.Engine.Core
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
@@ -280,18 +282,45 @@ mapDocs
   -> EngineState env err t v
 mapDocs f st = st{engineDocs = f (engineDocs st)}
 
+deleteSheetId :: SheetId -> EngineState env err t v -> EngineState env err t v
+deleteSheetId sheetId st = st{engineDeps = Deps.deleteSheetId sheetId (engineDeps st)}
+
 type Inputs = [(CellRef, (Maybe (String, CellType), Meta))]
 
 type Cycle err t v = [(CellRef, Cell err t v)]
 type Results err t v = [(CellRef, Cell err t v)]
 
+recalcAll
+  :: forall t
+   . Recalc t
+  => EngineStateOf t
+  -> ( Either (Cycle (ErrorOf t) t (ValueOf t)) (Results (ErrorOf t) t (ValueOf t))
+     , EngineStateOf t
+     )
+recalcAll es@EngineState{engineDocs} =
+  foldl' (\(_, st) input -> recalc [input] st) (Right [], es) inputs
+ where
+  inputs :: Inputs
+  inputs =
+    traceShowWith
+      ("recompute.inputs" :: String,)
+      [ (((uri, sheet), ca), (Just (s, ct), Meta))
+      | (uri, Document{..}) <- Map.toList engineDocs
+      , (sheet, sheetMap) <-
+          [ (sheet, sheetMap)
+          | sheet <- sheetOrder
+          , Just sheetMap <- [Map.lookup sheet sheets]
+          ]
+      , (ca, Cell{cell = Just ((s, ct), _)}) <- Map.toList sheetMap
+      ]
+
 recalc
   :: forall t
    . Recalc t
   => Inputs
-  -> EngineState (EnvOf t) (ErrorOf t) t (ValueOf t)
+  -> EngineStateOf t
   -> ( Either (Cycle (ErrorOf t) t (ValueOf t)) (Results (ErrorOf t) t (ValueOf t))
-     , EngineState (EnvOf t) (ErrorOf t) t (ValueOf t)
+     , EngineStateOf t
      )
 recalc inputs (EngineState env chain docs deps) =
   let
@@ -389,8 +418,8 @@ recalc'
   :: forall t
    . Recalc t
   => [CellRef]
-  -> EngineState (EnvOf t) (ErrorOf t) t (ValueOf t)
-  -> (Results (ErrorOf t) t (ValueOf t), EngineState (EnvOf t) (ErrorOf t) t (ValueOf t))
+  -> EngineStateOf t
+  -> (Results (ErrorOf t) t (ValueOf t), EngineStateOf t)
 recalc' dirty (EngineState env chain docs deps) =
   let
     spreadsheets :: Spreadsheets (Either (FetchError (ErrorOf t)) (ValueOf t))

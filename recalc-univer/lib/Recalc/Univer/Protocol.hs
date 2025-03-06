@@ -47,7 +47,7 @@ newtype CloseParams = CloseParams {close'uri :: URI}
 
 data SetRangeValuesParams = SetRangeValuesParams
   { setRangeValues'uri :: URI
-  , setRangeValues'sheetId :: Text
+  , setRangeValues'sheetName :: Text
   , setRangeValues'cells :: Cells
   }
   deriving (Generic, Show)
@@ -68,7 +68,7 @@ data RemoveSheetParams = RemoveSheetParams
 
 data SetWorksheetOrderParams = SetWorksheetOrderParams
   { setWorksheetOrder'uri :: URI
-  , setWorksheetOrder'sheetId :: Text
+  , setWorksheetOrder'sheetName :: Text
   , setWorksheetOrder'from :: Int
   , setWorksheetOrder'to :: Int
   }

@@ -29,6 +29,7 @@ contains ((x0, y0), (x1, y1)) (x, y) =
 class Show1 t => DependencyMap t where
   query :: t a -> (SheetId, CellAddr) -> [(SheetId, a)]
   delete :: Eq a => SheetId -> CellRange -> a -> t a -> t a
+  deleteSheetId :: SheetId -> t a -> t a
   insert :: SheetId -> CellRange -> a -> t a -> t a
   empty :: t a
 
@@ -50,5 +51,6 @@ instance DependencyMap Slow where
         (\xs -> case filter (/= (x, (sid, a))) xs of [] -> Nothing; xs' -> Just xs')
         sid
         m
+  deleteSheetId sid (Slow m) = Slow (Map.delete sid m)
   insert sid x a (Slow m) = Slow $ Map.alter (Just . ((x, (sid, a)) :) . fromMaybe []) sid m
   empty = Slow mempty

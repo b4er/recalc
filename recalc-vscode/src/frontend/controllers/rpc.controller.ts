@@ -46,6 +46,18 @@ export class MessageController extends Disposable {
     // handle incoming messages
     window.addEventListener('message', message => this.handleMessage(message));
 
+    // handle before command's action has taken place (i.e. values are still the old ones)
+    this.disposeWithMe(this._commandService.beforeCommandExecuted((command: ICommandInfo, options?: IExecutionOptions) => {
+      if (!command.params || (options && options.onlyLocal === true))
+        return;
+
+      switch (command.id) {
+        case SetWorksheetNameMutation.id:
+          return this.handleSetWorksheetName(command.params as ISetWorksheetNameMutationParams)
+      }
+    }));
+
+    // usually we want to handle after the fact to make sure our actions take precedence
     this.disposeWithMe(this._commandService.onCommandExecuted(
       (command: ICommandInfo, options?: IExecutionOptions) => {
 
@@ -61,10 +73,8 @@ export class MessageController extends Disposable {
             return this.handleRemoveSheet(command.params as IRemoveSheetMutationParams)
           case SetWorksheetOrderMutation.id:
             return this.handleSetWorksheetOrder(command.params as ISetWorksheetOrderMutationParams)
-          case SetWorksheetNameMutation.id:
-            return this.handleSetWorksheetName(command.params as ISetWorksheetNameMutationParams)
         }
-    }))
+    }));
   }
 
   override dispose() {
@@ -115,7 +125,7 @@ export class MessageController extends Disposable {
     }
 
     postMessage({method: "setRangeValues", params: {
-      sheetId: sheetName,
+      sheetName: sheetName,
       cells: params.cellValue,
     }});
   }
@@ -136,7 +146,7 @@ export class MessageController extends Disposable {
 
   private handleSetWorksheetOrder(params: ISetWorksheetOrderMutationParams) {
     postMessage({method: "setWorksheetOrder", params: {
-      sheetId: params.subUnitId,
+      sheetName: this.nameById(params.subUnitId),
       from: params.fromOrder,
       to: params.toOrder,
     }});
@@ -144,8 +154,18 @@ export class MessageController extends Disposable {
 
   private handleSetWorksheetName(params: ISetWorksheetNameMutationParams) {
     postMessage({method: "setWorksheetName", params: {
-      sheetName: params.subUnitId,
+      sheetName: this.nameById(params.subUnitId), // broken (gives back the new name)
       newName: params.name,
     }});
+  }
+
+  private nameById(subUnitId: string) {
+    const workbook = this._instanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET);
+    const sheetName = workbook?.getSheetBySheetId(subUnitId)?.getName();
+    if (!sheetName) {
+      throw Error(`invalid subUnitId: ${subUnitId}, cannot associate it with a`);
+    }
+
+    return sheetName;
   }
 }
