@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { DragDropContext, Draggable, DraggableProvided, Droppable, DroppableProvided, OnDragEndResponder } from "@hello-pangea/dnd";
-import { IColumnRange, IRowRange, IUniverInstanceService, LocaleService, UniverInstanceType, Workbook } from "@univerjs/core";
+import { IColumnRange, IRowRange, LocaleService } from "@univerjs/core";
 import { useDependency } from "@univerjs/ui";
 
 const nanoid = require("nanoid");
@@ -13,10 +13,12 @@ import { useSidebarClose } from "./hooks/useSidebar";
 import { parseVariableName } from "../../../parser";
 
 import './SheetFunctionContainer.css'
+import { useActiveWorkbook } from "@univerjs/sheets-ui";
+import { useActiveSheet } from "./hooks/useActiveWorksheet";
 
 export type CellRange = IRowRange & IColumnRange;
 
-type Sheet = { unitId: string, subUnitId: string, name: string };
+type Sheet = { unitId?: string, subUnitId?: string, name?: string };
 
 /* Sheet Function Inputs */
 
@@ -41,7 +43,6 @@ const SheetFunctionInputs = React.memo(({ sheet: {subUnitId}, inputs, deleteInpu
 
         const handleInputContextMenu = (e: React.MouseEvent) => {
           e.preventDefault();
-          logger.log(`click: ${e.button}`)
           setRemoveButton(true);
         }
 
@@ -67,7 +68,7 @@ const SheetFunctionInputs = React.memo(({ sheet: {subUnitId}, inputs, deleteInpu
               setValue={x => updateAt(index, "name", x)} />
 
             <RangeSelector key={input.id}
-              subUnitId={subUnitId}
+              subUnitId={subUnitId!}
               initialValue={`A${index+1}`}
               color={input.color}
               updateRange={range => updateAt(index, "range", range)} />
@@ -95,7 +96,7 @@ type SheetFunctionOutputProps = {
 const SheetFunctionOutput = ({sheet: {subUnitId}, setOutputRange}: SheetFunctionOutputProps) =>
   <div className="range-output" style={{backgroundColor: outputColor}}>
     <RangeSelector
-      subUnitId={subUnitId}
+      subUnitId={subUnitId!}
       initialValue={`B1`}
       color={outputColor}
       updateRange={setOutputRange} />
@@ -110,36 +111,18 @@ type FunctionDefinition = {
   output: {range?: CellRange}
 };
 
-export function SheetFunctionContainer() {
+type SheetFunctionProps = {
+  sheet: Sheet,
+  state: FunctionDefinition,
+  setState: React.Dispatch<React.SetStateAction<FunctionDefinition>>
+}
+
+const SheetFunction: React.FC<SheetFunctionProps> = React.memo(({sheet, state, setState}) => {
   // get services
   const localeService = useDependency(LocaleService);
-  const instanceService = useDependency(IUniverInstanceService);
-
-  // obtain document info
-  const workbook = instanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET);
-  const worksheet = workbook?.getActiveSheet();
-
-  if (!worksheet) {
-    return (<div className="range-container">Fatal Error: cannot obtain Univer Workbook</div>)
-  }
-
-  const sheet = {
-    unitId: worksheet.getUnitId(),
-    subUnitId: worksheet.getSheetId(),
-    name: worksheet.getName(),
-  };
 
   // hooks and event handling
   const nextColor = useColor();
-
-  useSidebarClose(() => saveFunctionDefinition(sheet, state));
-
-  // Panel State: description, input ranges, and output range
-  const [state, setState] = useState<FunctionDefinition>({
-    description: "",
-    inputs: [],
-    output: {},
-  });
 
   // setters
   const updateAt = <K extends keyof Input>(index: number, key: K, value: Input[K]) =>
@@ -227,19 +210,76 @@ export function SheetFunctionContainer() {
       </div>
     </div>
   );
+});
+
+export function SheetFunctionContainer() {
+  // hook the current sheet.{unitId, subUnitId, name}
+  const workbook = useActiveWorkbook();
+  const worksheet = useActiveSheet();
+  const [sheet, setSheet] = useState<Sheet>({});
+
+  React.useEffect(() => {
+    setSheet({
+      unitId: worksheet?.getUnitId(),
+      subUnitId: worksheet?.getSheetId(),
+      name: worksheet?.getName(),
+    });
+  }, [worksheet]);
+
+  // map for each sheet a different FunctionDefinition
+  const [state, setState] = useState<{[sheet: string]: FunctionDefinition}>({});
+
+  function getter(subUnitId: string) {
+    if (!state[subUnitId]) {
+      setState(st => ({...st, [subUnitId]: {
+        description: "",
+        inputs: [],
+        output: {},
+      }}))
+    }
+
+    return state[subUnitId];
+  }
+
+  function setter(subUnitId: string): React.Dispatch<React.SetStateAction<FunctionDefinition>> {
+    return (update: FunctionDefinition | ((def: FunctionDefinition) => FunctionDefinition)) => {
+      const def = typeof update === 'function' ? update(state[subUnitId]) : update;
+      setState(st => ({...st, [subUnitId]: def}));
+    }
+  }
+
+  useSidebarClose(() => {
+    Object.entries(state).forEach(([subUnitId, def]) => {
+      const functionName = workbook?.getSheetBySheetId(subUnitId)?.getName();
+      if (functionName) {
+        saveFunctionDefinition(functionName, def)
+      }
+    });
+  });
+
+  return (
+    <div>
+      {/* Pass the relevant part of the state to SheetFunction */}
+      <SheetFunction
+        sheet={ sheet }
+        state={ getter(sheet.subUnitId!) }
+        setState={setter(sheet.subUnitId!)}
+      />
+    </div>
+  );
 }
 
 /* Utility Functions */
 
-function saveFunctionDefinition(sheet: Sheet, state: FunctionDefinition) {
+function saveFunctionDefinition(functionName: string, state: FunctionDefinition) {
   if (!state.output.range) {
-    logger.error(`Cannot define function ‘${sheet.name}’ with no output!`)
+    logger.error(`Cannot define function ‘${functionName}’ with no output!`)
     return;
   }
 
   postMessage({method: "defineFunction", params: {
-    sheetId: "",
-    description: "",
+    sheetName: functionName,
+    description: state.description,
     inputs: state.inputs.flatMap(x => x.range ? [[x.name, tuplifyCellRange(x.range)]] as [[string, CellRangeHs]] : []),
     output: tuplifyCellRange(state.output.range),
   }})

@@ -86,7 +86,7 @@ data SetWorksheetNameParams = SetWorksheetNameParams
 
 data DefineFunctionParams = DefineFunctionParams
   { defineFunction'uri :: URI
-  , defineFunction'sheetId :: Text
+  , defineFunction'sheetName :: Text
   , defineFunction'description :: Text
   , defineFunction'inputs :: [(Text, CellRange)]
   , defineFunction'output :: CellRange
