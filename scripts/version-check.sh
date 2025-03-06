@@ -5,15 +5,18 @@
 if [ "$1" == "cabal" ]; then
   prefix="."
   version="$(grep '^version:' recalc.cabal | awk -F: '{print $2}' | xargs)"
-  ts_version="$(grep '^version:' recalc-vscode/recalc-ts-defs.cabal | awk -F: '{print $2}' | xargs)"
-  if [ "${version}" != "${ts_version}" ]; then
-    echo "cabal versions for recalc and recalc-ts-defs mismatch (${version} vs. ${ts_version})" >&2
-    exit 2
-  fi
+  versions="$(find recalc-* -name 'recalc-*.cabal' -exec grep '^version:' {} \; | awk -F: '{print $2}' | xargs)"
+
+  for v in ${versions}; do
+    if [ "${version}" != "${v}" ]; then
+      echo "cabal versions mismatch (${version} vs. ${v}):" >&2
+      grep -l "^version:[ ]*${v}" recalc-*/recalc-*.cabal >&2
+      exit 2
+    fi
+  done
 else
   prefix="recalc-vscode"
-  #version="$(jq -r .version < "$prefix/package.json")"
-  version="$(grep '^[ ]*"version"[ ]*:' recalc-vscode/package.json | tr -cd '0-9.')"
+  version="$(jq -r .version < "$prefix/package.json")"
 fi
 
 if ! grep -q "^## ${version} -- [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$" "${prefix}/CHANGELOG.md"; then
