@@ -101,7 +101,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 			}
 
 			switch (method) {
-				case "setCells":
+				case "setRangeValues":
 					const docs = new Map<string, {[name: string]: IObjectMatrixPrimitiveType<ICellData>}>();
 
 					// adjust format a bit for Univer
@@ -118,9 +118,18 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 					// forward updated sheets to all webviews subscribed to uri ({uri: {sheet: {..}, ..}, ..})
 					for (const [uri, sheets] of docs) {
 						for (const webviewPanel of this.webviews.get(vscode.Uri.parse(uri))) {
-							webviewPanel.webview.postMessage({method: "setCells", params: sheets})
+							webviewPanel.webview.postMessage({method: "setRangeValues", params: sheets})
 						}
 					}
+					break;
+				case "error":
+					this.client.logger.error(params)
+					break;
+				case "info":
+					this.client.logger.info(params)
+					break;
+				case "warning":
+					this.client.logger.warn(params)
 					break;
 				default:
 					this.client.logger.warn(`unknown Notification: ${method} (params: ${JSON.stringify(params)})`)
@@ -139,7 +148,7 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 					&& !("uri" in message.params)
 			) {
 				if (message.method === "log") {
-					// handle webview-logs
+					// handle webview-logs (do not forward)
 					if ("level" in message.params) {
 						[
 							(m: string) => this.client.logger.error(m),
@@ -163,7 +172,15 @@ export class SpreadsheetEditorProvider implements vscode.CustomEditorProvider<Sp
 
 					this.client
 						.request(message.method, params)
-						.then(result => webviewPanel.webview.postMessage(result));
+						.then(result => {
+							if (result !== undefined) {
+								webviewPanel.webview.postMessage({
+									method: message.method,
+									params: result,
+									originalParams: message.params
+								})
+							}
+						});
 				}
 			} else {
         vscode.window.showErrorMessage(`A webview sent an invalid message: ${JSON.stringify(message)}`);

@@ -38,12 +38,9 @@ import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
 import Text.Megaparsec (MonadParsec (eof), ParseErrorBundle, Parsec, parse)
 
-import Debug.Trace (traceShowWith)
 import Recalc.Engine.Core
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
-
--- import Recalc.Server.Protocol (Annotation)
 
 {- Interface -}
 class (Pretty t, Pretty (ValueOf t)) => Recalc t where
@@ -302,17 +299,15 @@ recalcAll es@EngineState{engineDocs} =
  where
   inputs :: Inputs
   inputs =
-    traceShowWith
-      ("recompute.inputs" :: String,)
-      [ (((uri, sheet), ca), (Just (s, ct), Meta))
-      | (uri, Document{..}) <- Map.toList engineDocs
-      , (sheet, sheetMap) <-
-          [ (sheet, sheetMap)
-          | sheet <- sheetOrder
-          , Just sheetMap <- [Map.lookup sheet sheets]
-          ]
-      , (ca, Cell{cell = Just ((s, ct), _)}) <- Map.toList sheetMap
-      ]
+    [ (((uri, sheet), ca), (Just (s, ct), Meta))
+    | (uri, Document{..}) <- Map.toList engineDocs
+    , (sheet, sheetMap) <-
+        [ (sheet, sheetMap)
+        | sheet <- sheetOrder
+        , Just sheetMap <- [Map.lookup sheet sheets]
+        ]
+    , (ca, Cell{cell = Just ((s, ct), _)}) <- Map.toList sheetMap
+    ]
 
 recalc
   :: forall t

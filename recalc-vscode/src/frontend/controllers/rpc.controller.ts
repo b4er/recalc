@@ -1,9 +1,11 @@
 import { WebviewApi } from "vscode-webview";
 
-import { Disposable, ICommandInfo, ICommandService, IExecutionOptions, IUniverInstanceService, UniverInstanceType, Workbook } from "@univerjs/core";
+import { Disposable, ICommandInfo, ICommandService, IExecutionOptions, Inject, IUniverInstanceService, UniverInstanceType, Workbook } from "@univerjs/core";
 import { IInsertSheetMutationParams, IRemoveSheetMutationParams, ISetRangeValuesMutationParams, ISetWorksheetNameMutationParams, ISetWorksheetOrderMutationParams, InsertSheetMutation, RemoveSheetMutation, SetRangeValuesMutation, SetWorksheetNameMutation, SetWorksheetOrderMutation } from "@univerjs/sheets";
 
 import { Loglevel } from "../../rpc/logging";
+import { IDescriptionService } from "@univerjs/sheets-formula";
+import { DescriptionService } from "../services/function-description.service";
 
 const vscode: WebviewApi<never> = acquireVsCodeApi();
 
@@ -39,6 +41,7 @@ export const logger = {
 export class MessageController extends Disposable {
   constructor(
     @ICommandService private readonly _commandService: ICommandService,
+    @Inject(IDescriptionService) private readonly _descriptionService: IDescriptionService,
     @IUniverInstanceService private readonly _instanceService: IUniverInstanceService,
   ) {
     super();
@@ -92,23 +95,47 @@ export class MessageController extends Disposable {
       return;
     }
 
-    const workbook = this._instanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET);
+    switch (event.data.method) {
+      case "defineFunction":
+        // alert the error if one occurred
+        if ("Left" in event.data.params) {
+          logger.error(event.data.params.Left)
+        // otherwise, add the register the defined function with the DescriptionService
+        } else if ("Right" in event.data.params) {
+          const defs: FunctionDescription[] = event.data.params.Right;
+          this._descriptionService.registerDescriptions(
+            defs.map(def => DescriptionService.functionDescription2Info(def))
+          );
+          const names = defs.map(def => `'${def.name}'`).join(', ');
+          logger.info(`Successfully stored function${defs.length > 1 ? 's ' : ' '}${names}.`);
+        } else {
+          logger.error(`invalid 'defineFunction' (${JSON.stringify(event.data.params)})`)
+        }
+        break;
+      case "setRangeValues":
 
-    for (const [sheetName, value] of Object.entries(event.data.params)) {
-      const sheetId = workbook?.getSheetBySheetName(sheetName)?.getSheetId();
+        const workbook = this._instanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET);
 
-      if (!sheetId) {
-        logger.warn(`invalid call to 'setCells': cannot get sheet ID (${JSON.stringify({sheetName: sheetName, value: value})})`)
-        continue;
-      }
+        for (const [sheetName, value] of Object.entries(event.data.params)) {
+          const sheetId = workbook?.getSheetBySheetName(sheetName)?.getSheetId();
 
-      this._commandService.executeCommand(SetRangeValuesMutation.id, {
-        unitId: data.id,
-        subUnitId: sheetId,
-        cellValue: value,
-        loop: true,
-      })
+          if (!sheetId) {
+            logger.warn(`invalid call to 'setRangeValues': cannot get sheet ID (${JSON.stringify({sheetName: sheetName, value: value})})`)
+            continue;
+          }
+
+          this._commandService.executeCommand(SetRangeValuesMutation.id, {
+            unitId: data.id,
+            subUnitId: sheetId,
+            cellValue: value,
+            loop: true,
+          })
+        }
+        break;
+      default:
+        break;
     }
+
   }
 
   /* Command handlers (forward to server via JSON-RPC) */
@@ -153,8 +180,19 @@ export class MessageController extends Disposable {
   }
 
   private handleSetWorksheetName(params: ISetWorksheetNameMutationParams) {
+    // the old name is given by the instanceService since it has not been changed yet
+    const oldName = this.nameById(params.subUnitId);
+
+    // in case the sheet describes a function, rename it:
+    const oldFunctionInfo = this._descriptionService.getFunctionInfo(oldName);
+    if (oldFunctionInfo) {
+      this._descriptionService.registerDescriptions([{...oldFunctionInfo, functionName: params.name}]);
+    }
+    this._descriptionService.unregisterDescriptions([oldName]);
+
+    // let the language server know about the name change
     postMessage({method: "setWorksheetName", params: {
-      sheetName: this.nameById(params.subUnitId), // broken (gives back the new name)
+      sheetName: oldName,
       newName: params.name,
     }});
   }

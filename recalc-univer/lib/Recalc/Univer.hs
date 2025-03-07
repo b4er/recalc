@@ -4,17 +4,23 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Recalc.Univer (Annotation (..), UniverError (..), univerMain) where
+module Recalc.Univer
+  ( Annotation (..)
+  , FunctionDescription (..)
+  , FunctionParameter (..)
+  , FunctionType (..)
+  , UniverRecalc (..)
+  , univerMain
+  ) where
 
 import Control.Monad.Reader (MonadIO (liftIO), runReaderT)
-import Control.Monad.State (modify, state)
+import Control.Monad.State (gets, modify, state)
 import Data.Bifunctor (bimap, second)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Monoid (Endo (Endo, appEndo))
 import Data.Text (Text)
 import Data.Text qualified as Text
-import Debug.Trace (traceShowM)
 import Network.URI (URI)
 import Prettyprinter (Pretty)
 import Text.Megaparsec (errorBundlePretty)
@@ -24,16 +30,21 @@ import Recalc.Server
 import Recalc.Univer.Internal
 import Recalc.Univer.Protocol
 
-class UniverError err where
-  errorAnnotation :: err -> Annotation
+class (Recalc t, Pretty t, Show (ErrorOf t)) => UniverRecalc t where
+  errorAnnotation :: ErrorOf t -> Annotation
+
+  define
+    :: Text
+    -> Map CellAddr (Maybe ((String, CellType), Maybe (t, Maybe (ValueOf t, Maybe (ValueOf t)))))
+    -> [(Text, CellRange)]
+    -> CellRange
+    -> EnvOf t
+    -> Either (ErrorOf t) (EnvOf t)
+  define _ _ _ _ = Right
 
 type SheetsApi = ToApi SpreadsheetProtocol
 
-univerMain
-  :: forall t
-   . (Recalc t, Pretty t, Show (ErrorOf t), UniverError (ErrorOf t))
-  => EnvOf t
-  -> IO ()
+univerMain :: forall t. UniverRecalc t => EnvOf t -> IO ()
 univerMain env = runHandler @SheetsApi (newEngineState env) $ \st ->
   hoist @SheetsApi (`runReaderT` st) (namedHandlers server)
  where
@@ -87,12 +98,10 @@ rpcClose :: CloseParams -> Handler (EngineState env err t v) ()
 rpcClose _ = fail "'close' not implemented"
 
 rpcSetRangeValues
-  :: (Recalc t, UniverError (ErrorOf t))
+  :: UniverRecalc t
   => SetRangeValuesParams
   -> Handler (EngineStateOf t) Cells
 rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} = do
-  traceShowM ("set" :: String, rcMap)
-
   scheduleJob $ do
     let
       sheetId = (setRangeValues'uri, setRangeValues'sheetName)
@@ -103,10 +112,6 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
     liftEngine (state (recalc inputs)) >>= liftIO . either sendResult sendResult
 
   pure (Cells mempty)
-
-sendResult
-  :: (Recalc t, UniverError (ErrorOf t)) => [(CellRef, Cell (ErrorOf t) t (ValueOf t))] -> IO ()
-sendResult = sendIO . JsonRpcNotification "setCells" . map (second packCell)
 
 rpcInsertSheet :: InsertSheetParams -> Handler (EngineState env err t v) ()
 rpcInsertSheet InsertSheetParams{..} =
@@ -130,9 +135,7 @@ rpcSetWorksheetOrder SetWorksheetOrderParams{..} =
     id
 
 rpcSetWorksheetName
-  :: (Recalc t, UniverError (ErrorOf t))
-  => SetWorksheetNameParams
-  -> Handler (EngineStateOf t) ()
+  :: UniverRecalc t => SetWorksheetNameParams -> Handler (EngineStateOf t) ()
 rpcSetWorksheetName SetWorksheetNameParams{..} = do
   modifyDocument
     setWorksheetName'uri
@@ -149,13 +152,71 @@ rpcSetWorksheetName SetWorksheetNameParams{..} = do
     Just el -> Map.insert setWorksheetName'newName el (Map.delete setWorksheetName'sheetName m)
     _ -> m
 
-rpcDefineFunction :: DefineFunctionParams -> Handler (EngineState env err t v) ()
-rpcDefineFunction def@DefineFunctionParams{} = debug "rpcDefineFunction" def
+rpcDefineFunction
+  :: forall t
+   . UniverRecalc t
+  => DefineFunctionParams
+  -> Handler (EngineStateOf t) (Either Text [FunctionDescription])
+rpcDefineFunction DefineFunctionParams{..}
+  -- make sure the inputs don't overlap the output
+  | null errors = liftEngine $ do
+      -- retrieve document to call @define@ with, modify state accordingly (@id@ when error)
+      let getSheet = \case
+            Just r -> case Map.lookup defineFunction'sheetName (sheets r) of
+              Just x -> Map.map cell x
+              _ -> mempty
+            _ -> mempty
+      sheet <- gets (getSheet . Map.lookup defineFunction'uri . engineDocs)
+      state $ \st ->
+        let
+          env = engineEnv st
+          def = define @t defineFunction'sheetName sheet defineFunction'inputs defineFunction'output
+        in
+          case def env of
+            Left err ->
+              let
+                Annotation _ msg = errorAnnotation @t err
+              in
+                (Left $ "Cannot save function '" <> defineFunction'sheetName <> "': " <> msg, st)
+            Right env' -> (Right [functionDescription], st{engineEnv = env'})
+  -- overlapping input(s) with output
+  | otherwise =
+      pure . Left
+        $ ( "Cannot save function '"
+              <> defineFunction'sheetName
+              <> "' because inputs and output overlap: "
+              <> showt (map (second (bimap showExcel26 showExcel26)) errors)
+          )
+ where
+  functionDescription =
+    FunctionDescription
+      defineFunction'sheetName
+      User
+      defineFunction'description
+      "abstract"
+      [ FunctionParameter inputName "example" "detail"
+      | (inputName, _range) <- defineFunction'inputs
+      ]
 
-{- Serialisation -}
+  errors = filter (intersects defineFunction'output . snd) defineFunction'inputs
 
-packCell
-  :: forall t. (Recalc t, UniverError (ErrorOf t)) => Cell (ErrorOf t) t (ValueOf t) -> CellData
+  intersects :: CellRange -> CellRange -> Bool
+  intersects ((x0, y0), (x1, y1)) ((x0', y0'), (x1', y1')) =
+    not (x1 < x0' || x0 > x1' || y1 < y0' || y0 > y1')
+
+{- IO & Serialisation -}
+
+sendResult :: UniverRecalc t => [(CellRef, Cell (ErrorOf t) t (ValueOf t))] -> IO ()
+sendResult = sendIO . JsonRpcNotification "setRangeValues" . map (second packCell)
+
+-- sendError, sendInfo :: Text -> IO ()
+-- sendError = sendIO . JsonRpcNotification "error"
+-- sendInfo = sendIO . JsonRpcNotification "info"
+
+showt :: Show a => a -> Text
+showt = Text.pack . show
+
+packCell :: forall t. UniverRecalc t => Cell (ErrorOf t) t (ValueOf t) -> CellData
 packCell Cell{..} =
   CellData
     Missing
@@ -187,12 +248,11 @@ packCell Cell{..} =
         )
     )
 
-fetchErrorAnnotation
-  :: forall t. (Recalc t, UniverError (ErrorOf t)) => FetchError (ErrorOf t) -> Annotation
+fetchErrorAnnotation :: forall t. UniverRecalc t => FetchError (ErrorOf t) -> Annotation
 fetchErrorAnnotation = \case
   InvalidFormula err -> Annotation "Syntax Error" (Text.pack (errorBundlePretty err))
   RefError -> Annotation "Invalid Reference" ""
-  SemanticError err -> errorAnnotation err
+  SemanticError err -> errorAnnotation @t err
 
 unpackCellData :: CellData -> (Maybe (String, CellType), Meta)
 unpackCellData CellData{..} = case (cellData'f, cellData'v) of

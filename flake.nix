@@ -22,7 +22,16 @@
         };
 
         # Derivations:
-        dynamic = pkgs.hsPackages.callCabal2nix "recalc" ./. { };
+        setHaddockFlags = drv: pkgs.haskell.lib.overrideCabal drv {
+          haddockFlags = [
+            "--all"
+            # "--show-all"
+            # "--html-location='https://hackage.haskell.org/package/$pkg-$version/docs'"
+            "--hyperlink-source"
+          ];
+        };
+
+        dynamic = setHaddockFlags (pkgs.hsPackages.callCabal2nix "recalc" ./. { });
 
         static = (pkgs.pkgsStatic.hsPackages.extend (_: hprev: {
           # for static builds: disable the ts-defs since they rely on TH and it does not play nice
@@ -30,7 +39,26 @@
         })).callCabal2nix "recalc" ./.
           { };
 
-        # ts-defs = pkgs.hsPackages.callCabal2nix "recalc-ts-defs" ./recalc-univer { };
+        docs = pkgs.stdenv.mkDerivation {
+          name = "recalc-docs";
+          src = ./.;
+
+          installPhase = ''
+            mkdir $out/
+
+            # copy all packages' haddock
+
+            cp -r ${(setHaddockFlags pkgs.hsPackages.recalc-engine).doc}/share/doc/. $out/
+            cp -r ${(setHaddockFlags pkgs.hsPackages.recalc-server).doc}/share/doc/. $out/
+            cp -r ${(setHaddockFlags pkgs.hsPackages.recalc-univer).doc}/share/doc/. $out/
+            cp -r ${dynamic.doc}/share/doc/. $out/
+
+            # rewrite the links file:///nix/store/.. to hackage
+            for file in $(grep -f '*.html' -rl 'https://hackage.haskell.org/package/recalc' $out/); do
+              sed -i 's|https://hackage.haskell.org/package/recalc|recalc|g' "$file"
+            done
+          '';
+        };
 
         ## read manifest file for extension
         manifest = builtins.fromJSON (builtins.readFile ./recalc-vscode/package.json);
@@ -81,7 +109,7 @@
 
         packages = {
           recalc = mkVscodeExtension dynamic;
-          recalc-docs = dynamic.doc;
+          recalc-docs = docs;
           recalc-static = mkVscodeExtension static;
 
           default = self.packages.${system}.recalc;

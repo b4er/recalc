@@ -1,27 +1,30 @@
-import { IDisposable } from "@univerjs/core";
-import { IFunctionNames, IFunctionInfo, FunctionType } from "@univerjs/engine-formula";
+import { IDisposable, toDisposable } from "@univerjs/core";
+import { IFunctionNames, IFunctionInfo, IFunctionParam } from "@univerjs/engine-formula";
 import { IDescriptionService, ISearchItem } from "@univerjs/sheets-formula";
 
 export class DescriptionService implements IDescriptionService, IDisposable {
-  private functions: Map<IFunctionNames, IFunctionInfo> = new Map([
-    ["not", {
-      functionName: "not",
+  static functionDescription2Info(fn: FunctionDescription): IFunctionInfo {
+    return {
+      functionName: fn.name,
       aliasFunctionName: undefined,
-      functionType: FunctionType.Logical,
-      description: "Returns TRUE if the argument is FALSE, and FALSE if the argument is TRUE.",
-      abstract: "Logical negation.",
-      functionParameter: [
-          {
-              name: "logical",
-              detail: "A boolean value or expression to negate.",
-              example: "not(TRUE) → FALSE",
-              require: 1,
-              repeat: 0   // not repeatable (only one argument)
-          }
-      ]
-    },
-    ]
-  ]);
+      functionType: fn.type,
+      description: fn.description,
+      abstract: fn.abstract,
+      functionParameter: fn.params.map(DescriptionService.functionParameter2Param)
+    };
+  }
+
+  private static functionParameter2Param(param: FunctionParameter): IFunctionParam {
+    return {
+      name: param.name,
+      detail: param.detail,
+      example: param.example,
+      require: 1,
+      repeat: 0   // not repeatable (only one argument)
+    }
+  }
+
+  private functions: Map<IFunctionNames, IFunctionInfo> = new Map();
 
   dispose() {}
 
@@ -69,8 +72,19 @@ export class DescriptionService implements IDescriptionService, IDisposable {
     return this.functions.has(name.toLowerCase());
   }
 
-  registerDescriptions = (_functionList: IFunctionInfo[]) =>
-    ({dispose: () => {}});
+  registerDescriptions(functionList: IFunctionInfo[]) {
+    functionList.forEach(fn =>
+      this.functions.set(fn.functionName, fn)
+    );
 
-  unregisterDescriptions = (_functionNames: string[]) => {};
+    return toDisposable(() => {
+      this.unregisterDescriptions(functionList.map(fn => fn.functionName));
+    })
+  }
+
+  unregisterDescriptions(functionNames: string[]) {
+    functionNames.forEach(functionName =>
+      this.functions.delete(functionName)
+    )
+  }
 }

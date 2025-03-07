@@ -60,9 +60,7 @@ import Recalc.Engine
   )
 import Recalc.Syntax.Parser (formulaP, valueP)
 import Recalc.Syntax.Term
-import Recalc.Univer (Annotation (Annotation), UniverError (..))
-
--- import Debug.Trace (traceShowWith, traceShowM)
+import Recalc.Univer
 
 data SemanticError
   = TypeMismatch Type Type
@@ -410,12 +408,21 @@ instance Recalc (Term Infer) where
   infer = infer' []
   eval = eval' []
 
-{- prettier errors -}
+{- prettier errors & sheet-defined functions -}
 
 render :: Doc ann -> Text
 render = renderStrict . layoutPretty defaultLayoutOptions
 
-instance UniverError SemanticError where
+instance UniverRecalc (Term Infer) where
+  -- define
+  --  :: Text
+  --  -> Map CellAddr (Maybe ((String, CellType), Maybe (t, Maybe (ValueOf t, Maybe (ValueOf t)))))
+  --  -> [(Text, CellRange)]
+  --  -> CellRange
+  --  -> EnvOf t
+  --  -> Either (ErrorOf t) (EnvOf t)
+  define _name _ _ _ = Right
+
   errorAnnotation = \case
     TypeMismatch ty1 ty2 ->
       annotation

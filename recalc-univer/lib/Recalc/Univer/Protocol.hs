@@ -16,7 +16,6 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.URI
 
--- import Recalc.Engine (Isn't (..), Meta (..))
 import Recalc.Engine
 import Recalc.Server
 
@@ -29,7 +28,8 @@ data SpreadsheetProtocol mode = SpreadsheetProtocol
   , rpcRemoveSheet :: mode :- JsonRpc "removeSheet" RemoveSheetParams ()
   , rpcSetWorksheetOrder :: mode :- JsonRpc "setWorksheetOrder" SetWorksheetOrderParams ()
   , rpcSetWorksheetName :: mode :- JsonRpc "setWorksheetName" SetWorksheetNameParams ()
-  , rpcDefineFunction :: mode :- JsonRpc "defineFunction" DefineFunctionParams ()
+  , rpcDefineFunction
+      :: mode :- JsonRpc "defineFunction" DefineFunctionParams (Either Text [FunctionDescription])
   }
   deriving (Generic)
 
@@ -90,6 +90,60 @@ data DefineFunctionParams = DefineFunctionParams
   , defineFunction'description :: Text
   , defineFunction'inputs :: [(Text, CellRange)]
   , defineFunction'output :: CellRange
+  }
+  deriving (Show, Generic)
+
+-- | as defined in @\@univerjs/engine-formula#basics/function.ts@
+data FunctionType
+  = -- | Financial Functions
+    Financial
+  | -- | Date and Time Functions
+    Date
+  | -- | Math and Trigonometry Functions
+    Math
+  | -- | Statistical Functions
+    Statistical
+  | -- | Lookup and Reference Functions
+    Lookup
+  | -- | Database Functions
+    Database
+  | -- | Text Functions
+    Text
+  | -- | Logical Functions
+    Logical
+  | -- | Information Functions
+    Information
+  | -- | Engineering Functions
+    Engineering
+  | -- | Cube Functions
+    Cube
+  | -- | Compatibility Functions
+    Compatibility
+  | -- | Web Functions
+    Web
+  | -- | Array Functions
+    Array
+  | -- | Univer-specific functions
+    Univer
+  | -- | User-defined functions
+    User
+  | -- | Defined name
+    DefinedName
+  deriving (Show, Enum)
+
+data FunctionParameter = FunctionParameter
+  { parameter'name :: Text
+  , parameter'detail :: Text
+  , parameter'example :: Text
+  }
+  deriving (Show, Generic)
+
+data FunctionDescription = FunctionDescription
+  { functionDescription'name :: Text
+  , functionDescription'type :: FunctionType
+  , functionDescription'description :: Text
+  , functionDescription'abstract :: Text
+  , functionDescription'params :: [FunctionParameter]
   }
   deriving (Show, Generic)
 
@@ -193,6 +247,15 @@ instance Json.FromJSON SetWorksheetNameParams where
 
 instance Json.FromJSON DefineFunctionParams where
   parseJSON = Json.genericParseJSON aesonOptions
+
+instance Json.ToJSON FunctionType where
+  toJSON = Json.toJSON . fromEnum
+
+instance Json.ToJSON FunctionParameter where
+  toJSON = Json.genericToJSON aesonOptions
+
+instance Json.ToJSON FunctionDescription where
+  toJSON = Json.genericToJSON aesonOptions
 
 {-- Cells --}
 

@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.8.0.0 -- 2025-03-06
+## 0.9.0.0 -- 2025-03-07
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -44,3 +44,4 @@
 * Librarize the project (recalc-engine, recalc-server, recalc-univer and recalc),
   simplify many things (eg. type checking, recalculation engine, tests by adding
   `Recalc.Repl`) fix more bugs, add tests. Add hmatrix and deps.
+* Implement sheet-defined functions.
