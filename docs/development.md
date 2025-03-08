@@ -3,6 +3,8 @@
 Open a dev shell:
 
 ```bash
+git clone git@github.com:b4er/recalc.git
+cd recalc/
 nix develop
 ```
 

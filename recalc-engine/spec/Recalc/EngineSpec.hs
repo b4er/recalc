@@ -2,6 +2,14 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-|
+Module      : Recalc.EngineSpec
+Description : Tests for the recalculation engine (only single-sheet so far).
+
+Implements a simple calculator language and uses it instantiate
+the 'Recalc' interface. Use this language to validate the
+spreadsheet engine.
+-}
 module Recalc.EngineSpec where
 
 import Control.Monad (join, void)
@@ -31,7 +39,7 @@ instance IsString (Maybe String) where
 type Result = Either (FetchError Void)
 
 -- | evalSheet all inputs in sequence
-run :: [[(CellAddr, Maybe String)]] -> (Results Void Term (Maybe Int), EngineStateOf Term)
+run :: [[(CellAddr, Maybe String)]] -> (ResultsOf Term, EngineStateOf Term)
 run = foldl' alg (error "no inputs", newEngineState ())
  where
   alg (_, st) inputs = recalc @Term inputs st

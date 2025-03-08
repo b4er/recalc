@@ -1,5 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{-|
+Module      : Recalc.Syntax.ParserSpec
+Description : Tests for parsing cells using the core language.
+-}
 module Recalc.Syntax.ParserSpec where
 
 import Data.Maybe (fromJust)

@@ -13,7 +13,9 @@ nav:
   - Core Language: core.md
   - As a Library: library.md
 - Development Guide: development.md
-- GitHub: https://github.com/b4er/recalc
+- ​: \#
+- 🐟 Haddock: ./haddock
+- 🐙 GitHub: https://github.com/b4er/recalc
 
 theme:
   name: terminal
@@ -24,4 +26,4 @@ extra_css:
 extra_javascript:
 - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML
 
-markdown_extensions: [footnotes, mdx_math]
+markdown_extensions: [admonition, footnotes, mdx_math]

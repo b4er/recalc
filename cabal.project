@@ -1,8 +1,8 @@
+constraints:
+  aeson >= 2.2.0.0
+
 packages:
+  .
   recalc-engine
   recalc-server
   recalc-univer
-  .
-
-constraints:
-  aeson >= 2.2.0.0

@@ -9,6 +9,7 @@ type SheetName = Text
 
 type SheetId = (URI, SheetName)
 
+-- | row and column
 type CellAddr = (Int, Int)
 
 row, column :: CellAddr -> Int
@@ -23,6 +24,9 @@ type CellRef = (SheetId, CellAddr)
 
 -- | read an spreadsheet address of the form column-row
 -- (columns are labelled "A..Z, AA..", and rows enumerated)
+--
+-- >>> readExcel "A2"
+-- Just (1,0)
 readExcel :: Text -> Maybe CellAddr
 readExcel txt = go . (`Text.splitAt` txt) =<< alg 0 False (Text.unpack txt)
  where
@@ -44,6 +48,9 @@ readExcel txt = go . (`Text.splitAt` txt) =<< alg 0 False (Text.unpack txt)
   readExcelCol = Text.foldl' (\a c -> 26 * a + ord (toLower c) - 96) 0
 
 -- | show a zero-indexed cell address in Excel-style
+--
+-- >>> showExcel (0,4)
+-- "E1"
 showExcel26 :: CellAddr -> String
 showExcel26 (r, c) = rowStr <> show (r + 1)
  where

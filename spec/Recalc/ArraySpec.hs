@@ -1,3 +1,7 @@
+{-|
+Module      : Recalc.ArraySpec
+Description : Tests for Array operations.
+-}
 module Recalc.ArraySpec where
 
 import Control.Monad (forM_)

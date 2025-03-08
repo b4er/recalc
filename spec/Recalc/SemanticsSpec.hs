@@ -1,6 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-|
+Module      : Recalc.SemanticsSpec
+Description : Test the core language's evaluation, type checking
+              and type inference.
+-}
 module Recalc.SemanticsSpec where
 
 import Control.Monad (void)
@@ -9,7 +14,7 @@ import Data.Map qualified as Map
 import Test.Hspec (Spec, describe, it, shouldBe, shouldNotBe)
 import Test.Hspec.QuickCheck (prop)
 
-import Recalc.Engine hiding (runFetch)
+import Recalc.Engine
 import Recalc.Language
 import Recalc.Syntax.Arbitrary (Set0 (..))
 import Recalc.Syntax.Term

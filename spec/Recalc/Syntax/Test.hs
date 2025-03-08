@@ -1,3 +1,7 @@
+{-|
+Module      : Recalc.Syntax.Test
+Description : Test utility functions for testing grammars.
+-}
 module Recalc.Syntax.Test (Parser, module Recalc.Syntax.Test) where
 
 import Control.Monad.Reader (ReaderT (runReaderT))

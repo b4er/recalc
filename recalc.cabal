@@ -48,7 +48,6 @@ library
     text
 
 executable recalc-server
-  -- | Json-rpc server exectuable.
   import:         common
   hs-source-dirs: src
 

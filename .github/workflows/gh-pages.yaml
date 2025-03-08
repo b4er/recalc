@@ -30,7 +30,7 @@ jobs:
           name: recalc-cache
 
       - name: Build Haddock
-        run: nix --accept-flake-config build .#recalc-docs
+        run: nix --accept-flake-config run .#docs
 
       - name: Configure Git Credentials
         run: |
@@ -57,6 +57,4 @@ jobs:
         run: pip install mkdocs-terminal python-markdown-math
 
       - name: Deploy to GH Pages
-        run: |
-          cp -r result-doc/share/doc/recalc-*/html docs/haddock
-          mkdocs gh-deploy --force
+        run: mkdocs gh-deploy --force

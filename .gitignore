@@ -1,6 +1,6 @@
 **/.*.swp
 .venv/
 dist-newstyle/
-docs/haddock/
+docs/haddock
 result
 result-doc

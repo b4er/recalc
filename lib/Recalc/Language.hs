@@ -4,15 +4,37 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-|
+Module      : Recalc.Language
+Description : The core language implementation.
+
+Defines the values for the lambda calculus, evaluation and bi-directional type
+checking. It instantiates the classes 'Recalc' and 'UniverRecalc' such that the
+language can be used by the Univer frontend.
+
+The original implementation of the core calculus is based on
+"A Tutorial Implementation of a Dependently Typed Lambda Calculus".
+
+This extension lifts the calculus to spreadsheets and adds homogeneous tensor
+types which can be constructed using cell-references.
+
+__References:__
+  Andres Löh, Conor McBride, Wouter Swierstra.
+  [A Tutorial Implementation of a Dependently Typed Lambda Calculus](https://dl.acm.org/doi/10.5555/1883634.1883637).
+  Fundamenta Informaticae, Volume 102, Issue 2.
+-}
 module Recalc.Language
-  ( Env (..)
+  ( -- * Types
+    Env (..)
   , Term
   , Mode (Infer)
-  -- , Value
   , Type
   , SemanticError (..)
+
+    -- ** Initial Global Variables
   , prelude
-  -- for test only
+
+    -- * for test only
   , check'
   , eval'
   , infer'
@@ -62,6 +84,7 @@ import Recalc.Syntax.Parser (formulaP, valueP)
 import Recalc.Syntax.Term
 import Recalc.Univer
 
+-- | all semantic errors that can occur during type checking or evaluation
 data SemanticError
   = TypeMismatch Type Type
   | TypeMismatchPi (Term Check) Type
@@ -71,14 +94,13 @@ data SemanticError
   | IllegalApplication Type
   | IllegalArrayType [(CellAddr, Type)]
   | UnknownIdentifier Name
-  | UnknownError Text
   deriving (Eq, Show)
 
 instance Pretty Value where pretty = pretty . quote
 
 type Spreadsheet = Fetch Env SemanticError Value
 
--- | a global variable must declare its "Type" but not necessarily its "Value"
+-- | a global variable must declare its 'Type' but not necessarily its 'Value'
 data Decl = Decl
   { declType :: Type
   , declValue :: Maybe Value
@@ -86,6 +108,7 @@ data Decl = Decl
 
 type Globals = Map Name Decl
 
+-- | the environment contains just the globally bound variables
 newtype Env = Env {globals :: Globals}
 
 {- Values -}
@@ -100,15 +123,28 @@ data Neutral
 
 data VTensorDescriptor = VTensorDescriptor Value [Value]
 
+-- | terms evaluate to values. values with bound (such as 'VPi') variables in them
+-- are represented using a HOAS.
+--
+-- note that the return type is a monadic value such that those values can
+-- easily resolve types/values from other cells.
 data Value
-  = VLam !(Maybe CaseInsensitive) !(Value -> Spreadsheet Value)
-  | VSet !Int
-  | VPi !(Maybe CaseInsensitive) !Value !(Value -> Spreadsheet Value)
-  | VLit Lit
-  | VLitOf LitOf
-  | VTensor VTensorDescriptor
-  | VTensorOf VTensorDescriptor (Array Value)
-  | VNeutral !Neutral
+  = -- | lambda abstractions
+    VLam !(Maybe CaseInsensitive) !(Value -> Spreadsheet Value)
+  | -- | set of k-th order (hierarchy of types)
+    VSet !Int
+  | -- | dependent function
+    VPi !(Maybe CaseInsensitive) !Value !(Value -> Spreadsheet Value)
+  | -- | type literal
+    VLit Lit
+  | -- | value literal
+    VLitOf LitOf
+  | -- | tensor type
+    VTensor VTensorDescriptor
+  | -- | tensor value
+    VTensorOf VTensorDescriptor (Array Value)
+  | -- | stuck terms
+    VNeutral !Neutral
 
 instance Eq Value where
   (==) = (==) `on` quote
@@ -118,17 +154,21 @@ instance Show Value where
 
 type Type = Value
 
+-- | free variable
 vfree :: Name -> Value
 vfree = VNeutral . NFree
 
 infixr 9 `vfun`
 
+-- | function type constructor (no bound type)
 vfun :: Value -> Value -> Value
 vfun dom range = VPi Nothing dom (const $ pure range)
 
+-- | lambda abstraction
 vlam :: Maybe CaseInsensitive -> (Value -> Value) -> Value
 vlam vname body = VLam vname $ pure . body
 
+-- | nested lambda abstractions
 vlams :: [Text] -> ([Value] -> Value) -> Value
 vlams vars body =
   let
@@ -137,9 +177,11 @@ vlams vars body =
   in
     foldr go (body . reverse) vars []
 
+-- | dependent function
 vpi :: Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
 vpi vname dom range = VPi vname dom $ pure . range
 
+-- | nested dependent functions
 vpis :: [(Text, Value)] -> ([Value] -> Value) -> Value
 vpis doms range =
   let
@@ -148,24 +190,35 @@ vpis doms range =
   in
     foldr go (range . reverse) doms []
 
+-- | application (must be able to fail)
 vapp :: Value -> Value -> Spreadsheet Value
 vapp (VLam _n f) v = f v
 vapp (VNeutral n) v = pure (VNeutral (NApp n v))
 vapp f _ = throwSemanticError (IllegalApplication f)
 
+-- | type literals
 vbool, vint :: Type
 vbool = VLit Bool
 vint = VLit Int
 
+-- | boolean values
 vboolOf :: Bool -> Value
 vboolOf = VLitOf . BoolOf
 
+-- | integer values
 vintOf :: Int -> Value
 vintOf = VLitOf . IntOf
 
-vtensor :: Value -> [Value] -> Value
+-- | tensor type
+vtensor
+  :: Value
+  -- ^ the type of the elements
+  -> [Value]
+  -- ^ the dimensions of each component (should be non-zero, positive integers)
+  -> Value
 vtensor base = VTensor . VTensorDescriptor base
 
+-- | tensor values (see 'vtensor' for arguments)
 vtensorOf :: Value -> [Value] -> Array Value -> Value
 vtensorOf value = VTensorOf . VTensorDescriptor value
 
@@ -322,6 +375,8 @@ inferLiteral =
     BoolOf{} -> Bool
     IntOf{} -> Int
 
+-- | use this to determine the level in the type-hierarchy such
+-- that we do not need to type @type: type@
 inferUniverse' :: [Type] -> Term Check -> Spreadsheet Int
 inferUniverse' ctxt = \case
   Inf e -> do
@@ -351,11 +406,14 @@ eval' ctxt = \case
     pure $ VPi p dom' (\v -> eval' (v : ctxt) range)
   Bound i -> pure (ctxt !! i)
   Ref sheetId _ cr@(start, end)
+    -- if it's a single reference: just the value there
     | start == end -> fetchValue (sheetId, start)
     | otherwise -> do
         let addrs = cellRangeAddrs cr
+        -- evaluate the descriptor to get dimensions
         vtd@(VTensorDescriptor _ vdims) <- (`cellRangeDescriptor'` cr) <$> fetchType (sheetId, start)
-        vdims' <- evalShape vdims
+        vdims' <- evalShape vdims -- make sure they are integers
+        -- evaluate each position in the referenced range
         VTensorOf vtd . Array.fromList vdims'
           <$> concatMapM (\ca -> flattenTensor <$> fetchValue (sheetId, ca)) addrs
   Free name -> do
@@ -365,6 +423,7 @@ eval' ctxt = \case
       _ -> pure (vfree name)
   Lit lit -> pure (VLit lit)
   LitOf val -> pure (VLitOf val)
+  -- simple (should not be called)
   Tensor td -> uncurry vtensor <$> evalTensor' ctxt td
   TensorOf td arr ->
     uncurry vtensorOf <$> evalTensor' ctxt td <*> mapM (eval' ctxt) arr
@@ -394,6 +453,7 @@ flattenTensor = \case
 
 {- language semantics -}
 
+-- | instantiate the interface with the language defined above
 instance Recalc (Term Infer) where
   type EnvOf (Term Infer) = Env
   type ErrorOf (Term Infer) = SemanticError
@@ -413,6 +473,8 @@ instance Recalc (Term Infer) where
 render :: Doc ann -> Text
 render = renderStrict . layoutPretty defaultLayoutOptions
 
+-- | for error annotations and sheet-defined functions (not implemented) we need
+-- to instantiate the Univer-specific interface too:
 instance UniverRecalc (Term Infer) where
   -- define
   --  :: Text
@@ -477,12 +539,6 @@ instance UniverRecalc (Term Infer) where
         [ "Unknown identifier ‘"
         , pretty name
         , "’."
-        ]
-    UnknownError message ->
-      annotation
-        "Error"
-        [ "An unknown error occurred: "
-        , pretty message
         ]
    where
     annotation title docs = Annotation title (render (cat docs))

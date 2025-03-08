@@ -4,7 +4,13 @@ Description : Core array operations.
 
 This module provides a few core operations on multi-dimensional arrays.
 -}
-module Recalc.Array (Array, Data.Array.Dynamic.fromList, tensorContract) where
+module Recalc.Array
+  ( tensorContract
+
+    -- ** re-exports
+  , Array
+  , Data.Array.Dynamic.fromList
+  ) where
 
 import Data.Array.Convert (convert)
 import Data.Array.Dynamic (Array, fromList)

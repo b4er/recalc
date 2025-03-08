@@ -2,9 +2,9 @@
 
 The frontend is implemented as a standard [Web Extension][web-extension]:
 
-The Extension automatically starts whenever a `*.rc` file is opened, it starts a backend
-process (see `recalc-vscode.serverUri` configuration in configuration manifest) and
-establishes a communication channel.
+The Extension automatically starts whenever an `*.rc` file is opened, it starts
+a backend process (see `recalc-vscode.serverUri` configuration in configuration
+manifest) and establishes a communication channel.
 
 Each URI gets an associated Webview which is able to send URI-tagged messages to the
 backend, the entry-point for the frontend starts a Spreadsheet UI using the

@@ -5,13 +5,73 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Recalc.Engine (module Recalc.Engine, module Recalc.Engine.Core) where
+{-|
+Module      : Recalc.Engine
+Description : The recalculation engine for generic spreadsheet languages.
+
+The evaluation strategy is inspired by the paper "Build systems à la carte",
+it maintains a 'DocumentStore' that tracks types, values and meta data (dummied
+out for now) for all cells, and a dependency graph of the cells for checking
+which cells are dirty (need to be recomputed).
+
+__References:__
+  Andrey Mokhov, Neil Mitchell and Simon Peyton Jones.
+  [Build Systems à la Carte](https://dl.acm.org/doi/10.1145/3236774).
+  Proceedings of the ACM on Programming Languages, Volume 2, Issue ICFP.
+-}
+module Recalc.Engine
+  ( -- * Engine Operations
+    Inputs
+  , CycleOf
+  , ResultsOf
+  , recalc
+  , recalcAll
+  , parseTerm
+
+    -- * Spreadsheet Language Interface
+  , Recalc (..)
+
+    -- ** Fetch Monad
+  , Fetch
+  , FetchOf
+  , FetchError (..)
+
+    -- *** Actions
+  , fetchType
+  , fetchValue
+  , throwSemanticError
+
+    -- *** Run Action (for debugging purposes)
+  , runFetchWith
+
+    -- * Engine State
+  , EngineStateOf
+  , newEngineState
+  , engineEnv
+  , engineDocs
+
+    -- ** State Updates
+  , mapEnv
+  , mapDocs
+  , deleteSheetId
+
+    -- ** Types
+  , DocumentStoreOf
+  , Document (..)
+  , SheetOf
+  , Cell (..)
+  , CellType (..)
+  , Meta (..)
+
+    -- ** re-export core definitions
+  , module Recalc.Engine.Core
+  ) where
 
 import Build.Rebuilder (dirtyBitRebuilder)
+import Build.Scheduler (Chain, restarting)
 import Build.Store (Store, getInfo, getValue, initialise)
 import Build.Task (Task, Tasks)
 
-import Build.Scheduler (Chain, restarting)
 import Control.Monad ((<=<))
 import Control.Monad.Except
   ( Except
@@ -43,20 +103,34 @@ import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
 
 {- Interface -}
+
+-- | The spreadsheet language interface. An instantiation of it can be used
+-- to declare the semantics of the provided language in a spreadsheet environment.
 class (Pretty t, Pretty (ValueOf t)) => Recalc t where
+  -- | a custom environment (e.g. to bind global variables)
   type EnvOf t
+
+  -- | a custom error type (errors during type inference, or evaluation)
   type ErrorOf t
+
+  -- | the value @t@ evaluates to (values are types!)
   type ValueOf t
 
+  -- | the language may differentiate between cells parsed as formula and value
   parseCell :: CellType -> ReaderT SheetId (Parsec Void String) t
 
+  -- | specify how to compute the cell references a term depends on
   depsOf :: t -> Set CellRangeRef
 
-  infer :: t -> Fetch (EnvOf t) (ErrorOf t) (ValueOf t) (ValueOf t)
-  eval :: t -> Fetch (EnvOf t) (ErrorOf t) (ValueOf t) (ValueOf t)
+  -- | specify how a term's type is inferred
+  infer :: t -> FetchOf t (ValueOf t)
+
+  -- | specify how a term is evaluated
+  eval :: t -> FetchOf t (ValueOf t)
 
 {- Engine -}
 
+-- | The kind of information we are fetching
 data Kind = Type | Value deriving (Eq, Ord, Show)
 
 -- | The spreadsheet engine can be queried for re-evaluation of
@@ -64,6 +138,7 @@ data Kind = Type | Value deriving (Eq, Ord, Show)
 data Ix = CellIx Kind CellRef | VolatileIx
   deriving (Eq, Ord, Show)
 
+-- assume megaparsec for now
 type ParseError = ParseErrorBundle String Void
 
 -- | Evaluation of cells can always fail due to invalid formulas or refs
@@ -73,10 +148,12 @@ data FetchError err
   | SemanticError err
   deriving (Eq, Show)
 
+-- | fail with a user-defined error
 throwSemanticError :: err -> Fetch env err v a
 throwSemanticError = throwError . SemanticError
 
--- | Fetch callbacks can fail and have access to other cells + environment
+-- | Fetch callbacks can fail (using 'MonadError') and have access to other
+-- cells (see 'fetchType', 'fetchValue'), and the custom context (using 'MonadReader')
 newtype Fetch env err v a
   = Fetch
       ( forall f
@@ -85,17 +162,25 @@ newtype Fetch env err v a
       )
   deriving (Functor)
 
+type FetchOf t a = Fetch (EnvOf t) (ErrorOf t) (ValueOf t) a
+
 fetch :: Ix -> Fetch env err v v
 fetch ix = Fetch $ lift . ($ ix) =<< asks fst
 
-fetchValue, fetchType :: CellRef -> Fetch env err v v
+-- | fetch the value stored at a cell reference
+fetchValue :: CellRef -> Fetch env err v v
 fetchValue = fetch . CellIx Value
+
+-- | fetch the type of the value at a cell reference
+fetchType :: CellRef -> Fetch env err v v
 fetchType = fetch . CellIx Type
 
 runFetchWith
   :: env
   -> (Kind -> CellRef -> Except (FetchError err) v)
+  -- ^ callback that returns a value/type (depending on its kind)
   -> Fetch env err v a
+  -- ^ a fetch task to run
   -> Either (FetchError err) a
 runFetchWith env f (Fetch v) = runExcept . runReaderT v . (,env) $ \case
   CellIx k ref -> f k ref
@@ -122,9 +207,14 @@ instance MonadReader env (Fetch env err v) where
 
 type DocumentStore err t v = Map URI (Document err t v)
 
+type DocumentStoreOf t = DocumentStore (ErrorOf t) t (ValueOf t)
+
+-- a univer document
 data Document err t v = Document
   { sheetOrder :: ![Text]
-  , sheets :: !(Map Text (Sheet err t v))
+  -- ^ sheets may be re-ordered (visually)
+  , sheets :: !(Map SheetName (Sheet err t v))
+  -- ^ store of sheets by their name
   }
 
 instance (Show err, Pretty t, Pretty v) => Show (Document err t v) where
@@ -140,19 +230,30 @@ instance (Show err, Pretty t, Pretty v) => Show (Document err t v) where
     showKeys = Map.map (Map.mapKeys showExcel26)
 
 type Sheet err t v = Map CellAddr (Cell err t v)
+type SheetOf t = Sheet (ErrorOf t) t (ValueOf t)
 
 type Parsed = Either ParseError
 
 data Meta = Meta deriving (Show)
 
-data CellType = CellFormula | CellValue deriving (Show)
+data CellType
+  = -- | cell formulas (starting with @=@)
+    CellFormula
+  | -- | regular values
+    CellValue
+  deriving (Show)
 
 data Cell err t v = Cell
   { cell :: !(Maybe ((String, CellType), Maybe (t, Maybe (v, Maybe v))))
-  -- ^ a cell maybe only meta data. when it has a term, it can have a type etc.
+  -- ^ a cell maybe only meta data. when it has a term (and therefore the input
+  -- and celltype are available), it can have a type. if it has a type, it can
+  -- have a value.
   , cellDeps :: !(Set CellRangeRef)
+  -- ^ dependencies of the cell
   , cellError :: !(Maybe (FetchError err))
+  -- ^ when the cell encounters an error (during inference or evaluation)
   , cellMeta :: !Meta
+  -- ^ meta data (currently useless, should include style info like it once did)
   }
 
 instance (Show err, Pretty t, Pretty v) => Show (Cell err t v) where
@@ -254,7 +355,7 @@ lookupCellError ref ds = cellError =<< lookupCell ref ds
 
 data EngineState env err t v = EngineState
   { engineEnv :: !env
-  , engineChain :: !(Chain Ix)
+  , _engineChain :: !(Chain Ix)
   , engineDocs :: !(DocumentStore err t v)
   , engineDeps :: !(Slow CellRef)
   }
@@ -267,33 +368,43 @@ instance (Show err, Pretty t, Pretty v) => Show (EngineState env err t v) where
     -- make sure URIs show with quotes
     showKeys = Map.mapKeys show
 
+-- | create a new engine state. the engine state is completely empty, no handles on
+-- any documents.
 newEngineState :: env -> EngineState env err t v
 newEngineState env = EngineState env [] mempty Deps.empty
 
+-- | modify the custom environment
 mapEnv :: (env -> env) -> EngineState env err t v -> EngineState env err t v
 mapEnv f st = st{engineEnv = f (engineEnv st)}
 
+-- | modify the document store
 mapDocs
   :: (DocumentStore err t v -> DocumentStore err t v)
   -> EngineState env err t v
   -> EngineState env err t v
 mapDocs f st = st{engineDocs = f (engineDocs st)}
 
+-- | delete a whole sheet by its id from the dependency graph (useful when renaming a sheet)
 deleteSheetId :: SheetId -> EngineState env err t v -> EngineState env err t v
 deleteSheetId sheetId st = st{engineDeps = Deps.deleteSheetId sheetId (engineDeps st)}
 
+-- | inputs are given by the location, maybe an input (and its type), and meta data
 type Inputs = [(CellRef, (Maybe (String, CellType), Meta))]
 
-type Cycle err t v = [(CellRef, Cell err t v)]
-type Results err t v = [(CellRef, Cell err t v)]
+-- | when there is a dependency cycle, the cycle's locations are returned
+-- together with the data stored there
+type CycleOf t = [(CellRef, Cell (ErrorOf t) t (ValueOf t))]
 
+-- | the results are locations and the data stored there
+type ResultsOf t = [(CellRef, Cell (ErrorOf t) t (ValueOf t))]
+
+-- | recalculate the whole sheet (marking everything as dirty),
+-- or return the cycle if there is a dependency cycle.
 recalcAll
   :: forall t
    . Recalc t
   => EngineStateOf t
-  -> ( Either (Cycle (ErrorOf t) t (ValueOf t)) (Results (ErrorOf t) t (ValueOf t))
-     , EngineStateOf t
-     )
+  -> (Either (CycleOf t) (ResultsOf t), EngineStateOf t)
 recalcAll es@EngineState{engineDocs} =
   foldl' (\(_, st) input -> recalc [input] st) (Right [], es) inputs
  where
@@ -309,14 +420,14 @@ recalcAll es@EngineState{engineDocs} =
     , (ca, Cell{cell = Just ((s, ct), _)}) <- Map.toList sheetMap
     ]
 
+-- | recalculate the inputs and everything that depends on those (transitively),
+-- or return the cycle if there is a dependency cycle.
 recalc
   :: forall t
    . Recalc t
   => Inputs
   -> EngineStateOf t
-  -> ( Either (Cycle (ErrorOf t) t (ValueOf t)) (Results (ErrorOf t) t (ValueOf t))
-     , EngineStateOf t
-     )
+  -> (Either (CycleOf t) (ResultsOf t), EngineStateOf t)
 recalc inputs (EngineState env chain docs deps) =
   let
     validatedInputs :: [(CellRef, Maybe ((String, CellType), Parsed t), Meta)]
@@ -414,7 +525,7 @@ recalc'
    . Recalc t
   => [CellRef]
   -> EngineStateOf t
-  -> (Results (ErrorOf t) t (ValueOf t), EngineStateOf t)
+  -> (ResultsOf t, EngineStateOf t)
 recalc' dirty (EngineState env chain docs deps) =
   let
     spreadsheets :: Spreadsheets (Either (FetchError (ErrorOf t)) (ValueOf t))
@@ -501,6 +612,7 @@ dfs ds = fmap concat . mapM (alg mempty)
         concat <$> mapM (alg (x : acc, Set.insert x visited)) (ds x)
     | otherwise = Right (x : acc)
 
+-- | parse a cell (depends on the cell's location) returns formula or value (both as term)
 parseTerm :: Recalc t => CellRef -> (String, CellType) -> Parsed t
 parseTerm (sheetId@(uri, sheetName), ca) (str, ct) = parse (runReaderT (parseCell ct) sheetId <* eof) locStr str
  where

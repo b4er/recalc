@@ -18,3 +18,21 @@
   height: 0;
   visibility: hidden;
 }
+
+.admonition{
+  padding: 15px 20px;
+  width: 95%;
+  padding-bottom: 0 !important;
+  margin-bottom: 20px;
+  border: 1px solid black;
+  border-radius: 8px;
+  box-shadow: 2px 2px 2px #8B8000;
+  color: #222222;
+}
+
+.admonition-title {
+  font-weight: bold;
+  padding: 10px 20px;
+  margin: -15px 0 0 -20px;
+  border-radius: 8px 8px 0 0;
+}

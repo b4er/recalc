@@ -4,6 +4,18 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-|
+Module      : Recalc.Univer
+Description : Type class and generic language server implementation (backend for a Univer frontend).
+
+This module defines the interface "UniverRecalc" for which 'univerMain' is defined:
+
+@
+univerMain @Term (env0 :: EnvOf Term) :: IO ()
+@
+
+which will run a spreadsheet language server serving a Univer frontend.
+-}
 module Recalc.Univer
   ( Annotation (..)
   , FunctionDescription (..)
@@ -22,7 +34,8 @@ import Data.Monoid (Endo (Endo, appEndo))
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.URI (URI)
-import Prettyprinter (Pretty)
+import Prettyprinter (Pretty, defaultLayoutOptions, layoutPretty, pretty)
+import Prettyprinter.Render.Text (renderStrict)
 import Text.Megaparsec (errorBundlePretty)
 
 import Recalc.Engine
@@ -66,14 +79,14 @@ univerMain env = runHandler @SheetsApi (newEngineState env) $ \st ->
       }
 
 modifyDocs
-  :: (DocumentStore err t v -> DocumentStore err t v) -> Handler (EngineState env err t v) ()
+  :: (DocumentStoreOf t -> DocumentStoreOf t) -> Handler (EngineStateOf t) ()
 modifyDocs = liftEngine . modify . mapDocs
 
 modifyDocument
   :: URI
   -> ([Text] -> [Text])
-  -> (Map Text (Sheet err t v) -> Map Text (Sheet err t v))
-  -> Handler (EngineState env err t v) ()
+  -> (Map Text (SheetOf t) -> Map Text (SheetOf t))
+  -> Handler (EngineStateOf t) ()
 modifyDocument uri f g =
   modifyDocs
     $ Map.update
@@ -82,7 +95,7 @@ modifyDocument uri f g =
 
 {- JSON-RPC Handlers -}
 
-rpcOpen :: OpenParams -> Handler (EngineState env err t v) ()
+rpcOpen :: OpenParams -> Handler (EngineStateOf t) ()
 rpcOpen OpenParams{open'uri = uri, open'sheetOrder = sheetOrder} = do
   -- insert the document at uri & initialise each sheet
   let
@@ -91,10 +104,10 @@ rpcOpen OpenParams{open'uri = uri, open'sheetOrder = sheetOrder} = do
         $ appEndo (foldMap (Endo . (`Map.insert` mempty)) sheetOrder) mempty
   modifyDocs insertDocAndSheets
 
-rpcSave :: (Show err, Pretty t, Pretty v) => SaveParams -> Handler (EngineState env err t v) ()
+rpcSave :: (Recalc t, Show (ErrorOf t)) => SaveParams -> Handler (EngineStateOf t) ()
 rpcSave _ = dumpEngineState >> fail "'save' not implemented"
 
-rpcClose :: CloseParams -> Handler (EngineState env err t v) ()
+rpcClose :: CloseParams -> Handler (EngineStateOf t) ()
 rpcClose _ = fail "'close' not implemented"
 
 rpcSetRangeValues
@@ -113,21 +126,21 @@ rpcSetRangeValues SetRangeValuesParams{setRangeValues'cells = Cells rcMap, ..} =
 
   pure (Cells mempty)
 
-rpcInsertSheet :: InsertSheetParams -> Handler (EngineState env err t v) ()
+rpcInsertSheet :: InsertSheetParams -> Handler (EngineStateOf t) ()
 rpcInsertSheet InsertSheetParams{..} =
   modifyDocument
     insertSheet'uri
     (insertAt insertSheet'index insertSheet'sheetName)
     (Map.insert insertSheet'sheetName mempty)
 
-rpcRemoveSheet :: RemoveSheetParams -> Handler (EngineState env err t v) ()
+rpcRemoveSheet :: RemoveSheetParams -> Handler (EngineStateOf t) ()
 rpcRemoveSheet RemoveSheetParams{..} =
   modifyDocument
     removeSheet'uri
     (filter (/= removeSheet'sheetName))
     (Map.delete removeSheet'sheetName)
 
-rpcSetWorksheetOrder :: SetWorksheetOrderParams -> Handler (EngineState env err t v) ()
+rpcSetWorksheetOrder :: SetWorksheetOrderParams -> Handler (EngineStateOf t) ()
 rpcSetWorksheetOrder SetWorksheetOrderParams{..} =
   modifyDocument
     setWorksheetOrder'uri
@@ -178,7 +191,7 @@ rpcDefineFunction DefineFunctionParams{..}
                 Annotation _ msg = errorAnnotation @t err
               in
                 (Left $ "Cannot save function '" <> defineFunction'sheetName <> "': " <> msg, st)
-            Right env' -> (Right [functionDescription], st{engineEnv = env'})
+            Right env' -> (Right [functionDescription], mapEnv (const env') st)
   -- overlapping input(s) with output
   | otherwise =
       pure . Left
@@ -215,6 +228,9 @@ sendResult = sendIO . JsonRpcNotification "setRangeValues" . map (second packCel
 
 showt :: Show a => a -> Text
 showt = Text.pack . show
+
+renderPretty :: Pretty a => a -> Text
+renderPretty = renderStrict . layoutPretty defaultLayoutOptions . pretty
 
 packCell :: forall t. UniverRecalc t => Cell (ErrorOf t) t (ValueOf t) -> CellData
 packCell Cell{..} =

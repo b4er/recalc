@@ -1,5 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{-|
+Module      : Recalc.Syntax.FixitySpec
+Description : Tests for the precedence parsing and pretty-printing utility.
+-}
 module Recalc.Syntax.FixitySpec where
 
 import Control.Monad (void, when, zipWithM_)

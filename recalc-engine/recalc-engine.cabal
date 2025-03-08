@@ -42,23 +42,23 @@ library
     text
 
 test-suite recalc-engine-spec
-    import:             common
+  import:             common
 
-    type:               exitcode-stdio-1.0
-    hs-source-dirs:     spec
-    main-is:            Spec.hs
-    build-tool-depends: hspec-discover:hspec-discover == 2.*
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     spec
+  main-is:            Spec.hs
+  build-tool-depends: hspec-discover:hspec-discover == 2.*
 
-    other-modules:
-      Recalc.EngineSpec
+  other-modules:
+    Recalc.EngineSpec
 
-    build-depends:
-      base,
-      containers,
-      hspec >= 2.7,
-      megaparsec,
-      mtl,
-      network-uri,
-      prettyprinter,
-      recalc-engine,
-      text
+  build-depends:
+    base,
+    containers,
+    hspec >= 2.7,
+    megaparsec,
+    mtl,
+    network-uri,
+    prettyprinter,
+    recalc-engine,
+    text

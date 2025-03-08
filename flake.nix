@@ -22,43 +22,14 @@
         };
 
         # Derivations:
-        setHaddockFlags = drv: pkgs.haskell.lib.overrideCabal drv {
-          haddockFlags = [
-            "--all"
-            # "--show-all"
-            # "--html-location='https://hackage.haskell.org/package/$pkg-$version/docs'"
-            "--hyperlink-source"
-          ];
-        };
 
-        dynamic = setHaddockFlags (pkgs.hsPackages.callCabal2nix "recalc" ./. { });
+        dynamic = pkgs.hsPackages.callCabal2nix "recalc" ./. { };
 
         static = (pkgs.pkgsStatic.hsPackages.extend (_: hprev: {
           # for static builds: disable the ts-defs since they rely on TH and it does not play nice
           recalc-univer = pkgs.haskell.lib.enableCabalFlag hprev.recalc-univer "disable-exe";
         })).callCabal2nix "recalc" ./.
           { };
-
-        docs = pkgs.stdenv.mkDerivation {
-          name = "recalc-docs";
-          src = ./.;
-
-          installPhase = ''
-            mkdir $out/
-
-            # copy all packages' haddock
-
-            cp -r ${(setHaddockFlags pkgs.hsPackages.recalc-engine).doc}/share/doc/. $out/
-            cp -r ${(setHaddockFlags pkgs.hsPackages.recalc-server).doc}/share/doc/. $out/
-            cp -r ${(setHaddockFlags pkgs.hsPackages.recalc-univer).doc}/share/doc/. $out/
-            cp -r ${dynamic.doc}/share/doc/. $out/
-
-            # rewrite the links file:///nix/store/.. to hackage
-            for file in $(grep -f '*.html' -rl 'https://hackage.haskell.org/package/recalc' $out/); do
-              sed -i 's|https://hackage.haskell.org/package/recalc|recalc|g' "$file"
-            done
-          '';
-        };
 
         ## read manifest file for extension
         manifest = builtins.fromJSON (builtins.readFile ./recalc-vscode/package.json);
@@ -97,6 +68,18 @@
       in
       {
         apps = {
+          docs = {
+            type = "app";
+            program = "${pkgs.writeShellScript "publish" ''
+              ${pkgs.hsPackages.cabal-install}/bin/cabal haddock-project \
+                --hackage --test --output=docs/haddock
+
+              # rewrite the links to hackage for recalc* Haddock
+              for file in $(grep -rl 'https://hackage.haskell.org/package/recalc' docs/haddock); do
+                sed -i 's|https://hackage.haskell.org/package/\(recalc[^/]*\)-[0-9\.]*/docs|../\1|g' "$file"
+              done
+            ''}";
+          };
           publish = {
             type = "app";
             program = "${pkgs.writeShellScript "publish" ''
@@ -109,7 +92,6 @@
 
         packages = {
           recalc = mkVscodeExtension dynamic;
-          recalc-docs = docs;
           recalc-static = mkVscodeExtension static;
 
           default = self.packages.${system}.recalc;

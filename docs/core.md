@@ -1,10 +1,8 @@
 # Core Language (modulo changes, new features and bugs)
 
-The provided core language (see [`Recalc.Semantics`][recalc-semantics])
+The provided core language (see [`Recalc.Language`][recalc-language])
 implements a simple, dependently typed functional programming language
 based on LambdaPi[^1], which is extended by cell references.
-
-It is work-in-progress and aims to implement the following:
 
 ## Syntax
 
@@ -164,12 +162,14 @@ The new rules become:
 
 ---
 
-Thus references to cell ranges behave nested arrays with dependently typed
+Thus references to cell ranges behave as nested arrays with dependently typed
 sizes:
 
 ![function-ref](./gifs/cell-refs.gif)
 
+<!-- !!! warning "⚠️ There may be constructs implemented that are not documented here" -->
+
 <!-- Footnotes & References -->
   [^1]: Andres Löh, Conor McBride, Wouter Swierstra. [_A Tutorial Implementation of a Dependently Typed Lambda Calculus_](https://dl.acm.org/doi/10.5555/1883634.1883637).
 
-  [recalc-semantics]: ./haddock/Recalc-Semantics.html
+  [recalc-language]: ./haddock/recalc/recalc-spec/Recalc-Language.html
