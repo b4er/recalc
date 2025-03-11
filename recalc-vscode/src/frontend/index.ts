@@ -18,10 +18,10 @@ import { UniverSheetsPlugin } from "@univerjs/sheets";
 import { AddRangeProtectionFromToolbarCommand, UniverSheetsUIPlugin } from "@univerjs/sheets-ui";
 
 import { UniverSheetsFormulaUIPlugin } from "@univerjs/sheets-formula-ui";
+import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula";
 
 import { locales } from './locales';
 import { RecalcPlugin } from "./plugin";
-import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula";
 
 // create a new Univer instance and set locales
 const univer = new Univer({

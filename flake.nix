@@ -71,6 +71,7 @@
           docs = {
             type = "app";
             program = "${pkgs.writeShellScript "publish" ''
+              ${pkgs.hsPackages.cabal-install}/bin/cabal update
               ${pkgs.hsPackages.cabal-install}/bin/cabal haddock-project \
                 --hackage --test --output=docs/haddock
 
