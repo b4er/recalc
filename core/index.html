@@ -130,10 +130,26 @@
                 
                 
                 <li property="itemListElement" typeof="ListItem">
-                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
-                        <span property="name">GitHub</span>
+                    <a href="/#" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">​</span>
                     </a>
                     <meta property="position" content="4">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../haddock" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐟 Haddock</span>
+                    </a>
+                    <meta property="position" content="5">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐙 GitHub</span>
+                    </a>
+                    <meta property="position" content="6">
                 </li>
                 
                     
@@ -144,7 +160,7 @@
     <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
         <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
     </a>
-    <meta property="position" content="5">
+    <meta property="position" content="7">
 </li>
                     
             </ul>
@@ -374,7 +390,45 @@
         
             <a class="
 
-    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">GitHub</a>
+    terminal-mkdocs-side-nav-item" href="/#">​</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../haddock">🐟 Haddock</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">🐙 GitHub</a>
         
     
     
@@ -394,10 +448,9 @@
             <main id="terminal-mkdocs-main-content">
 <section id="mkdocs-terminal-content">
     <h1 id="core-language-modulo-changes-new-features-and-bugs">Core Language (modulo changes, new features and bugs)</h1>
-<p>The provided core language (see <a href="../haddock/Recalc-Semantics.html"><code>Recalc.Semantics</code></a>)
+<p>The provided core language (see <a href="../haddock/recalc/recalc-spec/Recalc-Language.html"><code>Recalc.Language</code></a>)
 implements a simple, dependently typed functional programming language
 based on LambdaPi<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>, which is extended by cell references.</p>
-<p>It is work-in-progress and aims to implement the following:</p>
 <h2 id="syntax">Syntax</h2>
 <p>Cell references and ranges are similar to Excel:</p>
 <p>
@@ -544,9 +597,11 @@ earlier and extends existing rules accordingly.</p>
 </p>
 <p>(where <script type="math/tex">\text{..}\_</script> flattens a tensor value and acts as an identity otherwise)</p>
 <hr />
-<p>Thus references to cell ranges behave nested arrays with dependently typed
+<p>Thus references to cell ranges behave as nested arrays with dependently typed
 sizes:</p>
 <p><img alt="function-ref" src="../gifs/cell-refs.gif" /></p>
+<!-- !!! warning "⚠️ There may be constructs implemented that are not documented here" -->
+
 <!-- Footnotes & References -->
 <div class="footnote">
 <hr />

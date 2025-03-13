@@ -1,0 +1,878 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="annot"><span class="hs-comment">{-|
+Module      : Recalc.Syntax.ParserSpec
+Description : Tests for parsing cells using the core language.
+-}</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Recalc.Syntax.ParserSpec</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromJust</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.URI</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">URI</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">parseURI</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Pretty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">pretty</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">defaultLayoutOptions</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">layoutPretty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter.Render.String</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">renderString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.Hspec</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Expectation</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Spec</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">describe</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">it</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shouldBe</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Recalc.Engine</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">CellAddr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">CellRange</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SheetId</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Arbitrary.html"><span class="hs-identifier">Recalc.Syntax.Arbitrary</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html"><span class="hs-identifier">Recalc.Syntax.Parser</span></a></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html"><span class="hs-identifier">Recalc.Syntax.Term</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Test.html"><span class="hs-identifier">Recalc.Syntax.Test</span></a></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Test</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="annot"><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-type">readURI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">URI</span></span><span>
+</span><span id="line-22"></span><span id="readURI"><span class="annot"><span class="annottext">readURI :: String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var hs-var">readURI</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe URI -&gt; URI
+forall a. HasCallStack =&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromJust</span></span><span> </span><span class="annot"><span class="annottext">(Maybe URI -&gt; URI) -&gt; (String -&gt; Maybe URI) -&gt; String -&gt; URI
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe URI
+</span><span class="hs-identifier hs-var">parseURI</span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="annot"><a href="Recalc.Syntax.ParserSpec.html#sheetId"><span class="hs-identifier hs-type">sheetId</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SheetId</span></span><span>
+</span><span id="line-25"></span><span id="sheetId"><span class="annot"><span class="annottext">sheetId :: SheetId
+</span><a href="Recalc.Syntax.ParserSpec.html#sheetId"><span class="hs-identifier hs-var hs-var">sheetId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">URI
+</span><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-var">uri</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;Sheet1&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="annot"><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-type">uri</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">URI</span></span><span>
+</span><span id="line-28"></span><span id="uri"><span class="annot"><span class="annottext">uri :: URI
+</span><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-var hs-var">uri</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://ParserSpec.rc&quot;</span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-type">point</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CellAddr</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CellRange</span></span><span>
+</span><span id="line-31"></span><span id="point"><span class="annot"><span class="annottext">point :: CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var hs-var">point</span></a></span></span><span> </span><span id="local-6989586621679126258"><span class="annot"><span class="annottext">CellAddr
+</span><a href="#local-6989586621679126258"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr
+</span><a href="#local-6989586621679126258"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">CellAddr
+</span><a href="#local-6989586621679126258"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Recalc.Syntax.ParserSpec.html#spec"><span class="hs-identifier hs-type">spec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Spec</span></span><span>
+</span><span id="line-34"></span><span id="spec"><span class="annot"><span class="annottext">spec :: Spec
+</span><a href="Recalc.Syntax.ParserSpec.html#spec"><span class="hs-identifier hs-var hs-var">spec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">let</span><span>
+</span><span id="line-36"></span><span>    </span><span id="local-6989586621679125900"><span class="annot"><a href="#local-6989586621679126260"><span class="hs-identifier hs-type">parseTest</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679125900"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679125900"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125900"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125900"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Expectation</span></span></span><span>
+</span><span id="line-37"></span><span>    </span><span id="local-6989586621679126260"><span class="annot"><span class="annottext">parseTest :: forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var hs-var">parseTest</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+forall a.
+(Eq a, Show a) =&gt;
+SheetId -&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="Recalc.Syntax.Test.html#parseTest"><span class="hs-identifier hs-var">Test.parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="Recalc.Syntax.ParserSpec.html#sheetId"><span class="hs-identifier hs-var">sheetId</span></a></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span>    </span><span id="local-6989586621679125904"><span class="annot"><a href="#local-6989586621679126266"><span class="hs-identifier hs-type">failTest</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679125904"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125904"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Expectation</span></span></span><span>
+</span><span id="line-40"></span><span>    </span><span id="local-6989586621679126266"><span class="annot"><span class="annottext">failTest :: forall a. Show a =&gt; Parser a -&gt; String -&gt; IO ()
+</span><a href="#local-6989586621679126266"><span class="hs-identifier hs-var hs-var">failTest</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; Parser a -&gt; String -&gt; IO ()
+forall a. Show a =&gt; SheetId -&gt; Parser a -&gt; String -&gt; IO ()
+</span><a href="Recalc.Syntax.Test.html#failTest"><span class="hs-identifier hs-var">Test.failTest</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="Recalc.Syntax.ParserSpec.html#sheetId"><span class="hs-identifier hs-var">sheetId</span></a></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;decimal&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; (IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;passes examples&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>    </span><span class="annot"><span class="annottext">Parser Int -&gt; String -&gt; Int -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Recalc.Syntax.Parser.html#decimal"><span class="hs-identifier hs-var">decimal</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;0&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-44"></span><span>    </span><span class="annot"><span class="annottext">Parser Int -&gt; String -&gt; Int -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Recalc.Syntax.Parser.html#decimal"><span class="hs-identifier hs-var">decimal</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;-1&quot;</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="annottext">Parser Int -&gt; String -&gt; Int -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Recalc.Syntax.Parser.html#decimal"><span class="hs-identifier hs-var">decimal</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;1&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">Parser Int -&gt; String -&gt; Int -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Recalc.Syntax.Parser.html#decimal"><span class="hs-identifier hs-var">decimal</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;42 &quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">42</span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;parens&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; (IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;passes simple examples&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-49"></span><span>    </span><span class="annot"><span class="annottext">Parser Int -&gt; String -&gt; Int -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Parser Int -&gt; Parser Int
+forall a. Parser a -&gt; Parser a
+</span><a href="Recalc.Syntax.Parser.html#parens"><span class="hs-identifier hs-var">parens</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Recalc.Syntax.Parser.html#decimal"><span class="hs-identifier hs-var">decimal</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;(1)&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-50"></span><span>    </span><span class="annot"><span class="annottext">Parser Int -&gt; String -&gt; IO ()
+forall a. Show a =&gt; Parser a -&gt; String -&gt; IO ()
+</span><a href="#local-6989586621679126266"><span class="hs-identifier hs-var">failTest</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Parser Int -&gt; Parser Int
+forall a. Parser a -&gt; Parser a
+</span><a href="Recalc.Syntax.Parser.html#parens"><span class="hs-identifier hs-var">parens</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Recalc.Syntax.Parser.html#decimal"><span class="hs-identifier hs-var">decimal</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;(1&quot;</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;readExcel&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; (IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;passes some examples&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-53"></span><span>    </span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CellAddr
+</span><span class="hs-identifier hs-var">readExcel</span></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;A0&quot;</span></span><span> </span><span class="annot"><span class="annottext">Maybe CellAddr -&gt; Maybe CellAddr -&gt; IO ()
+forall a. (HasCallStack, Show a, Eq a) =&gt; a -&gt; a -&gt; IO ()
+</span><span class="hs-operator hs-var">`shouldBe`</span></span><span> </span><span class="annot"><span class="annottext">Maybe CellAddr
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-54"></span><span>    </span><span class="annot"><span class="annottext">((SheetName, CellAddr) -&gt; IO ())
+-&gt; [(SheetName, CellAddr)] -&gt; IO ()
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; [a] -&gt; m
+forall (t :: * -&gt; *) m a.
+(Foldable t, Monoid m) =&gt;
+(a -&gt; m) -&gt; t a -&gt; m
+</span><span class="hs-identifier hs-var">foldMap</span></span><span>
+</span><span id="line-55"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679126274"><span class="annot"><span class="annottext">SheetName
+</span><a href="#local-6989586621679126274"><span class="hs-identifier hs-var">input</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126275"><span class="annot"><span class="annottext">CellAddr
+</span><a href="#local-6989586621679126275"><span class="hs-identifier hs-var">expected</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CellAddr
+</span><span class="hs-identifier hs-var">readExcel</span></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><a href="#local-6989586621679126274"><span class="hs-identifier hs-var">input</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CellAddr -&gt; Maybe CellAddr -&gt; IO ()
+forall a. (HasCallStack, Show a, Eq a) =&gt; a -&gt; a -&gt; IO ()
+</span><span class="hs-operator hs-var">`shouldBe`</span></span><span> </span><span class="annot"><span class="annottext">CellAddr -&gt; Maybe CellAddr
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">CellAddr
+</span><a href="#local-6989586621679126275"><span class="hs-identifier hs-var">expected</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;A1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;A2&quot;</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;Z53&quot;</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">52</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">25</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;AA1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">26</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cellReferenceOrFree&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; Spec -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-59"></span><span>    </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;passes some examples&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; SpecWith (Arg (IO ())))
+-&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-60"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;BOOL&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lit -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Lit"><span class="hs-identifier hs-var">Lit</span></a></span><span> </span><span class="annot"><span class="annottext">Lit
+</span><a href="Recalc.Syntax.Term.html#Bool"><span class="hs-identifier hs-var">Bool</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;bool&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lit -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Lit"><span class="hs-identifier hs-var">Lit</span></a></span><span> </span><span class="annot"><span class="annottext">Lit
+</span><a href="Recalc.Syntax.Term.html#Bool"><span class="hs-identifier hs-var">Bool</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Boolean&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;boolean&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;boolean&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;boolean&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;A1&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="Recalc.Syntax.ParserSpec.html#sheetId"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#Unspecified"><span class="hs-identifier hs-var">Unspecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Bool!A1&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">URI
+</span><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-var">uri</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;Bool&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Bool!A10&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">URI
+</span><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-var">uri</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;Bool&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; IO ()
+forall a. Show a =&gt; Parser a -&gt; String -&gt; IO ()
+</span><a href="#local-6989586621679126266"><span class="hs-identifier hs-var">failTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;[dir/file.ending]Bool!A10&quot;</span></span><span>
+</span><span id="line-68"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;[file.ending]Bool!A10&quot;</span></span><span>
+</span><span id="line-69"></span><span>        </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://file.ending&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;Bool&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#FullySpecified"><span class="hs-identifier hs-var">FullySpecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; IO ()
+forall a. Show a =&gt; Parser a -&gt; String -&gt; IO ()
+</span><a href="#local-6989586621679126266"><span class="hs-identifier hs-var">failTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;[another file.ending]sheet!A10&quot;</span></span><span>
+</span><span id="line-71"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'[dir/another file.ending]sheet'!B10&quot;</span></span><span>
+</span><span id="line-72"></span><span>        </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://dir/another%20file.ending&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;sheet&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#FullySpecified"><span class="hs-identifier hs-var">FullySpecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'bool'!ZZ1&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">URI
+</span><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-var">uri</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;bool&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">701</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-74"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'Sheet 1'!C3&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">URI
+</span><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-var">uri</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;Sheet 1&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; IO ()
+forall a. Show a =&gt; Parser a -&gt; String -&gt; IO ()
+</span><a href="#local-6989586621679126266"><span class="hs-identifier hs-var">failTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Sheet 1!C3&quot;</span></span><span>
+</span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'[d/&#252;k.x~]sheet \\[copy\\]'!B10&quot;</span></span><span>
+</span><span id="line-77"></span><span>        </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; IO ()) -&gt; Term 'Infer -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://d/%C3%BCk.x~&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;sheet [copy]&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#FullySpecified"><span class="hs-identifier hs-var">FullySpecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-79"></span><span>        </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span>
+</span><span id="line-80"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'[d/&#252;\\[k\\].x~]sheet \\[copy\\]'!B10&quot;</span></span><span>
+</span><span id="line-81"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://d/%C3%BC%5Bk%5D.x~&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;sheet [copy]&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#FullySpecified"><span class="hs-identifier hs-var">FullySpecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-83"></span><span>        </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span>
+</span><span id="line-84"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;[p.a_b~c]d~.e!B2&quot;</span></span><span>
+</span><span id="line-85"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://p.a_b~c&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;d~.e&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#FullySpecified"><span class="hs-identifier hs-var">FullySpecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span>    </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;passes more examples with cell ranges&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; SpecWith (Arg (IO ())))
+-&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-88"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;A1:B2&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="Recalc.Syntax.ParserSpec.html#sheetId"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#Unspecified"><span class="hs-identifier hs-var">Unspecified</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;B2 : A1&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="Recalc.Syntax.ParserSpec.html#sheetId"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#Unspecified"><span class="hs-identifier hs-var">Unspecified</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;sheet ! B2 : A1&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">URI
+</span><a href="Recalc.Syntax.ParserSpec.html#uri"><span class="hs-identifier hs-var">uri</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;sheet&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-92"></span><span>        </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span>
+</span><span id="line-93"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;[f]sheet!B2:A1&quot;</span></span><span>
+</span><span id="line-94"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://f&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;sheet&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-96"></span><span>        </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span>
+</span><span id="line-97"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;[ f ] sheet  ! B2 : A1&quot;</span></span><span>
+</span><span id="line-98"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://f&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;sheet&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-100"></span><span>        </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#cellReferenceOrFree"><span class="hs-identifier hs-var">cellReferenceOrFree</span></a></span><span>
+</span><span id="line-101"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'[ f ] sheet '!B2:Z1&quot;</span></span><span>
+</span><span id="line-102"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://%20f%20&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot; sheet &quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#SheetOnly"><span class="hs-identifier hs-var">SheetOnly</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">25</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span>    </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;pretty-prints corectly&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; SpecWith (Arg (IO ())))
+-&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-105"></span><span>      </span><span class="annot"><span class="annottext">Term 'Infer -&gt; String
+forall a. Pretty a =&gt; a -&gt; String
+</span><a href="Recalc.Syntax.ParserSpec.html#renderPretty"><span class="hs-identifier hs-var">renderPretty</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://p.a_b~c&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;d~.e&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#FullySpecified"><span class="hs-identifier hs-var">FullySpecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; String -&gt; IO ()
+forall a. (HasCallStack, Show a, Eq a) =&gt; a -&gt; a -&gt; IO ()
+</span><span class="hs-operator hs-var">`shouldBe`</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;[p.a_b~c]d~.e!B2&quot;</span></span><span>
+</span><span id="line-107"></span><span>      </span><span class="annot"><span class="annottext">Term 'Infer -&gt; String
+forall a. Pretty a =&gt; a -&gt; String
+</span><a href="Recalc.Syntax.ParserSpec.html#renderPretty"><span class="hs-identifier hs-var">renderPretty</span></a></span><span>
+</span><span id="line-108"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; URI
+</span><a href="Recalc.Syntax.ParserSpec.html#readURI"><span class="hs-identifier hs-var">readURI</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;file://d/%C3%BC%5Bk%5D.x~&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;sheet [copy]&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="Recalc.Syntax.Term.html#FullySpecified"><span class="hs-identifier hs-var">FullySpecified</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CellAddr -&gt; CellRange
+</span><a href="Recalc.Syntax.ParserSpec.html#point"><span class="hs-identifier hs-var">point</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-109"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; String -&gt; IO ()
+forall a. (HasCallStack, Show a, Eq a) =&gt; a -&gt; a -&gt; IO ()
+</span><span class="hs-operator hs-var">`shouldBe`</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'[d/&#252;\\[k\\].x~]sheet \\[copy\\]'!B10&quot;</span></span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;termP&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; (IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;parses simple types (variables, globals, Set)&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-112"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=foo&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;foo&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-113"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=bool&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lit -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Lit"><span class="hs-identifier hs-var">Lit</span></a></span><span> </span><span class="annot"><span class="annottext">Lit
+</span><a href="Recalc.Syntax.Term.html#Bool"><span class="hs-identifier hs-var">Bool</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-114"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=False&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#boolOf"><span class="hs-identifier hs-var">boolOf</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=TRUE&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#boolOf"><span class="hs-identifier hs-var">boolOf</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-116"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;= *&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-117"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;= * &quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-118"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot; =* &quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-119"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=* &quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-120"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=0&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#intOf"><span class="hs-identifier hs-var">intOf</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;= 1 &quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#intOf"><span class="hs-identifier hs-var">intOf</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;= -3 &quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#intOf"><span class="hs-identifier hs-var">intOf</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">3</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=- 12&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#intOf"><span class="hs-identifier hs-var">intOf</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">12</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-124"></span><span>
+</span><span id="line-125"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;termP&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; (IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;parses &#928;-types&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-126"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=* -&gt; *&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-var">Pi</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;x&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=* -&gt; *&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-var">Pi</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=a -&gt; a&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-var">Pi</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;a&quot;</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;A&quot;</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-130"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span>
+</span><span id="line-131"></span><span>      </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=(a: *) -&gt; a&quot;</span></span><span>
+</span><span id="line-132"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-var">Pi</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;x&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-var">Bound</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-134"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span>
+</span><span id="line-135"></span><span>      </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=(t: * -&gt; *) -&gt; t(a)&quot;</span></span><span>
+</span><span id="line-136"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-var">Pi</span></a></span><span>
+</span><span id="line-137"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;x&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-138"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-var">Pi</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-var">Bound</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#%3A%24"><span class="hs-operator hs-var">:$</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;a&quot;</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;termP&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; (IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;parses term applications&quot;</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; Spec) -&gt; IO () -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-143"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=F(x,y)&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;f&quot;</span></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#%3A%24"><span class="hs-operator hs-var">:$</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;x&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#%3A%24"><span class="hs-operator hs-var">:$</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;y&quot;</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-144"></span><span>    </span><span class="annot"><span class="annottext">Parser (Term 'Infer) -&gt; String -&gt; Term 'Infer -&gt; IO ()
+forall a. (Eq a, Show a) =&gt; Parser a -&gt; String -&gt; a -&gt; IO ()
+</span><a href="#local-6989586621679126260"><span class="hs-identifier hs-var">parseTest</span></a></span><span>
+</span><span id="line-145"></span><span>      </span><span class="annot"><span class="annottext">Parser (Term 'Infer)
+</span><a href="Recalc.Syntax.Parser.html#formulaP"><span class="hs-identifier hs-var">formulaP</span></a></span><span>
+</span><span id="line-146"></span><span>      </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=g (\\x -&gt; x)&quot;</span></span><span>
+</span><span id="line-147"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-string">&quot;g&quot;</span></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#%3A%24"><span class="hs-operator hs-var">:$</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;y&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-var">Bound</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-148"></span><span>
+</span><span id="line-149"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
+forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
+</span><span class="hs-identifier hs-var">describe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;pretty for Terms&quot;</span></span><span>
+</span><span id="line-150"></span><span>    </span><span class="annot"><span class="annottext">(Spec -&gt; Spec) -&gt; Spec -&gt; Spec
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a.
+(HasCallStack, Example a) =&gt;
+String -&gt; a -&gt; SpecWith (Arg a)
+</span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;generates a fresh binder&quot;</span></span><span>
+</span><span id="line-151"></span><span>    </span><span class="annot"><span class="annottext">(IO () -&gt; SpecWith (Arg (IO ())))
+-&gt; IO () -&gt; SpecWith (Arg (IO ()))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-152"></span><span>      </span><span class="annot"><span class="annottext">Term 'Check -&gt; String
+forall a. Pretty a =&gt; a -&gt; String
+</span><a href="Recalc.Syntax.ParserSpec.html#renderPretty"><span class="hs-identifier hs-var">renderPretty</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;x1&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-var">Bound</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-153"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; String -&gt; IO ()
+forall a. (HasCallStack, Show a, Eq a) =&gt; a -&gt; a -&gt; IO ()
+</span><span class="hs-operator hs-var">`shouldBe`</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\\x1 -&gt; \\x -&gt; x&quot;</span></span><span>
+</span><span id="line-154"></span><span>      </span><span class="annot"><span class="annottext">Term 'Check -&gt; String
+forall a. Pretty a =&gt; a -&gt; String
+</span><a href="Recalc.Syntax.ParserSpec.html#renderPretty"><span class="hs-identifier hs-var">renderPretty</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;x&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-var">Bound</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-155"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; String -&gt; IO ()
+forall a. (HasCallStack, Show a, Eq a) =&gt; a -&gt; a -&gt; IO ()
+</span><span class="hs-operator hs-var">`shouldBe`</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\\x -&gt; \\x1 -&gt; x1&quot;</span></span><span>
+</span><span id="line-156"></span><span>      </span><span class="annot"><span class="annottext">Term 'Check -&gt; String
+forall a. Pretty a =&gt; a -&gt; String
+</span><a href="Recalc.Syntax.ParserSpec.html#renderPretty"><span class="hs-identifier hs-var">renderPretty</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;x&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetName -&gt; Maybe CaseInsensitive
+</span><a href="Recalc.Syntax.Term.html#pat"><span class="hs-identifier hs-var">pat</span></a></span><span> </span><span class="annot"><span class="annottext">SheetName
+</span><span class="hs-string">&quot;x1&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-var">Bound</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; String -&gt; IO ()
+forall a. (HasCallStack, Show a, Eq a) =&gt; a -&gt; a -&gt; IO ()
+</span><span class="hs-operator hs-var">`shouldBe`</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\\x -&gt; \\x1 -&gt; \\x2 -&gt; x2&quot;</span></span><span>
+</span><span id="line-158"></span><span>
+</span><span id="line-159"></span><span class="hs-comment">-- the following test is a bit problematic since we rule out invalid terms already</span><span>
+</span><span id="line-160"></span><span class="hs-comment">-- in the grammar.. for example: @_ -&gt; (\x -&gt; x)@ is legal to express yet</span><span>
+</span><span id="line-161"></span><span class="hs-comment">-- the grammar already rules out such a term</span><span>
+</span><span id="line-162"></span><span>
+</span><span id="line-163"></span><span class="hs-comment">-- FIXME: re-visit once language+parser are not going to change much anymore</span><span>
+</span><span id="line-164"></span><span>
+</span><span id="line-165"></span><span class="hs-comment">-- describe &quot;QuickChecks&quot; $</span><span>
+</span><span id="line-166"></span><span class="hs-comment">--   prop &quot;pretty-printed terms parse&quot; $ \x -&gt;</span><span>
+</span><span id="line-167"></span><span class="hs-comment">--     parseTest formulaP (&quot;=&quot; ++ renderPretty x) x</span><span>
+</span><span id="line-168"></span><span>
+</span><span id="line-169"></span><span id="local-6989586621679125921"><span class="annot"><a href="Recalc.Syntax.ParserSpec.html#renderPretty"><span class="hs-identifier hs-type">renderPretty</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pretty</span></span><span> </span><span class="annot"><a href="#local-6989586621679125921"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125921"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span></span><span>
+</span><span id="line-170"></span><span id="renderPretty"><span class="annot"><span class="annottext">renderPretty :: forall a. Pretty a =&gt; a -&gt; String
+</span><a href="Recalc.Syntax.ParserSpec.html#renderPretty"><span class="hs-identifier hs-var hs-var">renderPretty</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SimpleDocStream Any -&gt; String
+forall ann. SimpleDocStream ann -&gt; String
+</span><span class="hs-identifier hs-var">renderString</span></span><span> </span><span class="annot"><span class="annottext">(SimpleDocStream Any -&gt; String)
+-&gt; (a -&gt; SimpleDocStream Any) -&gt; a -&gt; String
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LayoutOptions -&gt; Doc Any -&gt; SimpleDocStream Any
+forall ann. LayoutOptions -&gt; Doc ann -&gt; SimpleDocStream ann
+</span><span class="hs-identifier hs-var">layoutPretty</span></span><span> </span><span class="annot"><span class="annottext">LayoutOptions
+</span><span class="hs-identifier hs-var">defaultLayoutOptions</span></span><span> </span><span class="annot"><span class="annottext">(Doc Any -&gt; SimpleDocStream Any)
+-&gt; (a -&gt; Doc Any) -&gt; a -&gt; SimpleDocStream Any
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Doc Any
+forall ann. a -&gt; Doc ann
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+</span><span class="hs-identifier hs-var">pretty</span></span><span>
+</span><span id="line-171"></span></pre></body></html>

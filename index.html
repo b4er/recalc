@@ -130,10 +130,26 @@
                 
                 
                 <li property="itemListElement" typeof="ListItem">
-                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
-                        <span property="name">GitHub</span>
+                    <a href="/#" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">​</span>
                     </a>
                     <meta property="position" content="4">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="haddock" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐟 Haddock</span>
+                    </a>
+                    <meta property="position" content="5">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐙 GitHub</span>
+                    </a>
+                    <meta property="position" content="6">
                 </li>
                 
                     
@@ -144,7 +160,7 @@
     <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
         <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
     </a>
-    <meta property="position" content="5">
+    <meta property="position" content="7">
 </li>
                     
             </ul>
@@ -378,7 +394,45 @@
         
             <a class="
 
-    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">GitHub</a>
+    terminal-mkdocs-side-nav-item" href="/#">​</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="haddock">🐟 Haddock</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">🐙 GitHub</a>
         
     
     
@@ -398,55 +452,21 @@
             <main id="terminal-mkdocs-main-content">
 <section id="mkdocs-terminal-content">
     <h1 id="introduction">Introduction</h1>
-<p>Recalc is a work-in-progress spreadsheet engine built in Haskell.  It's a
-playground for experimenting with functional programming languages embedded
-in spreadsheets.</p>
-<p>It includes a frontend as VS Code Web Extension built using the
+<p>Recalc is a work-in-progress spreadsheet engine built in Haskell.  It provides
+a DSL for for experimenting with functional spreadsheet languages.</p>
+<p>It includes a frontend as VS Code Extension built using the
 <a href="https://docs.univer.ai/en-US/guides/sheets/features/core/sheet-api">Univer Sheet API</a>:</p>
-<p><img alt="function-ref" src="gifs/function-ref.gif" /></p>
-<p>The recalculation engine is kept generic and is compatible with any
-implementation of the following interface:</p>
-<hr />
-<p>
-<script type="math/tex">
-\color{grey}{\operatorname{-- |}\ \text{cell addresses given as zero-indexed tuple @(row, col)@}} \\
-\textbf{type}\ \text{CellAddr} = (\text{Int}, \text{Int}) \\
-\color{grey}{\operatorname{-- |}\ \text{a cell range @(start, end)@}} \\
-\textbf{type}\ \text{CellRange} = (\text{CellAddr}, \text{CellAddr})
-</script>
-</p>
-<p>
-<script type="math/tex">
-\textbf{class}\ \text{Language}\ \Psi\ Term\ Value\ \textbf{where}\\
-  \quad \text{deps} : \tau \to \text{Set}(\text{CellRange}) \\
-  \quad \text{newEnv} : \text{SheetId} \to \Psi \\
-  \quad \text{infer} : \tau \to \text{Fetch } Type \\
-  \quad \text{inferValue} : \Psi \to Type \to \text{Maybe}\ Type \\
-  \quad \text{eval} : \tau \to \text{Fetch } \text{Value} \\
- \; \textbf{where}\\
-  \quad \operatorname{type}\ Type = Value
-</script>
-</p>
-<p>(see <a href="haddock/Recalc-Engine.html#t:Language"><code>Recalc.Engine</code></a>)</p>
-<hr />
-<p>For now<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup> the <code>Language</code>s are restricted to those where types and values
-coincide (i.e. dependently typed languages).</p>
-<p>The type <code>Fetch</code> mentioned above is more generic and custom errors can be
-introduced there:</p>
-<p><img alt="type-error" src="gifs/type-error.gif" /></p>
-<p>The Web Extension includes a dependently typed functional programming language
-(see <a href="core/">here</a>) which is actively developed (expect things to break).</p>
+<p><img alt="function-ref" src="gifs/demo.gif" /></p>
+<p>The DSL allows custom languages and automatically provides features such as:</p>
+<ul>
+<li><a href="gifs/type-error.gif"><em>Cell Diagnostics</em></a></li>
+<li><a href="gifs/sheet-defined-function.gif"><em>Sheet-Defined Functions</em></a></li>
+<li><em>Function Explorer</em></li>
+<li>cross-sheet references, etc.</li>
+</ul>
+<p>The <a href="install/">Web Extension</a> includes a dependently typed functional programming
+language (described <a href="core/">here</a>).</p>
 <!-- Footnotes & References -->
-
-<div class="footnote">
-<hr />
-<ol>
-<li id="fn:1">
-<p>The <a href="haddock/src/Recalc.Engine.Language.html#Fetch"><code>Fetch</code></a> monad
-    currently only allows fetching a <code>value</code>, however this could be changed.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
-</li>
-</ol>
-</div>
 </section>
 
             </main>

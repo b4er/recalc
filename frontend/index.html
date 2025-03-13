@@ -130,10 +130,26 @@
                 
                 
                 <li property="itemListElement" typeof="ListItem">
-                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
-                        <span property="name">GitHub</span>
+                    <a href="/#" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">​</span>
                     </a>
                     <meta property="position" content="4">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../haddock" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐟 Haddock</span>
+                    </a>
+                    <meta property="position" content="5">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐙 GitHub</span>
+                    </a>
+                    <meta property="position" content="6">
                 </li>
                 
                     
@@ -144,7 +160,7 @@
     <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
         <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
     </a>
-    <meta property="position" content="5">
+    <meta property="position" content="7">
 </li>
                     
             </ul>
@@ -374,7 +390,45 @@
         
             <a class="
 
-    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">GitHub</a>
+    terminal-mkdocs-side-nav-item" href="/#">​</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../haddock">🐟 Haddock</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">🐙 GitHub</a>
         
     
     
@@ -395,9 +449,9 @@
 <section id="mkdocs-terminal-content">
     <h1 id="frontend-typescript">Frontend (TypeScript)</h1>
 <p>The frontend is implemented as a standard <a href="https://code.visualstudio.com/api/extension-guides/webview">Web Extension</a>:</p>
-<p>The Extension automatically starts whenever a <code>*.rc</code> file is opened, it starts a backend
-process (see <code>recalc-vscode.serverUri</code> configuration in configuration manifest) and
-establishes a communication channel.</p>
+<p>The Extension automatically starts whenever an <code>*.rc</code> file is opened, it starts
+a backend process (see <code>recalc-vscode.serverUri</code> configuration in configuration
+manifest) and establishes a communication channel.</p>
 <p>Each URI gets an associated Webview which is able to send URI-tagged messages to the
 backend, the entry-point for the frontend starts a Spreadsheet UI using the
 <a href="https://docs.univer.ai/en-US/guides/sheets/features/core/sheet-api">Univer Sheet API</a>.</p>

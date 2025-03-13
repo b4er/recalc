@@ -130,10 +130,26 @@
                 
                 
                 <li property="itemListElement" typeof="ListItem">
-                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
-                        <span property="name">GitHub</span>
+                    <a href="/#" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">​</span>
                     </a>
                     <meta property="position" content="4">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../haddock" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐟 Haddock</span>
+                    </a>
+                    <meta property="position" content="5">
+                </li>
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="https://github.com/b4er/recalc" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">🐙 GitHub</span>
+                    </a>
+                    <meta property="position" content="6">
                 </li>
                 
                     
@@ -144,7 +160,7 @@
     <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
         <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
     </a>
-    <meta property="position" content="5">
+    <meta property="position" content="7">
 </li>
                     
             </ul>
@@ -374,7 +390,45 @@
         
             <a class="
 
-    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">GitHub</a>
+    terminal-mkdocs-side-nav-item" href="/#">​</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../haddock">🐟 Haddock</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="https://github.com/b4er/recalc">🐙 GitHub</a>
         
     
     
@@ -395,21 +449,43 @@
 <section id="mkdocs-terminal-content">
     <h1 id="library">Library</h1>
 <p>The backend components (recalculation engine, server routing and language
-implementation) are decoupled and can easily be re-used.</p>
-<p>The Haskell code could be split into different libraries:</p>
+implementation) are decoupled and can readily be re-used.</p>
+<p>Since there is only one actual frontend, the most common usage will be:</p>
+<pre><code class="language-haskell">import Recalc.Univer
+
+data Term = ...
+
+instance Recalc Term where
+  -- language semantics
+
+instance UniverRecalc Term where
+  -- error pretty-printing
+  -- sheet-defined function handling (optional)
+
+main :: IO ()
+main = univerMain @Term env0
+</code></pre>
+<p>The <a href="../haddock/recalc-engine/Recalc-Engine.html#t:Recalc">Recalc</a> instance specifies how to</p>
 <ul>
-<li><code>recalc-engine</code>: generic engine</li>
-<li><code>recalc-server</code>: generic server</li>
-<li><code>recalc-univer</code>: types and protocol + generic implementation</li>
-<li><code>recalc-exe</code>: defines language implementation and uses higher-order <code>main</code>
-  from <code>recalc-univer</code> (or different frontend)</li>
+<li>parse formulas and values (simple terms),</li>
+<li>compute the dependencies of a term,</li>
+<li>infer types given the type(s) of other cells (using
+  <a href="../haddock/recalc-engine/Recalc-Engine.html#v:fetchType"><code>fetchType</code></a>),</li>
+<li>and evaluate a term (again given the values of other cells, this time using
+  <a href="../haddock/recalc-engine/Recalc-Engine.html#v:fetchValue"><code>fetchValue</code></a>).</li>
 </ul>
-<p>However, while getting static builds to work I refactored all code into a
-single monolithic app.</p>
-<p>In the meantime, the easiest is to just modify/replace the modules
-<a href="../haddock/Recalc-Syntax-Term.html"><code>Recalc.Syntax.Term</code></a>,
-<a href="../haddock/Recalc-Syntax-Parser.html"><code>Recalc.Syntax.Parser</code></a>, and
-<a href="../haddock/Recalc-Semantics.html"><code>Recalc.Semantics</code></a>.</p>
+<p>The <a href="../haddock/recalc-engine/Recalc-Engine.html#t:Recalc"><code>UniverRecalc</code></a> instance specifies how to</p>
+<ul>
+<li>display errors (by defining <code>errorAnnotation</code>),</li>
+<li>and (optionally) how a sheet-defined function extends the environment.</li>
+</ul>
+<p>For concrete implementations refer to <a href="/haddock/recalc-engine/recalc-engine-spec/src/Recalc.EngineSpec.html#line-206">engine tests</a>,
+or the <a href="../haddock/recalc/src/Recalc.Language.html#line-397">core language</a> implementation (described <a href="../core/">here</a>).</p>
+<hr />
+<p>The TypeScript frontend currently is not in a library form, the easiest
+will be to run the original extension and configure the language server
+(by setting <code>recalc-vscode.serverUri</code> in your <a href="https://code.visualstudio.com/docs/editor/settings#_user-settings"><code>settings.json</code></a>).</p>
+<!-- Footnotes & References -->
 </section>
 
             </main>

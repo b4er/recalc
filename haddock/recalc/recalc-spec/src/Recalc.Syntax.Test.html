@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="annot"><span class="hs-comment">{-|
+Module      : Recalc.Syntax.Test
+Description : Test utility functions for testing grammars.
+-}</span></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Recalc.Syntax.Test</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier">Parser</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Recalc.Syntax.Test.html"><span class="hs-identifier">Recalc.Syntax.Test</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Reader</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ReaderT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">runReaderT</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.Hspec</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Expectation</span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.Hspec.Megaparsec</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">shouldFailOn</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shouldParse</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Text.Megaparsec</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ParseErrorBundle</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">eof</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runParser</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Void</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Void</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Recalc.Engine</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">SheetId</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html"><span class="hs-identifier">Recalc.Syntax.Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier">Parser</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span id="local-6989586621679125774"><span class="annot"><a href="Recalc.Syntax.Test.html#parseTest"><span class="hs-identifier hs-type">parseTest</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679125774"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679125774"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SheetId</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125774"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125774"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Expectation</span></span></span><span>
+</span><span id="line-17"></span><span id="parseTest"><span class="annot"><span class="annottext">parseTest :: forall a.
+(Eq a, Show a) =&gt;
+SheetId -&gt; Parser a -&gt; String -&gt; a -&gt; Expectation
+</span><a href="Recalc.Syntax.Test.html#parseTest"><span class="hs-identifier hs-var hs-var">parseTest</span></a></span></span><span> </span><span id="local-6989586621679125841"><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679125841"><span class="hs-identifier hs-var">sheetId</span></a></span></span><span> </span><span id="local-6989586621679125842"><span class="annot"><span class="annottext">Parser a
+</span><a href="#local-6989586621679125842"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span id="local-6989586621679125843"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679125843"><span class="hs-identifier hs-var">src</span></a></span></span><span> </span><span id="local-6989586621679125844"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125844"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SheetId
+-&gt; Parser a
+-&gt; String
+-&gt; String
+-&gt; Either (ParseErrorBundle String Void) a
+forall a.
+SheetId
+-&gt; Parser a
+-&gt; String
+-&gt; String
+-&gt; Either (ParseErrorBundle String Void) a
+</span><a href="Recalc.Syntax.Test.html#runP"><span class="hs-identifier hs-var">runP</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679125841"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">Parser a
+</span><a href="#local-6989586621679125842"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;success-spec&quot;</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679125843"><span class="hs-identifier hs-var">src</span></a></span><span> </span><span class="annot"><span class="annottext">Either (ParseErrorBundle String Void) a -&gt; a -&gt; Expectation
+forall e s a.
+(HasCallStack, ShowErrorComponent e, Stream s, VisualStream s,
+ TraversableStream s, Show a, Eq a) =&gt;
+Either (ParseErrorBundle s e) a -&gt; a -&gt; Expectation
+</span><span class="hs-operator hs-var">`shouldParse`</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125844"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span id="local-6989586621679125790"><span class="annot"><a href="Recalc.Syntax.Test.html#failTest"><span class="hs-identifier hs-type">failTest</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679125790"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SheetId</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125790"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Expectation</span></span></span><span>
+</span><span id="line-20"></span><span id="failTest"><span class="annot"><span class="annottext">failTest :: forall a. Show a =&gt; SheetId -&gt; Parser a -&gt; String -&gt; Expectation
+</span><a href="Recalc.Syntax.Test.html#failTest"><span class="hs-identifier hs-var hs-var">failTest</span></a></span></span><span> </span><span id="local-6989586621679125851"><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679125851"><span class="hs-identifier hs-var">sheetId</span></a></span></span><span> </span><span id="local-6989586621679125852"><span class="annot"><span class="annottext">Parser a
+</span><a href="#local-6989586621679125852"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either (ParseErrorBundle String Void) a)
+-&gt; String -&gt; Expectation
+forall a s e.
+(HasCallStack, Show a) =&gt;
+(s -&gt; Either (ParseErrorBundle s e) a) -&gt; s -&gt; Expectation
+</span><span class="hs-identifier hs-var">shouldFailOn</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SheetId
+-&gt; Parser a
+-&gt; String
+-&gt; String
+-&gt; Either (ParseErrorBundle String Void) a
+forall a.
+SheetId
+-&gt; Parser a
+-&gt; String
+-&gt; String
+-&gt; Either (ParseErrorBundle String Void) a
+</span><a href="Recalc.Syntax.Test.html#runP"><span class="hs-identifier hs-var">runP</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679125851"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">Parser a
+</span><a href="#local-6989586621679125852"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;fail-spec&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span id="local-6989586621679125786"><span class="annot"><a href="Recalc.Syntax.Test.html#runP"><span class="hs-identifier hs-type">runP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SheetId</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125786"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ParseErrorBundle</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Void</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679125786"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-23"></span><span id="runP"><span class="annot"><span class="annottext">runP :: forall a.
+SheetId
+-&gt; Parser a
+-&gt; String
+-&gt; String
+-&gt; Either (ParseErrorBundle String Void) a
+</span><a href="Recalc.Syntax.Test.html#runP"><span class="hs-identifier hs-var hs-var">runP</span></a></span></span><span> </span><span id="local-6989586621679125861"><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679125861"><span class="hs-identifier hs-var">sheetId</span></a></span></span><span> </span><span id="local-6989586621679125862"><span class="annot"><span class="annottext">Parser a
+</span><a href="#local-6989586621679125862"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parsec Void String a
+-&gt; String -&gt; String -&gt; Either (ParseErrorBundle String Void) a
+forall e s a.
+Parsec e s a -&gt; String -&gt; s -&gt; Either (ParseErrorBundle s e) a
+</span><span class="hs-identifier hs-var">runParser</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Parser a -&gt; SheetId -&gt; Parsec Void String a
+forall r (m :: * -&gt; *) a. ReaderT r m a -&gt; r -&gt; m a
+</span><span class="hs-identifier hs-var">runReaderT</span></span><span> </span><span class="annot"><span class="annottext">Parser a
+</span><a href="#local-6989586621679125862"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
+</span><a href="#local-6989586621679125861"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">Parsec Void String a
+-&gt; ParsecT Void String Identity () -&gt; Parsec Void String a
+forall a b.
+ParsecT Void String Identity a
+-&gt; ParsecT Void String Identity b -&gt; ParsecT Void String Identity a
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void String Identity ()
+forall e s (m :: * -&gt; *). MonadParsec e s m =&gt; m ()
+</span><span class="hs-identifier hs-var">eof</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span></pre></body></html>
