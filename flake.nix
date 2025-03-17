@@ -44,7 +44,7 @@
           buildInputs = [ pkgs.nodejs pkgs.vsce pkg ];
           nativeBuildInputs = [ pkgs.nodejs pkgs.vsce ];
 
-          npmDepsHash = "sha256-G51jafBaKLMSXob+IJOhqrXspNe/ST+gpr1ZegkUvhg=";
+          npmDepsHash = "sha256-p+vJevwBXKv4hpICVbHRP62jRmQF4GlZrPicNCJWJ48=";
 
           buildPhase = ''
             ${pkgs.hsPackages.recalc-univer}/bin/recalc-ts-defs > src/messages.d.ts

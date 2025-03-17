@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc-univer
-version:            0.9.0.0
+version:            0.9.1.0
 synopsis:           Serve a JSON-RPC backend that talks to Univer.
 description:        Library to serve a Univer backend for arbitrary languages that implement the Recalc interface.
 license:            MIT

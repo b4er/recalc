@@ -55,7 +55,7 @@ spec = do
       runInfer [] (Free "not" :$ Inf (boolOf False)) `shouldBe` Right vbool
       runInfer
         [ ("any", typeDecl (VSet 0))
-        , ("f", typeDecl (vpi Nothing (VSet 0) id))
+        , ("f", typeDecl (vpi EArg Nothing (VSet 0) id))
         ]
         (Free "f" :$ Inf (Free "any"))
         `shouldBe` Right (vfree "any")
@@ -71,13 +71,13 @@ spec = do
 
       runEval (Free "not")
         `shouldBe` Right
-          (vlam (pat "x") (VNeutral . NApp (NFree "not")))
+          (vlam EArg (pat "x") (VNeutral . NApp (NFree "not")))
       runEval (Free "not")
         `shouldBe` Right
-          (vlam (pat "a") (VNeutral . NApp (NFree "not")))
+          (vlam EArg (pat "a") (VNeutral . NApp (NFree "not")))
       runEval (Free "not")
         `shouldNotBe` Right
-          (vlam (pat "a") (\_x -> VNeutral (NFree "not")))
+          (vlam EArg (pat "a") (\_x -> VNeutral (NFree "not")))
 
     it "evaluates applications (Boolean values)" $ do
       runEval (Free "not" :$ Inf (boolOf True)) `shouldBe` Right (vboolOf False)
@@ -87,46 +87,46 @@ spec = do
     -- SKI combinators
     let
       apT =
-        Lam (pat "f")
-          $ Lam (pat "g")
-          $ Lam (pat "x")
+        Lam EArg (pat "f")
+          $ Lam EArg (pat "g")
+          $ Lam EArg (pat "x")
           $ Inf ((Bound 2 :$ Inf (Bound 0)) :$ Inf (Bound 1 :$ Inf (Bound 0)))
-      constT = Lam (pat "x") $ Lam (pat "y") $ Inf (Bound 1)
-      idT = Lam (pat "x") (Inf (Bound 0))
+      constT = Lam EArg (pat "x") $ Lam EArg (pat "y") $ Inf (Bound 1)
+      idT = Lam EArg (pat "x") (Inf (Bound 0))
 
     -- for evaluation the type annotations are not required
     let annAny = (`Ann` Free "any")
 
     it "evaluates simple lambda abstractions (SKI)" $ do
-      runEval constT `shouldBe` Right (vlam (pat "x") (vlam Nothing . const))
+      runEval constT `shouldBe` Right (vlam EArg (pat "x") (vlam EArg Nothing . const))
 
-      runEval (Lam Nothing (Inf (Bound 0))) `shouldBe` Right (vlam Nothing id)
-      runEval idT `shouldBe` Right (vlam (pat "y") id)
+      runEval (Lam EArg Nothing (Inf (Bound 0))) `shouldBe` Right (vlam EArg Nothing id)
+      runEval idT `shouldBe` Right (vlam EArg (pat "y") id)
 
-      runEval (annAny idT :$ idT) `shouldBe` Right (vlam (pat "y") id)
+      runEval (annAny idT :$ idT) `shouldBe` Right (vlam EArg (pat "y") id)
 
-      runEval (annAny apT :$ constT :$ constT) `shouldBe` Right (vlam Nothing id)
+      runEval (annAny apT :$ constT :$ constT) `shouldBe` Right (vlam EArg Nothing id)
 
-      runEval (annAny apT :$ idT :$ idT) `shouldBe` Right (VLam Nothing (\x -> x `vapp` x))
+      runEval (annAny apT :$ idT :$ idT) `shouldBe` Right (VLam EArg Nothing (\x -> x `vapp` x))
 
       runEval apT
         `shouldBe` Right
-          ( vlam Nothing $ \x ->
-              vlam Nothing $ \y ->
-                VLam Nothing $ \z -> do
+          ( vlam EArg Nothing $ \x ->
+              vlam EArg Nothing $ \y ->
+                VLam EArg Nothing $ \z -> do
                   xz <- x `vapp` z
                   yz <- y `vapp` z
                   xz `vapp` yz
           )
 
     it "evaluates simple lambda abstractions (examples)" $ do
-      runEval (Pi (pat "t") (Inf (Set 0)) (Inf (Set 1)))
+      runEval (Pi EArg (pat "t") (Inf (Set 0)) (Inf (Set 1)))
         `shouldBe` Right
-          (vpi Nothing (VSet 0) (const (VSet 1)))
+          (vpi EArg Nothing (VSet 0) (const (VSet 1)))
 
-      runEval (Pi (pat "t") (Inf (annAny idT :$ Inf (Set 0))) (Inf (Set 1)))
+      runEval (Pi EArg (pat "t") (Inf (annAny idT :$ Inf (Set 0))) (Inf (Set 1)))
         `shouldBe` Right
-          (vpi Nothing (VSet 0) (const (VSet 1)))
+          (vpi EArg Nothing (VSet 0) (const (VSet 1)))
 
       runEval (Free "f" :$ Inf (Free "g" :$ Inf (Free "x")))
         `shouldBe` Right
@@ -150,4 +150,4 @@ runEval :: Term m -> Result Value
 runEval = runFetch mempty . eval' []
 
 typeDecl :: Type -> Decl
-typeDecl = (`Decl` Nothing)
+typeDecl ty = Decl ty Nothing

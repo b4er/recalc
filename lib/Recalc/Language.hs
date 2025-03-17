@@ -52,10 +52,13 @@ module Recalc.Language
   ) where
 
 import Control.Monad (unless, void, when)
+import Control.Monad.Reader.Class (MonadReader (ask))
 import Data.Array.Dynamic (Array, ShapeL)
 import Data.Array.Dynamic qualified as Array
 import Data.Function (on)
 import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Maybe (isNothing)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
@@ -63,8 +66,6 @@ import GHC.Generics (Generic)
 import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
 
-import Control.Monad.Reader.Class (MonadReader (ask))
-import Data.Map qualified as Map
 import Recalc.Engine
   ( CellAddr
   , CellRange
@@ -82,6 +83,7 @@ import Recalc.Engine
   )
 import Recalc.Syntax.Parser (formulaP, valueP)
 import Recalc.Syntax.Term
+import Recalc.Syntax.Unify
 import Recalc.Univer
 
 -- | all semantic errors that can occur during type checking or evaluation
@@ -92,13 +94,11 @@ data SemanticError
   | ExpectedInt Value
   | ExpectedSet (Term Check)
   | IllegalApplication Type
+  | IllegalImplicitApplication Type
   | IllegalArrayType [(CellAddr, Type)]
   | UnknownIdentifier Name
+  | UnificationError UnificationError
   deriving (Eq, Show)
-
-instance Pretty Value where pretty = pretty . quote
-
-type Spreadsheet = Fetch Env SemanticError Value
 
 -- | a global variable must declare its 'Type' but not necessarily its 'Value'
 data Decl = Decl
@@ -110,6 +110,8 @@ type Globals = Map Name Decl
 
 -- | the environment contains just the globally bound variables
 newtype Env = Env {globals :: Globals}
+
+type Spreadsheet = Fetch Env SemanticError Value
 
 {- Values -}
 
@@ -130,11 +132,11 @@ data VTensorDescriptor = VTensorDescriptor Value [Value]
 -- easily resolve types/values from other cells.
 data Value
   = -- | lambda abstractions
-    VLam !(Maybe CaseInsensitive) !(Value -> Spreadsheet Value)
+    VLam !Arg !(Maybe CaseInsensitive) !(Value -> Spreadsheet Value)
   | -- | set of k-th order (hierarchy of types)
     VSet !Int
   | -- | dependent function
-    VPi !(Maybe CaseInsensitive) !Value !(Value -> Spreadsheet Value)
+    VPi !Arg !(Maybe CaseInsensitive) !Value !(Value -> Spreadsheet Value)
   | -- | type literal
     VLit Lit
   | -- | value literal
@@ -152,6 +154,9 @@ instance Eq Value where
 instance Show Value where
   show = show . quote
 
+instance Pretty Value where
+  pretty = pretty . quote
+
 type Type = Value
 
 -- | free variable
@@ -162,37 +167,37 @@ infixr 9 `vfun`
 
 -- | function type constructor (no bound type)
 vfun :: Value -> Value -> Value
-vfun dom range = VPi Nothing dom (const $ pure range)
+vfun dom range = VPi EArg Nothing dom (const $ pure range)
 
 -- | lambda abstraction
-vlam :: Maybe CaseInsensitive -> (Value -> Value) -> Value
-vlam vname body = VLam vname $ pure . body
+vlam :: Arg -> Maybe CaseInsensitive -> (Value -> Value) -> Value
+vlam arg vname body = VLam arg vname $ pure . body
 
 -- | nested lambda abstractions
-vlams :: [Text] -> ([Value] -> Value) -> Value
+vlams :: [(Arg, Text)] -> ([Value] -> Value) -> Value
 vlams vars body =
   let
-    go var f vs =
-      vlam (Just (CaseInsensitive var)) $ f . (: vs)
+    go (arg, var) f vs =
+      vlam arg (Just (CaseInsensitive var)) $ f . (: vs)
   in
     foldr go (body . reverse) vars []
 
 -- | dependent function
-vpi :: Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
-vpi vname dom range = VPi vname dom $ pure . range
+vpi :: Arg -> Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
+vpi arg vname dom range = VPi arg vname dom $ pure . range
 
 -- | nested dependent functions
-vpis :: [(Text, Value)] -> ([Value] -> Value) -> Value
+vpis :: [(Arg, Text, Value)] -> ([Value] -> Value) -> Value
 vpis doms range =
   let
-    go (var, val) f vs =
-      vpi (Just (CaseInsensitive var)) val $ f . (: vs)
+    go (arg, var, val) f vs =
+      vpi arg (Just (CaseInsensitive var)) val $ f . (: vs)
   in
     foldr go (range . reverse) doms []
 
 -- | application (must be able to fail)
 vapp :: Value -> Value -> Spreadsheet Value
-vapp (VLam _n f) v = f v
+vapp (VLam _arg _n f) v = f v
 vapp (VNeutral n) v = pure (VNeutral (NApp n v))
 vapp f _ = throwSemanticError (IllegalApplication f)
 
@@ -245,10 +250,10 @@ deps' = go mempty
   go :: Set CellRangeRef -> Term m -> Set CellRangeRef
   go acc = \case
     Inf x -> go acc x
-    Lam _ body -> go acc body
+    Lam _ _ body -> go acc body
     Ann x ty -> go (go acc x) ty
     Set{} -> acc
-    Pi _ ty1 ty2 -> go (go acc ty1) ty2
+    Pi _ _ ty1 ty2 -> go (go acc ty1) ty2
     Bound{} -> acc
     Free{} -> acc
     Ref sheetId _ cr -> Set.singleton (sheetId, cr)
@@ -256,7 +261,7 @@ deps' = go mempty
     LitOf{} -> acc
     Tensor td -> goTensor acc td
     TensorOf td arr -> Array.foldrA (flip go) (goTensor acc td) arr
-    f :$ x -> go (go acc f) x
+    f `App` (_arg, x) -> go (go acc f) x
 
   goTensor acc (TensorDescriptor base _dims) = go acc base
 
@@ -266,17 +271,17 @@ quote :: Value -> Term Check
 quote = go 0
  where
   go i = \case
-    VLam vname body ->
+    VLam arg vname body ->
       let
         body' = quoteAbs $ body (vfree (Quote i))
       in
-        Lam vname (go (i + 1) body')
+        Lam arg vname (go (i + 1) body')
     VSet k -> Inf (Set k)
-    VPi vname dom range ->
+    VPi arg vname dom range ->
       let
         range' = quoteAbs $ range (vfree (Quote i))
       in
-        Inf $ Pi vname (go i dom) (go (i + 1) range')
+        Inf $ Pi arg vname (go i dom) (go (i + 1) range')
     VLit lit -> Inf (Lit lit)
     VLitOf val -> Inf (LitOf val)
     VTensor td -> Inf (Tensor (goTensor i td))
@@ -286,7 +291,7 @@ quote = go 0
   goNeutral i = \case
     NFree n -> Free n
     NRef sheetId cr -> Ref sheetId FullySpecified cr
-    NApp n v -> goNeutral i n :$ go i v
+    NApp n v -> goNeutral i n `App` (EArg, go i v)
 
   goTensor i (VTensorDescriptor base vdims) =
     TensorDescriptor (case go i base of Inf x -> x; _ -> damn) (map (go i) vdims)
@@ -308,8 +313,13 @@ check' ctxt ty = \case
     ty' <- infer' ctxt x
     when (quote ty' /= quote ty)
       $ throwSemanticError (TypeMismatch ty' ty)
-  x@(Lam _ body) -> case ty of
-    VPi _p t t' -> do
+  x@(Lam EArg _ body) -> case ty of
+    VPi EArg _p t t' -> do
+      t'' <- t' t
+      check' (t : ctxt) t'' body
+    ty' -> throwSemanticError (TypeMismatchPi x ty')
+  x@(Lam IArg _ body) -> case ty of
+    VPi IArg _p t t' -> do
       t'' <- t' t
       check' (t : ctxt) t'' body
     ty' -> throwSemanticError (TypeMismatchPi x ty')
@@ -323,9 +333,11 @@ infer' ctxt = \case
     t' <- eval' ctxt t
     t' <$ check' ctxt t' e
   Set k -> pure $ VSet (k + 1)
-  Pi _p dom range -> do
+  Pi _arg _p dom range -> do
     m <- inferUniverse' ctxt dom
     dom' <- eval' ctxt dom
+    -- regardless of _arg, the pi-bound variable needs to be accessible in the
+    -- range
     n <- inferUniverse' (dom' : ctxt) range
     pure $ VSet (max m n)
   Bound i -> pure (ctxt !! i)
@@ -359,15 +371,69 @@ infer' ctxt = \case
     vdims <- mapM (eval' ctxt) dims
     mapM_ (check' ctxt baseType) arr
     pure . VTensor $ VTensorDescriptor baseType vdims
-  f :$ x ->
+  f `App` (IArg, x) ->
     infer' ctxt f >>= \case
-      VPi _ t t' -> do
+      VPi IArg _ t t' -> do
         check' ctxt t x
         x' <- eval' ctxt x
         t' x'
+      t@VPi{} -> throwSemanticError (IllegalImplicitApplication t)
       t -> throwSemanticError (IllegalApplication t)
+  f `App` (EArg, x) ->
+    resolveImplicits ctxt x =<< infer' ctxt f
 
 -- . traceShowWith ("infer'"::String,ctxt,)
+
+resolveImplicits :: [Type] -> Term Check -> Type -> Spreadsheet Type
+resolveImplicits ctxt x ty = do
+  go 0 [] ty >>= \case
+    Just (implicits, dom, range) -> do
+      case x of
+        -- if the argument is not a lambda and there were implicit arguments,
+        -- try inferring the implicits from unification
+        Inf x' | not (null implicits) -> do
+          xTy <- infer' ctxt x'
+          case unify (quote xTy, quote dom) of
+            Left err -> throwSemanticError (UnificationError err)
+            Right s -> do
+              let
+                -- lambda over implicits that were not inferred
+                absImplicits y =
+                  foldr
+                    (\(k, n, d) -> Inf . Pi IArg n d . sub k 0)
+                    y
+                    [ (k, n, quote d)
+                    | (k, (n, d)) <- zip [0 ..] implicits
+                    , isNothing (Map.lookup k s)
+                    ]
+              -- close over the uninferred ones, substitute inferred implicits
+              -- (wrap in eval . . quote to operate on terms)
+              eval' ctxt . absImplicits . apply s . quote
+                -- the resulting type
+                =<< range
+                =<< eval' ctxt x
+        -- else, regular bi-directional application checking
+        _ -> do
+          check' ctxt dom x
+          x' <- eval' ctxt x
+          range x'
+    Nothing -> throwSemanticError (IllegalApplication ty)
+ where
+  go
+    :: Int
+    -> [(Maybe CaseInsensitive, Value)]
+    -> Value
+    -> Spreadsheet
+        ( Maybe
+            ( [(Maybe CaseInsensitive, Value)]
+            , Value
+            , Value -> Spreadsheet Value
+            )
+        )
+  go i acc = \case
+    VPi IArg n t t' -> go (i + 1) ((n, t) : acc) =<< t' (vfree (Implicit i))
+    VPi EArg _ t t' -> pure (Just (reverse acc, t, t'))
+    _ -> pure Nothing
 
 inferLiteral :: LitOf -> Type
 inferLiteral =
@@ -383,7 +449,9 @@ inferUniverse' ctxt = \case
     t <- infer' ctxt e
     case quote t of
       Inf (Set k) -> pure k
-      Inf (Bound i) -> inferUniverse' ctxt (quote (ctxt !! i))
+      Inf (Bound i) -> do
+        let v = ctxt !! i
+        inferUniverse' ctxt (quote v)
       Inf (Free name) -> do
         Env{globals} <- ask
         case Map.lookup name globals of
@@ -398,12 +466,12 @@ inferUniverse' ctxt = \case
 eval' :: [Value] -> Term m -> Spreadsheet Value
 eval' ctxt = \case
   Inf x -> eval' ctxt x
-  Lam p body -> pure . VLam p $ \v -> eval' (v : ctxt) body
+  Lam arg p body -> pure . VLam arg p $ \v -> eval' (v : ctxt) body
   Ann x _ty -> eval' ctxt x
   Set k -> pure (VSet k)
-  Pi p dom range -> do
+  Pi arg p dom range -> do
     dom' <- eval' ctxt dom
-    pure $ VPi p dom' (\v -> eval' (v : ctxt) range)
+    pure $ VPi arg p dom' (\v -> eval' (v : ctxt) range)
   Bound i -> pure (ctxt !! i)
   Ref sheetId _ cr@(start, end)
     -- if it's a single reference: just the value there
@@ -427,7 +495,7 @@ eval' ctxt = \case
   Tensor td -> uncurry vtensor <$> evalTensor' ctxt td
   TensorOf td arr ->
     uncurry vtensorOf <$> evalTensor' ctxt td <*> mapM (eval' ctxt) arr
-  f :$ x -> do
+  f `App` (_arg, x) -> do
     f' <- eval' ctxt f
     x' <- eval' ctxt x
     vapp f' x'
@@ -467,11 +535,6 @@ instance Recalc (Term Infer) where
 
   infer = infer' []
   eval = eval' []
-
-{- prettier errors & sheet-defined functions -}
-
-render :: Doc ann -> Text
-render = renderStrict . layoutPretty defaultLayoutOptions
 
 -- | for error annotations and sheet-defined functions (not implemented) we need
 -- to instantiate the Univer-specific interface too:
@@ -526,6 +589,13 @@ instance UniverRecalc (Term Infer) where
         , pretty ty
         , "’."
         ]
+    IllegalImplicitApplication ty ->
+      annotation
+        "Illegal Application"
+        [ "Cannot apply an implicit term to value with type ‘"
+        , pretty ty
+        , "’."
+        ]
     IllegalArrayType locs ->
       annotation
         "Unexpected Type in Array"
@@ -540,8 +610,11 @@ instance UniverRecalc (Term Infer) where
         , pretty name
         , "’."
         ]
+    UnificationError err -> unificationErrorAnnotation err
    where
     annotation title docs = Annotation title (render (cat docs))
+
+    render = renderStrict . layoutPretty defaultLayoutOptions
 
 {- Prelude -}
 
@@ -555,26 +628,33 @@ prelude =
     ]
  where
   notImpl =
-    vlam (Just (CaseInsensitive "x")) $ \case
+    vlam EArg (Just (CaseInsensitive "x")) $ \case
       VLitOf (BoolOf b) -> VLitOf (BoolOf (not b))
       x -> VNeutral (NApp (NFree "not") x)
 
-  andImpl = vlam (Just (CaseInsensitive "x")) $ \x ->
-    vlam (Just (CaseInsensitive "y")) $ \y ->
+  andImpl = vlam EArg (Just (CaseInsensitive "x")) $ \x ->
+    vlam EArg (Just (CaseInsensitive "y")) $ \y ->
       case (x, y) of
         (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a && b))
         _ -> VNeutral (NApp (NApp (NFree "and") x) y)
 
-  orImpl = vlam (Just (CaseInsensitive "x")) $ \x ->
-    vlam (Just (CaseInsensitive "y")) $ \y ->
+  orImpl = vlam EArg (Just (CaseInsensitive "x")) $ \x ->
+    vlam EArg (Just (CaseInsensitive "y")) $ \y ->
       case (x, y) of
         (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a || b))
         _ -> VNeutral (NApp (NApp (NFree "or") x) y)
 
-  mmultT = vpis [("m", vint), ("n", vint), ("k", vint)] $ \[m, n, k] ->
-    vtensor vint [m, n] `vfun` vtensor vint [n, k] `vfun` vtensor vint [m, k]
+  mmultT = vpis [(IArg, "m", vint), (IArg, "n", vint), (IArg, "k", vint)]
+    $ \[m, n, k] -> vtensor vint [m, n] `vfun` vtensor vint [n, k] `vfun` vtensor vint [m, k]
 
-  mmultImpl = vlams ["m", "n", "k", "u", "v"] $ \[m, n, k, u, v] ->
-    -- case (u, v) of
-    --   (VTensorOf{}, VTensorOf{}) -> error "see static building issues on branch dev/hmatrix"
-    VNeutral $ NApp (NApp (NApp (NApp (NApp (NFree "mmult") m) n) k) u) v
+  mmultImpl = vlams
+    [ (IArg, "m")
+    , (IArg, "n")
+    , (IArg, "k")
+    , (EArg, "u")
+    , (EArg, "v")
+    ]
+    $ \[m, n, k, u, v] ->
+      -- case (u, v) of
+      --   (VTensorOf{}, VTensorOf{}) -> error "see static building issues on branch dev/hmatrix"
+      VNeutral $ NApp (NApp (NApp (NApp (NApp (NFree "mmult") m) n) k) u) v

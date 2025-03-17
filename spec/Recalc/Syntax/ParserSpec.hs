@@ -123,19 +123,20 @@ spec = do
     parseTest formulaP "=- 12" (intOf (-12))
 
   describe "termP" . it "parses Π-types" $ do
-    parseTest formulaP "=* -> *" (Pi (pat "x") (Inf (Set 0)) (Inf (Set 0)))
-    parseTest formulaP "=* -> *" (Pi Nothing (Inf (Set 0)) (Inf (Set 0)))
-    parseTest formulaP "=a -> a" (Pi Nothing (Inf (Free "a")) (Inf (Free "A")))
+    parseTest formulaP "=* -> *" (Pi EArg (pat "x") (Inf (Set 0)) (Inf (Set 0)))
+    parseTest formulaP "=* -> *" (Pi EArg Nothing (Inf (Set 0)) (Inf (Set 0)))
+    parseTest formulaP "=a -> a" (Pi EArg Nothing (Inf (Free "a")) (Inf (Free "A")))
     parseTest
       formulaP
       "=(a: *) -> a"
-      (Pi (pat "x") (Inf (Set 0)) (Inf (Bound 0)))
+      (Pi EArg (pat "x") (Inf (Set 0)) (Inf (Bound 0)))
     parseTest
       formulaP
       "=(t: * -> *) -> t(a)"
       ( Pi
+          EArg
           (pat "x")
-          (Inf (Pi Nothing (Inf (Set 0)) (Inf (Set 0))))
+          (Inf (Pi EArg Nothing (Inf (Set 0)) (Inf (Set 0))))
           (Inf (Bound 0 :$ Inf (Free "a")))
       )
 
@@ -144,16 +145,50 @@ spec = do
     parseTest
       formulaP
       "=g (\\x -> x)"
-      (Free "g" :$ Lam (pat "y") (Inf (Bound 0)))
+      (Free "g" :$ Lam EArg (pat "y") (Inf (Bound 0)))
+
+  describe "termP" . it "parses implicit applications" $ do
+    parseTest
+      formulaP
+      "=F{k,u}"
+      (Free "f" `App` (IArg, Inf (Free "k")) `App` (IArg, Inf (Free "u")))
+    parseTest
+      formulaP
+      "=(F{k,u})(x,y)"
+      ( Free "f"
+          `App` (IArg, Inf (Free "k"))
+          `App` (IArg, Inf (Free "u"))
+          :$ Inf (Free "x")
+          :$ Inf (Free "y")
+      )
+    parseTest
+      formulaP
+      "=F{k,u}(x,y)"
+      ( Free "f"
+          `App` (IArg, Inf (Free "k"))
+          `App` (IArg, Inf (Free "u"))
+          :$ Inf (Free "x")
+          :$ Inf (Free "y")
+      )
+    parseTest
+      formulaP
+      "=F{k}(u)(x){y}"
+      ( Free "f"
+          `App` (IArg, Inf (Free "k"))
+          :$ Inf (Free "u")
+          :$ Inf (Free "x")
+          `App` (IArg, Inf (Free "y"))
+      )
 
   describe "pretty for Terms"
     $ it "generates a fresh binder"
     $ do
-      renderPretty (Lam (pat "x1") (Lam Nothing (Inf (Bound 0))))
+      renderPretty (Lam EArg (pat "x1") (Lam EArg Nothing (Inf (Bound 0))))
         `shouldBe` "\\x1 -> \\x -> x"
-      renderPretty (Lam (pat "x") (Lam Nothing (Inf (Bound 0))))
+      renderPretty (Lam EArg (pat "x") (Lam EArg Nothing (Inf (Bound 0))))
         `shouldBe` "\\x -> \\x1 -> x1"
-      renderPretty (Lam (pat "x") (Lam (pat "x1") (Lam Nothing (Inf (Bound 0)))))
+      renderPretty
+        (Lam EArg (pat "x") (Lam EArg (pat "x1") (Lam EArg Nothing (Inf (Bound 0)))))
         `shouldBe` "\\x -> \\x1 -> \\x2 -> x2"
 
 -- the following test is a bit problematic since we rule out invalid terms already

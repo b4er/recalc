@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 {-|
 Module      : Recalc.Syntax.Term
@@ -48,24 +49,19 @@ instance Show CaseInsensitive where
 
 data Name
   = Global !CaseInsensitive
-  | -- | same but during quoting
+  | -- | bound variables during quoting
     Quote !Int
-  deriving (Generic, Show)
-
-instance Eq Name where
-  Global n == Global n' = n == n'
-  Quote i == Quote j = i == j
-  _ == _ = False
-
-instance Ord Name where
-  compare (Global n) (Global n') = compare n n'
-  compare Global{} _ = LT
-  compare (Quote i) (Quote j) = compare i j
-  compare Quote{} _ = GT
+  | -- | implicit variables inserted (unification variables)
+    Implicit !Int
+  deriving (Generic, Eq, Ord, Show)
 
 instance IsString Name where
   fromString :: String -> Name
   fromString = Global . CaseInsensitive . Text.pack
+
+-- | whether a binder is implicit or not
+data Arg = EArg | IArg
+  deriving (Eq, Ord, Show)
 
 pat :: Text -> Maybe CaseInsensitive
 pat = Just . CaseInsensitive
@@ -98,13 +94,13 @@ data Term (m :: Mode) where
   -- | inferrable terms are checkable
   Inf :: !(Term Infer) -> Term Check
   -- | lambda abstraction
-  Lam :: !(Maybe CaseInsensitive) -> !(Term Check) -> Term Check
+  Lam :: !Arg -> !(Maybe CaseInsensitive) -> !(Term Check) -> Term Check
   -- | annotated terms @e: t@
   Ann :: !(Term Check) -> !(Term Infer) -> Term Infer
   -- | hierarchy of type universes
   Set :: !Int -> Term Infer
   -- | dependent function (Π)
-  Pi :: !(Maybe CaseInsensitive) -> !(Term Check) -> !(Term Check) -> Term Infer
+  Pi :: !Arg -> !(Maybe CaseInsensitive) -> !(Term Check) -> !(Term Check) -> Term Infer
   -- | bound variable
   Bound :: !Int -> Term Infer
   -- | free variable
@@ -120,16 +116,19 @@ data Term (m :: Mode) where
   -- | tensor value (represented as a multi-dimensional array, only for quoting)
   TensorOf :: !TensorDescriptor -> !(Array (Term Check)) -> Term Infer
   -- | application
-  (:$) :: !(Term Infer) -> !(Term Check) -> Term Infer
+  App :: !(Term Infer) -> !(Arg, Term Check) -> Term Infer
+
+pattern (:$) :: Term Infer -> Term Check -> Term Infer
+pattern f :$ x = f `App` (EArg, x)
 
 deriving instance Show (Term m)
 
 instance Eq (Term m) where
   Inf x == Inf y = x == y
-  Lam _ x == Lam _ y = x == y
+  Lam arg _ x == Lam arg' _ y = arg == arg' && x == y
   Ann x t == Ann y v = x == y && t == v
   Set m == Set n = n == m
-  Pi _ dom range == Pi _ dom' range' = dom == dom' && range == range'
+  Pi arg _ dom range == Pi arg' _ dom' range' = arg == arg' && dom == dom' && range == range'
   Bound i == Bound j = i == j
   Free name == Free name' = name == name'
   Ref sheetId _ cr == Ref sheetId' _ cr' = sheetId == sheetId' && cr == cr'
@@ -137,7 +136,9 @@ instance Eq (Term m) where
   LitOf val == LitOf val' = val == val'
   Tensor td == Tensor td' = td == td'
   TensorOf td arr == TensorOf td' arr' = td == td' && arr == arr'
-  f :$ x == g :$ y = f == g && x == y
+  App f (EArg, x) == App g (EArg, y) = f == g && x == y
+  App f (IArg, _x) == App g (IArg, _y) = f == g
+  App{} == App{} = False
   _ == _ = False
 
 boolOf :: Bool -> Term Infer
@@ -146,14 +147,14 @@ boolOf = LitOf . BoolOf
 intOf :: Int -> Term Infer
 intOf = LitOf . IntOf
 
-lam :: CaseInsensitive -> Term Check -> Term Check
-lam = Lam . Just
+lam :: Arg -> CaseInsensitive -> Term Check -> Term Check
+lam arg = Lam arg . Just
 
-splitApp :: Term Infer -> (Term Infer, [Term Check])
+splitApp :: Term Infer -> (Term Infer, [(Arg, Term Check)])
 splitApp = go []
  where
-  go :: [Term Check] -> Term Infer -> (Term Infer, [Term Check])
-  go acc (x :$ y) = go (y : acc) x
+  go :: [(Arg, Term Check)] -> Term Infer -> (Term Infer, [(Arg, Term Check)])
+  go acc (App x y) = go (y : acc) x
   go acc x = (x, acc)
 
 -- ** Substitutions
@@ -161,10 +162,10 @@ splitApp = go []
 subst :: Int -> Term Infer -> Term m -> Term m
 subst i r = \case
   Inf e -> Inf (subst i r e)
-  Lam n x -> Lam n (subst (i + 1) r x)
+  Lam arg n x -> Lam arg n (subst (i + 1) r x)
   Ann e t -> Ann (subst i r e) (subst i r t)
   Set k -> Set k
-  Pi xn x y -> Pi xn (subst i r x) (subst (i + 1) r y)
+  Pi arg xn x y -> Pi arg xn (subst i r x) (subst (i + 1) r y)
   Bound j
     | i == j -> r
     | otherwise -> Bound j
@@ -174,7 +175,7 @@ subst i r = \case
   LitOf val -> LitOf val
   Tensor td -> Tensor (substTensor i r td)
   TensorOf td arr -> TensorOf (substTensor i r td) (subst i r <$> arr)
-  x :$ y -> subst i r x :$ subst i r y
+  x `App` (arg, y) -> subst i r x `App` (arg, subst i r y)
 
 substTensor :: Int -> Term Infer -> TensorDescriptor -> TensorDescriptor
 substTensor i r (TensorDescriptor base dims) =
@@ -214,21 +215,23 @@ instance Pretty (Term m) where
     pr :: forall m' ann. [CaseInsensitive] -> Int -> Term m' -> Doc ann
     pr env i = \case
       Inf e -> pr env i e
-      Lam xn x ->
+      Lam arg xn x ->
         let
           v = fromMaybe (genFresh env) xn
+          rel = if arg == IArg then braces else id
         in
-          parensIf (i > lamP) ("\\" <> pretty v <+> "->" <+> pr (v : env) i x)
+          parensIf (i > lamP) ("\\" <> rel (pretty v) <+> "->" <+> pr (v : env) i x)
       Ann e t -> parensIf (i > annP) (pr env annP e <> ":" <+> pr env 0 t)
       Set k
         | k == 0 -> "*"
         | otherwise -> "Type" <> showSubscript k
-      Pi xn a b ->
+      Pi arg xn a b ->
         let
           v = fromMaybe (genFresh env) xn
+          prec = if arg == IArg then 0 else funP + 1
         in
           parensIf (i > funP)
-            $ annotateArg xn (pr env (funP + 1) a) <+> "->" <+> pr (v : env) funP b
+            $ annotateArg arg xn (pr env prec a) <+> "->" <+> pr (v : env) funP b
       Bound j -> pretty (env !! j)
       Free (Quote n) -> pretty (reverse env !! n)
       Free n -> pretty n
@@ -246,9 +249,9 @@ instance Pretty (Term m) where
           | otherwise = id
       Tensor td -> prTensor env td
       TensorOf _ arr -> list (map (pr env 0) (Array.toList arr))
-      app@(:$){} ->
+      app@App{} ->
         let (y, ys) = splitApp app
-        in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0) ys)
+        in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0 . snd) ys)
 
     prTensor env (TensorDescriptor base dims) =
       align
@@ -271,8 +274,11 @@ instance Pretty (Term m) where
       | b = "(" <> doc <> ")"
       | otherwise = doc
 
-    annotateArg (Just n) x = "(" <> pretty n <> ":" <> x <> ")"
-    annotateArg _ x = x
+    annotateArg arg (Just n) x = open <> pretty n <> ":" <> x <> close
+     where
+      (open, close) = if arg == IArg then ("{", "}") else ("(", ")")
+    annotateArg IArg _ x = "{" <> x <> "}"
+    annotateArg _ _ x = x
 
     showSubscript k = pretty (showIntAtBase 10 ("₀₁₂₃₄₅₆₇₈₉" !!) k "")
 
@@ -304,8 +310,29 @@ genFresh env =
   head . filter (`notElem` env)
     $ CaseInsensitive "x" : map (CaseInsensitive . ("x" <>) . Text.pack . show) [1 :: Int ..]
 
-splitFun :: Term Infer -> ([Term Check], Term Check)
-splitFun = go []
- where
-  go acc (Pi Nothing x (Inf y)) = go (x : acc) y
-  go acc y = (reverse acc, Inf y)
+-- substitute @Implicit k@ with @Bound 0@ and shift lift indices (since we
+-- introduce a binder)
+sub :: Int -> Int -> Term m -> Term m
+sub k i = \case
+  Inf e -> Inf (sub k i e)
+  Lam arg n x -> Lam arg n (sub k (i + 1) x)
+  Ann e t -> Ann (sub k i e) (sub k i t)
+  Set k' -> Set k'
+  Pi arg xn x y -> Pi arg xn (sub k i x) (sub k (i + 1) y)
+  -- shift the variables by +1 (lift)
+  Bound j
+    | i <= j -> Bound (j + 1)
+    | otherwise -> Bound j
+  -- replace @Implicit k@ with newly bound variable
+  Free (Implicit k') | k == k' -> Bound i
+  Free n -> Free n
+  Ref sheetId refInfo cr -> Ref sheetId refInfo cr
+  Lit lit -> Lit lit
+  LitOf val -> LitOf val
+  Tensor td -> Tensor (subTensor k i td)
+  TensorOf td arr -> TensorOf (subTensor k i td) (sub k i <$> arr)
+  x `App` (arg, y) -> sub k i x `App` (arg, sub k i y)
+
+subTensor :: Int -> Int -> TensorDescriptor -> TensorDescriptor
+subTensor k i (TensorDescriptor base dims) =
+  TensorDescriptor (sub k i base) (map (sub k i) dims)

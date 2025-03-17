@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc-engine
-version:            0.9.0.0
+version:            0.9.1.0
 synopsis:           Recalculation engine for spreadsheets
 description:        A generic recalculation engine for functional programming language embedded in a spreadsheet environment.
 license:            MIT

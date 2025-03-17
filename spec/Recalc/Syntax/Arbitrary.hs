@@ -49,14 +49,14 @@ genTermI bindersCount depth =
         <$> genTermC bindersCount (depth - 1)
         <*> genTermI bindersCount (depth - 1)
     1 ->
-      Pi
+      Pi EArg
         <$> arbitrary
         <*> genTermC bindersCount (depth - 1)
         <*> genTermC (bindersCount + 1) (depth - 1)
     2 ->
-      (:$)
+      App
         <$> genTermI bindersCount (depth - 1)
-        <*> genTermC bindersCount (depth - 1)
+        <*> ((EArg,) <$> genTermC bindersCount (depth - 1))
     3 | bindersCount > 0 -> Bound <$> choose (0, bindersCount - 1)
     4 -> Free . Global <$> arbitrary
     _ -> pure (Set 0)
@@ -65,7 +65,7 @@ genTermC :: Int -> Int -> Gen (Term Check)
 genTermC bindersCount depth =
   choose @Int (0, if depth > 0 then 1 else 0) >>= \case
     0 -> Inf <$> genTermI bindersCount (depth - 1)
-    _ -> Lam <$> arbitrary <*> genTermC (bindersCount + 1) (depth - 1)
+    _ -> Lam EArg <$> arbitrary <*> genTermC (bindersCount + 1) (depth - 1)
 
 newtype Set0 = Set0 (Term Infer)
   deriving (Show) via (Term Infer)
@@ -86,7 +86,7 @@ genSet0Term depth bindersCount =
   nested
     | 0 < depth =
         [ (`Ann` Set 0) <$> genSet0TermC (depth - 1) bindersCount
-        , Pi
+        , Pi EArg
             <$> arbitrary
             <*> genSet0TermC (depth - 1) bindersCount
             <*> genSet0TermC (depth - 1) (bindersCount + 1)

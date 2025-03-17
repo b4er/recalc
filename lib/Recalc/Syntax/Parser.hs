@@ -63,7 +63,8 @@ decimal =
     , negate <$> (symbol "-" *> lexeme Lexer.decimal)
     ]
 
-parens :: Parser a -> Parser a
+braces, parens :: Parser a -> Parser a
+braces = between (symbol "{") (symbol "}")
 parens = between (symbol "(") (symbol ")")
 
 startChar, middleChar :: Parser Char
@@ -124,10 +125,10 @@ resolve = go []
   go :: [Maybe Name] -> Term m -> Term m
   go env = \case
     Inf x -> Inf (go env x)
-    Lam n x -> Lam n (go ((Global <$> n) : env) x)
+    Lam arg n x -> Lam arg n (go ((Global <$> n) : env) x)
     Ann e t -> Ann (go env e) (go env t)
     Set k -> Set k
-    Pi n x y -> Pi n (go env x) (go ((Global <$> n) : env) y)
+    Pi arg n x y -> Pi arg n (go env x) (go ((Global <$> n) : env) y)
     Bound i -> Bound (i + length env)
     v@(Free n) -> maybe v Bound $ elemIndex (Just n) env
     ref@Ref{} -> ref
@@ -135,7 +136,7 @@ resolve = go []
     LitOf val -> LitOf val
     Tensor td -> Tensor (goTensor env td)
     TensorOf td arr -> TensorOf (goTensor env td) (go env <$> arr)
-    x :$ y -> go env x :$ go env y
+    x `App` (arg, y) -> go env x `App` (arg, go env y)
 
   goTensor env (TensorDescriptor base vdims) =
     TensorDescriptor (go env base) vdims
@@ -148,25 +149,40 @@ termI =
     <*> (symbol ":" *> termI)
  where
   top =
-    ( do
-        (n, t) <- parens ((,) <$> (identifier <* symbol ":") <*> termC)
-        void (symbol "->")
-        Pi (Just n) t <$> termC
-    )
+    try
+      ( do
+          (n, t) <- parens ((,) <$> (identifier <* symbol ":") <*> termC)
+          void (symbol "->")
+          Pi EArg (Just n) t <$> termC
+      )
       <|> try
         ( do
             x <- ops
             optional (symbol "->" *> termC) >>= \case
               Nothing -> pure x
-              Just y -> pure (Pi Nothing (Inf x) y)
+              Just y -> pure (Pi EArg Nothing (Inf x) y)
         )
-      <|> Pi Nothing
+      <|> Pi EArg Nothing
       <$> lambda
       <*> (symbol "->" *> termC)
 
   ops = app <|> parens termI
 
-  app = foldl (:$) <$> atom <*> (parens (sepEndBy1 termC (symbol ",")) <|> pure [])
+  app = do
+    t0 <- atom
+
+    -- any ordering of application blocks (or none): {..} and (..)
+    appBlocks <-
+      many
+        $ choice
+          [ (eapp,) <$> parens (sepEndBy1 termC (symbol ","))
+          , (iapp,) <$> braces (sepEndBy1 termC (symbol ","))
+          ]
+    -- build the application from it using the correct *plicity
+    pure $ foldl (\acc (f, ts) -> foldl f acc ts) t0 appBlocks
+
+  eapp f x = f `App` (EArg, x)
+  iapp f x = f `App` (IArg, x)
 
   atom =
     choice
@@ -268,6 +284,6 @@ lambda =
     <$> (symbol "\\" *> some binderP)
     <*> (symbol "->" *> termC)
  where
-  lams vars body = foldr Lam body vars
+  lams vars body = foldr (Lam EArg) body vars
 
   binderP = Just <$> identifier <|> Nothing <$ Char.string "_"
