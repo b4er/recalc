@@ -66,6 +66,8 @@ import GHC.Generics (Generic)
 import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
 
+import GHC.Float (int2Double)
+import Recalc.Array (tensorContract)
 import Recalc.Engine
   ( CellAddr
   , CellRange
@@ -120,7 +122,7 @@ type Spreadsheet = Fetch Env SemanticError Value
 data Neutral
   = NFree !Name
   | NRef !SheetId !CellRange
-  | NApp !Neutral !Value
+  | NApp !Arg !Neutral !Value
   deriving (Generic)
 
 data VTensorDescriptor = VTensorDescriptor Value [Value]
@@ -169,18 +171,8 @@ infixr 9 `vfun`
 vfun :: Value -> Value -> Value
 vfun dom range = VPi EArg Nothing dom (const $ pure range)
 
--- | lambda abstraction
 vlam :: Arg -> Maybe CaseInsensitive -> (Value -> Value) -> Value
-vlam arg vname body = VLam arg vname $ pure . body
-
--- | nested lambda abstractions
-vlams :: [(Arg, Text)] -> ([Value] -> Value) -> Value
-vlams vars body =
-  let
-    go (arg, var) f vs =
-      vlam arg (Just (CaseInsensitive var)) $ f . (: vs)
-  in
-    foldr go (body . reverse) vars []
+vlam arg n body = VLam arg n $ pure . body
 
 -- | dependent function
 vpi :: Arg -> Maybe CaseInsensitive -> Value -> (Value -> Value) -> Value
@@ -198,7 +190,7 @@ vpis doms range =
 -- | application (must be able to fail)
 vapp :: Value -> Value -> Spreadsheet Value
 vapp (VLam _arg _n f) v = f v
-vapp (VNeutral n) v = pure (VNeutral (NApp n v))
+vapp (VNeutral n) v = pure (VNeutral (NApp EArg n v))
 vapp f _ = throwSemanticError (IllegalApplication f)
 
 -- | type literals
@@ -291,7 +283,7 @@ quote = go 0
   goNeutral i = \case
     NFree n -> Free n
     NRef sheetId cr -> Ref sheetId FullySpecified cr
-    NApp n v -> goNeutral i n `App` (EArg, go i v)
+    NApp arg n v -> goNeutral i n `App` (arg, go i v)
 
   goTensor i (VTensorDescriptor base vdims) =
     TensorDescriptor (case go i base of Inf x -> x; _ -> damn) (map (go i) vdims)
@@ -505,10 +497,11 @@ evalTensor' ctxt (TensorDescriptor base dims) = (,) <$> eval' ctxt base <*> mapM
 
 evalShape :: [Value] -> Spreadsheet ShapeL
 evalShape = mapM evalInt
- where
-  evalInt = \case
-    VLitOf (IntOf i) -> pure i
-    v -> throwSemanticError (ExpectedInt v)
+
+evalInt :: Value -> Spreadsheet Int
+evalInt = \case
+  VLitOf (IntOf i) -> pure i
+  v -> throwSemanticError (ExpectedInt v)
 
 -- auxiliary functions
 concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
@@ -630,31 +623,30 @@ prelude =
   notImpl =
     vlam EArg (Just (CaseInsensitive "x")) $ \case
       VLitOf (BoolOf b) -> VLitOf (BoolOf (not b))
-      x -> VNeutral (NApp (NFree "not") x)
+      x -> VNeutral (NApp EArg (NFree "not") x)
 
   andImpl = vlam EArg (Just (CaseInsensitive "x")) $ \x ->
     vlam EArg (Just (CaseInsensitive "y")) $ \y ->
       case (x, y) of
         (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a && b))
-        _ -> VNeutral (NApp (NApp (NFree "and") x) y)
+        _ -> VNeutral (NApp EArg (NApp EArg (NFree "and") x) y)
 
   orImpl = vlam EArg (Just (CaseInsensitive "x")) $ \x ->
     vlam EArg (Just (CaseInsensitive "y")) $ \y ->
       case (x, y) of
         (VLitOf (BoolOf a), VLitOf (BoolOf b)) -> VLitOf (BoolOf (a || b))
-        _ -> VNeutral (NApp (NApp (NFree "or") x) y)
+        _ -> VNeutral (NApp EArg (NApp EArg (NFree "or") x) y)
 
   mmultT = vpis [(IArg, "m", vint), (IArg, "n", vint), (IArg, "k", vint)]
     $ \[m, n, k] -> vtensor vint [m, n] `vfun` vtensor vint [n, k] `vfun` vtensor vint [m, k]
 
-  mmultImpl = vlams
-    [ (IArg, "m")
-    , (IArg, "n")
-    , (IArg, "k")
-    , (EArg, "u")
-    , (EArg, "v")
-    ]
-    $ \[m, n, k, u, v] ->
-      -- case (u, v) of
-      --   (VTensorOf{}, VTensorOf{}) -> error "see static building issues on branch dev/hmatrix"
-      VNeutral $ NApp (NApp (NApp (NApp (NApp (NFree "mmult") m) n) k) u) v
+  mmultImpl = vlam EArg (Just (CaseInsensitive "u")) $ \u -> VLam EArg (Just (CaseInsensitive "v")) $ \v ->
+    case (u, v) of
+      (VTensorOf _ arr, VTensorOf _ arr') -> do
+        iarr <- sequence (Array.mapA (fmap int2Double . evalInt) arr)
+        iarr' <- sequence (Array.mapA (fmap int2Double . evalInt) arr')
+        let
+          multArr = tensorContract [1] [0] iarr iarr'
+          vtd = VTensorDescriptor vint (vintOf <$> Array.shapeL multArr)
+        pure (VTensorOf vtd (vintOf . round <$> multArr))
+      _ -> pure . VNeutral $ NApp EArg (NApp EArg (NFree "mmult") u) v

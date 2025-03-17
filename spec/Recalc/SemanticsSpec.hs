@@ -71,10 +71,10 @@ spec = do
 
       runEval (Free "not")
         `shouldBe` Right
-          (vlam EArg (pat "x") (VNeutral . NApp (NFree "not")))
+          (vlam EArg (pat "x") (VNeutral . NApp EArg (NFree "not")))
       runEval (Free "not")
         `shouldBe` Right
-          (vlam EArg (pat "a") (VNeutral . NApp (NFree "not")))
+          (vlam EArg (pat "a") (VNeutral . NApp EArg (NFree "not")))
       runEval (Free "not")
         `shouldNotBe` Right
           (vlam EArg (pat "a") (\_x -> VNeutral (NFree "not")))
@@ -130,7 +130,7 @@ spec = do
 
       runEval (Free "f" :$ Inf (Free "g" :$ Inf (Free "x")))
         `shouldBe` Right
-          (VNeutral (NApp (NFree "f") (VNeutral (NApp (NFree "g") (VNeutral (NFree "x"))))))
+          (VNeutral (NApp EArg (NFree "f") (VNeutral (NApp EArg (NFree "g") (VNeutral (NFree "x"))))))
 
 type Result = Either (FetchError SemanticError)
 

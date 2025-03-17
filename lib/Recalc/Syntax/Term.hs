@@ -26,6 +26,7 @@ import Numeric
 import Prettyprinter
 
 import Recalc.Engine (CellAddr, CellRange)
+import Recalc.Univer.Protocol (quotientOn)
 
 -- * Terms
 
@@ -250,8 +251,17 @@ instance Pretty (Term m) where
       Tensor td -> prTensor env td
       TensorOf _ arr -> list (map (pr env 0) (Array.toList arr))
       app@App{} ->
-        let (y, ys) = splitApp app
-        in  hang 2 $ pr env 0 y <> softline' <> align (tupled $ map (pr env 0 . snd) ys)
+        let
+          (y, ys) = splitApp app
+        in
+          hang 2
+            $ pr env 0 y
+              <> cat
+                [ (softline' <>)
+                  . (case arg of EArg -> tupled; IArg -> braced)
+                  $ map (pr env 0 . snd) ys'
+                | (arg, ys') <- quotientOn fst ys
+                ]
 
     prTensor env (TensorDescriptor base dims) =
       align
