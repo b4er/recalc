@@ -134,10 +134,7 @@ execRecalc inputs = snd . recalc inputs
 
 {- internal -}
 
--- | types are values
-type TypeOf t = ValueOf t
-
-runFetch :: EnvOf t -> Fetch (EnvOf t) (ErrorOf t) (ValueOf t) a -> Result (ErrorOf t) a
+runFetch :: EnvOf t -> FetchOf t a -> Result (ErrorOf t) a
 runFetch env = runFetchWith env (\_ _ -> throwError RefError)
 
 -- | create a new engine state, initialising the custom context

@@ -174,7 +174,7 @@ spec = do
 
 type Result = Either (FetchError SemanticError)
 
-runFetch :: [(Name, Decl)] -> Fetch Env SemanticError Value a -> Result a
+runFetch :: [(Name, Decl)] -> FetchOf (Term Infer) a -> Result a
 runFetch extra = runFetchWith env f
  where
   env = Env (prelude <> Map.fromList extra)

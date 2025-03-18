@@ -12,11 +12,11 @@ spreadsheet engine.
 -}
 module Recalc.EngineSpec where
 
-import Control.Monad (join, void)
+import Control.Monad (void)
 import Control.Monad.Reader
 import Data.Char (isAlphaNum)
 import Data.List (foldl', sortOn)
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (mapMaybe)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.String (IsString (..))
@@ -36,7 +36,7 @@ import Recalc.Repl (newEngineState, recalc)
 instance IsString (Maybe String) where
   fromString = \case "" -> Nothing; str -> Just str
 
-type Result = Either (FetchError Void)
+type Result = Either (FetchError ())
 
 -- | evalSheet all inputs in sequence
 run :: [[(CellAddr, Maybe String)]] -> (ResultsOf Term, EngineStateOf Term)
@@ -50,20 +50,21 @@ evalSheet =
   -- make sure the results are sorted
   sortOn fst
     -- only keep (ca, val), drop all errors
-    . mapMaybe (\((_, ca), x) -> (ca,) <$> join (snd =<< snd =<< snd =<< cell x))
+    . mapMaybe (\((_, ca), c) -> fmap (ca,) . snd =<< snd =<< snd =<< cell c)
     . fst
     . run -- drop state
 
 evalSheetKeepErrors :: [[(CellAddr, Maybe String)]] -> [(CellAddr, Result Int)]
 evalSheetKeepErrors =
   sortOn fst
-    . map (\((_, ca), x) -> (ca, unpack (cell x, cellError x)))
+    . map (\((_, ca), x) -> (ca, unpack x))
     . fst
     . run
  where
-  unpack = \case
+  unpack :: Cell () Term () Int -> Result Int
+  unpack c = case (cell c, cellError c) of
     (_, Just err) -> Left err
-    (Just (_, Just (_, Just (_, Just (Just q)))), _) -> Right q
+    (Just (_, Just (_, Just (_, Just q))), _) -> Right q
     _ -> Left RefError
 
 -- | the specification checks a few (single-document, single-sheet) examples
@@ -135,6 +136,11 @@ spec = do
         ]
       `shouldBe` [((0, 1), 42), ((2, 2), 42)]
 
+  describe "elaboration" $ do
+    it "passes funky test (elaborate error term to 42)"
+      $ evalSheetKeepErrors [[((0, 0), "=funky")]]
+      `shouldBe` [((0, 0), Right 42)]
+
 {- AST for a simple spreadsheet language (numbers, addition, references, sums of ranges) -}
 
 -- | when referencing a cell, the uri and sheetName can be omited
@@ -155,6 +161,7 @@ data Term
   | Add Term Term
   | Ref SheetRef CellAddr
   | Sum SheetRef CellRange
+  | Funky
   deriving (Show)
 
 instance Pretty Term where
@@ -165,6 +172,7 @@ instance Pretty Term where
     Sum _ (begin, end) ->
       "sum"
         <> parens (pretty $ showExcel26 begin <> ":" <> showExcel26 end)
+    Funky -> "funky"
 
 {- Parsing -}
 
@@ -175,10 +183,13 @@ formulaP :: Parser Term
 formulaP = char '=' *> termP
  where
   termP = do
-    t <- choice [valueP, try sumP, refP]
+    t <- choice [valueP, funkyP, try sumP, refP]
     option t (Add t <$> (char '+' *> termP))
 
   refP = Ref <$> sheetIdP <*> cellAddrP
+
+  funkyP = Funky <$ string "funky"
+
   sumP = do
     void (string "SUM")
     between (char '(') (char ')')
@@ -212,21 +223,24 @@ valueP = Num <$> (option id (negate <$ char '-') <*> decimal)
 {- Language Semantics -}
 
 instance Recalc Term where
-  -- there is no additional context for typing/evaluation
+  -- \| there is no additional context for typing/evaluation
   type EnvOf Term = ()
 
-  -- there will not be errors
-  type ErrorOf Term = Void
+  -- \| there will not be errors
+  type ErrorOf Term = ()
 
-  -- Nothing as type, Just as values
-  type ValueOf Term = Maybe Int
+  -- \| all types are int
+  type TypeOf Term = ()
+
+  -- \| values are int
+  type ValueOf Term = Int
 
   parseCell :: CellType -> Parser Term
   parseCell = \case
     CellFormula -> formulaP
     CellValue -> valueP
 
-  -- dependencies of a term
+  -- \| dependencies of a term
   depsOf :: Term -> Set CellRangeRef
   depsOf = \case
     Add x y -> foldMap depsOf [x, y]
@@ -234,20 +248,26 @@ instance Recalc Term where
     Sum sheetRef cr -> Set.singleton (sheetId sheetRef, cr)
     _ -> Set.empty
 
-  -- everything is untyped
-  infer :: Term -> Fetch () Void (Maybe Int) (Maybe Int)
-  infer _ = pure Nothing
+  -- \| everything is untyped, however we elaborate `Funky ~> 42`
+  -- such that we can validate whether term elaboration works:
+  inferElaborate :: Term -> FetchOf Term ((), Term)
+  inferElaborate =
+    pure . ((),) . \case
+      Funky -> Num 42
+      t -> t
 
-  -- evaluation is straight-forward
-  eval :: Term -> Fetch () Void (Maybe Int) (Maybe Int)
+  -- \| evaluation is straight-forward
+  -- (`Funky` should not be called, see "inferElaborate"):
+  eval :: Term -> FetchOf Term Int
   eval = \case
-    Num n -> pure (Just n)
-    Add x y -> liftA2 (+) <$> eval x <*> eval y
+    Num n -> pure n
+    Add x y -> (+) <$> eval x <*> eval y
     Ref sheetRef ref -> fetchValue (sheetId sheetRef, ref)
-    Sum sheetRef (start, end) -> do
-      Just . sum . catMaybes
+    Sum sheetRef (start, end) ->
+      sum
         <$> sequence
           [ fetchValue (sheetId sheetRef, (i, j))
           | i <- [row start .. row end]
           , j <- [column start .. column end]
           ]
+    Funky -> throwSemanticError ()

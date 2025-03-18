@@ -73,7 +73,7 @@ import Recalc.Engine
   , CellRange
   , CellRangeRef
   , CellType (CellFormula, CellValue)
-  , Fetch
+  , FetchOf
   , Recalc (..)
   , SheetId
   , column
@@ -113,7 +113,7 @@ type Globals = Map Name Decl
 -- | the environment contains just the globally bound variables
 newtype Env = Env {globals :: Globals}
 
-type Spreadsheet = Fetch Env SemanticError Value
+type Spreadsheet = FetchOf (Term Infer)
 
 {- Values -}
 
@@ -294,7 +294,7 @@ quote = go 0
     either (error . show) id
       . runFetchWith
         (Env prelude)
-        (\_ (sheetId, ca) -> pure (VNeutral (NRef sheetId (ca, ca))))
+        (\_ (sheetId, ca) -> pure (Right (VNeutral (NRef sheetId (ca, ca)))))
 
   damn = error "quote: this shouldn't happen"
 
@@ -519,6 +519,7 @@ flattenTensor = \case
 instance Recalc (Term Infer) where
   type EnvOf (Term Infer) = Env
   type ErrorOf (Term Infer) = SemanticError
+  type TypeOf (Term Infer) = Value
   type ValueOf (Term Infer) = Value
 
   parseCell = \case

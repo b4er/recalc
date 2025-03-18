@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.9.2.0 -- 2025-03-17
+## 0.9.3.0 -- 2025-03-18
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -45,4 +45,6 @@
   simplify many things (eg. type checking, recalculation engine, tests by adding
   `Recalc.Repl`) fix more bugs, add tests. Add hmatrix and deps.
 * Implement sheet-defined functions.
-* Implement implicit arguments (pretty-printing for neutral terms is not pretty).
+* Implement implicit arguments (recalc), evaluation requires work.
+* Extend `Recalc` interface (recalc-engine) and allow `inferElaborate` to allow
+  type inference with term elaboration.

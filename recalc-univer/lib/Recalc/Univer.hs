@@ -48,7 +48,7 @@ class (Recalc t, Pretty t, Show (ErrorOf t)) => UniverRecalc t where
 
   define
     :: Text
-    -> Map CellAddr (Maybe ((String, CellType), Maybe (t, Maybe (ValueOf t, Maybe (ValueOf t)))))
+    -> Map CellAddr (Maybe ((String, CellType), Maybe (t, Maybe (TypeOf t, Maybe (ValueOf t)))))
     -> [(Text, CellRange)]
     -> CellRange
     -> EnvOf t
@@ -219,7 +219,7 @@ rpcDefineFunction DefineFunctionParams{..}
 
 {- IO & Serialisation -}
 
-sendResult :: UniverRecalc t => [(CellRef, Cell (ErrorOf t) t (ValueOf t))] -> IO ()
+sendResult :: UniverRecalc t => [(CellRef, CellOf t)] -> IO ()
 sendResult = sendIO . JsonRpcNotification "setRangeValues" . map (second packCell)
 
 -- sendError, sendInfo :: Text -> IO ()
@@ -232,7 +232,7 @@ showt = Text.pack . show
 renderPretty :: Pretty a => a -> Text
 renderPretty = renderStrict . layoutPretty defaultLayoutOptions . pretty
 
-packCell :: forall t. UniverRecalc t => Cell (ErrorOf t) t (ValueOf t) -> CellData
+packCell :: forall t. UniverRecalc t => CellOf t -> CellData
 packCell Cell{..} =
   CellData
     Missing
