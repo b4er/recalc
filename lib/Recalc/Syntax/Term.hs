@@ -234,7 +234,7 @@ instance Pretty (Term m) where
           parensIf (i > funP)
             $ annotateArg arg xn (pr env prec a) <+> "->" <+> pr (v : env) funP b
       Bound j -> pretty (env !! j)
-      Free (Quote n) -> pretty (reverse env !! n)
+      Free (Quote n) -> pretty (env !! n) -- not necessary?
       Free n -> pretty n
       Lit lit -> pretty lit
       LitOf val -> pretty val

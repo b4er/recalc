@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/5954d3359cc7178623da6c7fd23dc7f7504d7187";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -25,11 +25,16 @@
 
         dynamic = pkgs.hsPackages.callCabal2nix "recalc" ./. { };
 
-        static = (pkgs.pkgsStatic.hsPackages.extend (_: hprev: {
+        static = ((pkgs.pkgsStatic.hsPackages.extend (_: hprev: {
           # for static builds: disable the ts-defs since they rely on TH and it does not play nice
           recalc-univer = pkgs.haskell.lib.enableCabalFlag hprev.recalc-univer "disable-exe";
         })).callCabal2nix "recalc" ./.
-          { };
+          { }).overrideAttrs (old: {
+          # _gfortran_concat_string is defined here ...
+          # "--extra-lib-dirs=${pkgs.pkgsStatic.openblas}/lib"
+          #
+          # no idea why it is not able to link properly with -lgfortran
+        });
 
         ## read manifest file for extension
         manifest = builtins.fromJSON (builtins.readFile ./recalc-vscode/package.json);

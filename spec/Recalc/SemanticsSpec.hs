@@ -60,6 +60,46 @@ spec = do
         (Free "f" :$ Inf (Free "any"))
         `shouldBe` Right (vfree "any")
 
+    it "infers implicits correctly" $ do
+      let vtensor = VTensor . VTensorDescriptor (VLit Int)
+      -- matrix examples
+      runInfer
+        [("m", typeDecl (vtensor (map (VLitOf . IntOf) [3, 2])))]
+        (Free "mmult" :$ Inf (Free "m"))
+        `shouldBe` Right
+          ( VPi IArg (Just (CaseInsensitive "k")) (VLit Int) $ \k ->
+              pure $ vtensor [VLitOf (IntOf 2), k] `vfun` vtensor [VLitOf (IntOf 3), k]
+          )
+      runInfer
+        [ ("m", typeDecl (vtensor (map (VLitOf . IntOf) [3, 2])))
+        , ("n", typeDecl (vtensor (map (VLitOf . IntOf) [2, 4])))
+        ]
+        (Free "mmult" :$ Inf (Free "m"))
+        `shouldBe` Right
+          ( VPi IArg (Just (CaseInsensitive "k")) (VLit Int) $ \k ->
+              pure
+                $ vtensor [VLitOf (IntOf 2), k] `vfun` vtensor [VLitOf (IntOf 3), k]
+          )
+      -- identity and const
+      let
+        constT =
+          VPi IArg (Just (CaseInsensitive "a")) (VSet 0) $ \a -> pure $ VPi IArg (Just (CaseInsensitive "b")) (VSet 0) $ \b -> pure (a `vfun` b `vfun` a)
+
+        idT = VPi IArg (Just (CaseInsensitive "a")) (VSet 0) $ \a -> pure (a `vfun` a)
+
+      runInfer
+        [ ("id", typeDecl idT)
+        ]
+        (Free "id" :$ Inf (intOf 3))
+        `shouldBe` Right (VLit Int)
+
+      runInfer
+        [ ("const", typeDecl constT)
+        , ("id", typeDecl idT)
+        ]
+        (Free "const" :$ Inf (Free "id") :$ Inf (boolOf False))
+        `shouldBe` Right idT
+
   describe "eval" $ do
     it "evaluates Set(_)" $ do
       runEval (Set 0) `shouldBe` Right (VSet 0)

@@ -40,6 +40,7 @@ module Recalc.Language
   , infer'
   , Decl (..)
   , Value (..)
+  , VTensorDescriptor (..)
   , Neutral (..)
   , Globals
   , vapp
@@ -66,7 +67,6 @@ import GHC.Generics (Generic)
 import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
 
-import GHC.Float (int2Double)
 import Recalc.Array (tensorContract)
 import Recalc.Engine
   ( CellAddr
@@ -281,6 +281,7 @@ quote = go 0
     VNeutral n -> Inf (goNeutral i n)
 
   goNeutral i = \case
+    NFree (Quote k) -> Bound (i - k - 1)
     NFree n -> Free n
     NRef sheetId cr -> Ref sheetId FullySpecified cr
     NApp arg n v -> goNeutral i n `App` (arg, go i v)
@@ -643,8 +644,8 @@ prelude =
   mmultImpl = vlam EArg (Just (CaseInsensitive "u")) $ \u -> VLam EArg (Just (CaseInsensitive "v")) $ \v ->
     case (u, v) of
       (VTensorOf _ arr, VTensorOf _ arr') -> do
-        iarr <- sequence (Array.mapA (fmap int2Double . evalInt) arr)
-        iarr' <- sequence (Array.mapA (fmap int2Double . evalInt) arr')
+        iarr <- sequence (Array.mapA (fmap (undefined :: Int -> Double) . evalInt) arr)
+        iarr' <- sequence (Array.mapA (fmap undefined . evalInt) arr')
         let
           multArr = tensorContract [1] [0] iarr iarr'
           vtd = VTensorDescriptor vint (vintOf <$> Array.shapeL multArr)
