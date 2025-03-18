@@ -18,7 +18,7 @@ The latter will run a language server which implements the
 
 ## Packages
 
-- **[`recalc-engine`](./haddock/recalc-engine/index.tml)**:
+- **[`recalc-engine`](./haddock/recalc-engine/index.html)**:
   The core recalculation engine, includes a (preliminary) implementation for a
   dependency map, the document store (keeping track of files and their sheets).
   It defines the `Recalc` interfaces and provides the [`Fetch`][recalc-fetch]
@@ -44,7 +44,7 @@ The latter will run a language server which implements the
   [build]: https://github.com/snowleopard/build
   [recalc-class]: ./haddock/recalc-engine/Recalc-Engine.html#t:Recalc
   [recalc-fun]: ./haddock/recalc-engine/Recalc-Engine.html#v:recalc
-  [recalc-repl]: ./haddock/Recalc-Repl.html
+  [recalc-repl]: ./haddock/recalc-engine/Recalc-Repl.html
   [recalc-fetch]: ./haddock/recalc-engine/Recalc-Engine.html#t:Fetch
   [recalc-protocol]: ./haddock/recalc-univer/Recalc-Univer-Protocol.html#v:SpreadsheetProtocol
   [recalc-univer]: ./haddock/recalc-univer/Recalc-Univer.html

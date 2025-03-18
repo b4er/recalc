@@ -21,6 +21,8 @@ main :: IO ()
 main = univerMain @Term env0
 ```
 
+## `Recalc`
+
 The [Recalc][recalc] instance specifies how to
 
 - parse formulas and values (simple terms),
@@ -29,6 +31,12 @@ The [Recalc][recalc] instance specifies how to
   [`fetchType`][fetch-type]),
 - and evaluate a term (again given the values of other cells, this time using
   [`fetchValue`][fetch-value]).
+
+For type inference there are two functions that can be implented, either `infer`
+or `inferElaborate` (only one should be defined).  The latter is for
+type-directed elaboration and during type inference terms may be refined.
+
+## `UniverRecalc`
 
 The [`UniverRecalc`][univer-recalc] instance specifies how to
 

@@ -76,9 +76,7 @@
           docs = {
             type = "app";
             program = "${pkgs.writeShellScript "publish" ''
-              ${pkgs.hsPackages.cabal-install}/bin/cabal update
-              ${pkgs.hsPackages.cabal-install}/bin/cabal haddock-project \
-                --hackage --test --output=docs/haddock
+              nix develop -c sh -c 'cabal haddock-project --hackage --test --output=docs/haddock'
 
               # rewrite the links to hackage for recalc* Haddock
               for file in $(grep -rl 'https://hackage.haskell.org/package/recalc' docs/haddock); do

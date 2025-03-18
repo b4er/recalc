@@ -2,7 +2,10 @@
 
 The provided core language (see [`Recalc.Language`][recalc-language])
 implements a simple, dependently typed functional programming language
-based on LambdaPi[^1], which is extended by cell references.
+based on LambdaPi[^1], which is extended by
+
+- cell references (sized, nested multi-dimensional arrays), and
+- implicit arguments.
 
 ## Syntax
 
@@ -14,7 +17,7 @@ Cell references and ranges are similar to Excel:
 \mathfrak{n} \
   \mathrel{::=} & \text{A} \mid \text{B} \mid
       \dots \mid \text{AA} \mid \dots \\
-\alpha, \alpha
+\alpha
   \ \mathrel{::=} & \ \mathfrak{n}\ \mathfrak{m}
           \mid \mathfrak{n}\ \mathfrak{m}\ \textbf{:}\ \mathfrak{n}\ \mathfrak{m} \\
 \\
@@ -55,17 +58,22 @@ functions:
             & \color{grey}{\text{-- kind of types}}
   \\ & \mid & \texttt{(} \text{v}\texttt{:}\ \sigma \texttt{) -> } \tau
             & \color{grey}{\text{-- dependent function type}}
+  \\ & \mid & \texttt{\{} \text{v}\texttt{:}\ \sigma \texttt{\} -> } \tau
+            & \color{grey}{\text{-- implicit dependent function type}}
   \\ & \mid & \xi
             & \color{grey}{\text{-- cell reference}}
-  \\ & \mid & \text{f}\ \text{x}
+  \\ & \mid & \text{f(x}_1, \dots\text{)}
             & \color{grey}{\text{-- application}}
+  \\ & \mid & \text{f\{x}_1, \dots\text{\}}
+            & \color{grey}{\text{-- explicit application of an implicit argument}}
 \end{array}
 
 where \(\textit{literal}\) includes signed decimals, `int`, `bool`, `false`,
 and `true`. Identifiers are case-insensitive.
 
 When a function type ignores its argument it can be written as
-\(\sigma \texttt{ -> } \tau\).
+\(\sigma \texttt{ -> } \tau\) and similarly
+\(\text{\{}\sigma\text{\}} \texttt{ -> } \tau\) for implicit arguments.
 
 ## Typechecking and Inference
 
@@ -83,8 +91,11 @@ follows:
   \Gamma, \sigma\ \vdash\ e\ ::_{\downarrow}\ \tau
 \end{array}
 
-The new rules make use of the new type constructor \(\text{<}..\text{>[}\tau\text{]}\)
-for tensors (not part of the surface language) and are quite simple:
+### Cell References
+
+Rules concerning cell references and cell ranges make use of the new type
+constructor \(\text{<}..\text{>[}\tau\text{]}\) for tensors (not part of the
+surface language) and are quite simple:
 
 \begin{array}{c}
   \sigma_T(\textit{sheet-id}\ \textbf{!}\ \mathfrak{n}\ \mathfrak{m}) = \tau \\ \hline
@@ -135,6 +146,45 @@ The dimensions of the resulting tensor are given by
 
 That is, referring to an \(m \times n\) range of cells gives a tensor which
 potentially can become higher order when the elements are tensors by themselves.
+
+### Implicit Arguments
+
+Implicit arguments are covered by
+
+\begin{array}{c}
+  \Gamma, \sigma
+    \ \vdash\ \texttt{f} ::_{\uparrow}
+      \texttt{\{} \texttt{v}\texttt{:}\ \sigma \texttt{\} -> } \tau' \\
+  \Gamma, \sigma
+    \ \vdash\ \texttt{x} ::_{\downarrow} \sigma \\
+  \tau' \bigl[\texttt{v} \mapsto \texttt{x}\bigr] \Downarrow\ \tau'
+  \\ \hline
+  \Gamma, \sigma
+    \ \vdash\ \texttt{f\{x\}} ::_{\uparrow} \tau'
+\end{array}
+
+which follows the regular application rule, and
+
+\begin{array}{c}
+  \Gamma, \sigma
+    \ \vdash\ \texttt{f} ::_{\uparrow}
+      \prod_i\texttt{\{} \texttt{v}_i\texttt{:}\ \sigma_i \texttt{\}.}
+      \texttt{ (v: }\sigma\texttt{) -> } \tau
+  \\
+  \Gamma, \sigma
+    \ \vdash\ \texttt{x} ::_{\uparrow} \sigma' \\
+  I, S = \text{unify(}\sigma, \sigma'\text{)} \\
+  \tau \bigl[\texttt{v} \mapsto \texttt{x}\bigr] S \Downarrow\ \tau'
+  \\ \hline
+  \Gamma, \sigma
+    \ \vdash\ \texttt{f(x)} ::_{\uparrow}
+      \prod_{i \in I}\texttt{\{v}_i\texttt{: }\sigma_i\texttt{\} -> }\tau'
+\end{array}
+
+which uses unification to solve for implicict arguments (and leaves uninferrable
+untouched out). That is, \(I\) is the set of variables which are left unsolved by
+\(\text{unify}\), and \(S\) is a substitution from implicit variables to the solved
+terms that unifies \(\sigma'\) and \(\sigma'\).
 
 ## Evaluation
 
