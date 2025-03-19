@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="local-6989586621679103685"><span id="local-6989586621679103686"></span></span><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="local-6989586621679103944"><span id="local-6989586621679103945"></span></span><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
 </span><span id="line-2"></span><span>
 </span><span id="line-3"></span><span class="annot"><span class="hs-comment">{-|
 Module      : Recalc.Server.Protocol where
@@ -19,36 +19,36 @@ Description : Named protocol implementation for the JSON-RPC api.
 </span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Recalc.Engine</span></span><span>
 </span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Recalc.Server</span></span><span>
 </span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">data</span><span> </span><span id="SpreadsheetProtocol"><span class="annot"><a href="Recalc.Univer.Protocol.html#SpreadsheetProtocol"><span class="hs-identifier hs-var">SpreadsheetProtocol</span></a></span></span><span> </span><span id="local-6989586621679103335"><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SpreadsheetProtocol"><span class="annot"><a href="Recalc.Univer.Protocol.html#SpreadsheetProtocol"><span class="hs-identifier hs-var">SpreadsheetProtocol</span></a></span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">data</span><span> </span><span id="SpreadsheetProtocol"><span class="annot"><a href="Recalc.Univer.Protocol.html#SpreadsheetProtocol"><span class="hs-identifier hs-var">SpreadsheetProtocol</span></a></span></span><span> </span><span id="local-6989586621679103594"><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SpreadsheetProtocol"><span class="annot"><a href="Recalc.Univer.Protocol.html#SpreadsheetProtocol"><span class="hs-identifier hs-var">SpreadsheetProtocol</span></a></span></span><span>
 </span><span id="line-23"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="rpcOpen"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode -&gt; mode :- JsonRpc &quot;open&quot; OpenParams ()
-</span><a href="Recalc.Univer.Protocol.html#rpcOpen"><span class="hs-identifier hs-var hs-var">rpcOpen</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;open&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#OpenParams"><span class="hs-identifier hs-type">OpenParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcOpen"><span class="hs-identifier hs-var hs-var">rpcOpen</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;open&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#OpenParams"><span class="hs-identifier hs-type">OpenParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcSave"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode -&gt; mode :- JsonRpc &quot;save&quot; SaveParams ()
-</span><a href="Recalc.Univer.Protocol.html#rpcSave"><span class="hs-identifier hs-var hs-var">rpcSave</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;save&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SaveParams"><span class="hs-identifier hs-type">SaveParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcSave"><span class="hs-identifier hs-var hs-var">rpcSave</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;save&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SaveParams"><span class="hs-identifier hs-type">SaveParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcClose"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode -&gt; mode :- JsonRpc &quot;close&quot; CloseParams ()
-</span><a href="Recalc.Univer.Protocol.html#rpcClose"><span class="hs-identifier hs-var hs-var">rpcClose</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;close&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CloseParams"><span class="hs-identifier hs-type">CloseParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcClose"><span class="hs-identifier hs-var hs-var">rpcClose</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;close&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CloseParams"><span class="hs-identifier hs-type">CloseParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcSetRangeValues"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode
 -&gt; mode :- JsonRpc &quot;setRangeValues&quot; SetRangeValuesParams Cells
-</span><a href="Recalc.Univer.Protocol.html#rpcSetRangeValues"><span class="hs-identifier hs-var hs-var">rpcSetRangeValues</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;setRangeValues&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetRangeValuesParams"><span class="hs-identifier hs-type">SetRangeValuesParams</span></a></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcSetRangeValues"><span class="hs-identifier hs-var hs-var">rpcSetRangeValues</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;setRangeValues&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetRangeValuesParams"><span class="hs-identifier hs-type">SetRangeValuesParams</span></a></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span><span>
 </span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcInsertSheet"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode
 -&gt; mode :- JsonRpc &quot;insertSheet&quot; InsertSheetParams ()
-</span><a href="Recalc.Univer.Protocol.html#rpcInsertSheet"><span class="hs-identifier hs-var hs-var">rpcInsertSheet</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;insertSheet&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#InsertSheetParams"><span class="hs-identifier hs-type">InsertSheetParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcInsertSheet"><span class="hs-identifier hs-var hs-var">rpcInsertSheet</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;insertSheet&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#InsertSheetParams"><span class="hs-identifier hs-type">InsertSheetParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcRemoveSheet"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode
 -&gt; mode :- JsonRpc &quot;removeSheet&quot; RemoveSheetParams ()
-</span><a href="Recalc.Univer.Protocol.html#rpcRemoveSheet"><span class="hs-identifier hs-var hs-var">rpcRemoveSheet</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;removeSheet&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#RemoveSheetParams"><span class="hs-identifier hs-type">RemoveSheetParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcRemoveSheet"><span class="hs-identifier hs-var hs-var">rpcRemoveSheet</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;removeSheet&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#RemoveSheetParams"><span class="hs-identifier hs-type">RemoveSheetParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcSetWorksheetOrder"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode
 -&gt; mode :- JsonRpc &quot;setWorksheetOrder&quot; SetWorksheetOrderParams ()
-</span><a href="Recalc.Univer.Protocol.html#rpcSetWorksheetOrder"><span class="hs-identifier hs-var hs-var">rpcSetWorksheetOrder</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;setWorksheetOrder&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetOrderParams"><span class="hs-identifier hs-type">SetWorksheetOrderParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcSetWorksheetOrder"><span class="hs-identifier hs-var hs-var">rpcSetWorksheetOrder</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;setWorksheetOrder&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetOrderParams"><span class="hs-identifier hs-type">SetWorksheetOrderParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcSetWorksheetName"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode
 -&gt; mode :- JsonRpc &quot;setWorksheetName&quot; SetWorksheetNameParams ()
-</span><a href="Recalc.Univer.Protocol.html#rpcSetWorksheetName"><span class="hs-identifier hs-var hs-var">rpcSetWorksheetName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;setWorksheetName&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetNameParams"><span class="hs-identifier hs-type">SetWorksheetNameParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="Recalc.Univer.Protocol.html#rpcSetWorksheetName"><span class="hs-identifier hs-var hs-var">rpcSetWorksheetName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;setWorksheetName&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetNameParams"><span class="hs-identifier hs-type">SetWorksheetNameParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-31"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rpcDefineFunction"><span class="annot"><span class="annottext">forall {k} (mode :: k).
 SpreadsheetProtocol mode
 -&gt; mode
@@ -57,9 +57,9 @@ SpreadsheetProtocol mode
         DefineFunctionParams
         (Either Text [FunctionDescription])
 </span><a href="Recalc.Univer.Protocol.html#rpcDefineFunction"><span class="hs-identifier hs-var hs-var">rpcDefineFunction</span></a></span></span><span>
-</span><span id="line-32"></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103335"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;defineFunction&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#DefineFunctionParams"><span class="hs-identifier hs-type">DefineFunctionParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionDescription"><span class="hs-identifier hs-type">FunctionDescription</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103594"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:-</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JsonRpc</span></span><span> </span><span class="annot"><span class="hs-string">&quot;defineFunction&quot;</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#DefineFunctionParams"><span class="hs-identifier hs-type">DefineFunctionParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionDescription"><span class="hs-identifier hs-type">FunctionDescription</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><span id="line-33"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-34"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103702"><span id="local-6989586621679103704"><span class="annot"><span class="annottext">(forall x.
+</span><span id="line-34"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103961"><span id="local-6989586621679103963"><span class="annot"><span class="annottext">(forall x.
  SpreadsheetProtocol mode -&gt; Rep (SpreadsheetProtocol mode) x)
 -&gt; (forall x.
     Rep (SpreadsheetProtocol mode) x -&gt; SpreadsheetProtocol mode)
@@ -90,7 +90,7 @@ Rep (SpreadsheetProtocol mode) x -&gt; SpreadsheetProtocol mode
 </span><span id="line-38"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="open%27sheetOrder"><span class="annot"><span class="annottext">OpenParams -&gt; [Text]
 </span><a href="Recalc.Univer.Protocol.html#open%27sheetOrder"><span class="hs-identifier hs-var hs-var">open'sheetOrder</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">]</span><span>
 </span><span id="line-39"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-40"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103711"><span id="local-6989586621679103720"><span id="local-6989586621679103724"><span class="annot"><span class="annottext">Int -&gt; OpenParams -&gt; ShowS
+</span><span id="line-40"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103970"><span id="local-6989586621679103979"><span id="local-6989586621679103983"><span class="annot"><span class="annottext">Int -&gt; OpenParams -&gt; ShowS
 [OpenParams] -&gt; ShowS
 OpenParams -&gt; String
 (Int -&gt; OpenParams -&gt; ShowS)
@@ -105,7 +105,7 @@ $cshow :: OpenParams -&gt; String
 show :: OpenParams -&gt; String
 $cshowList :: [OpenParams] -&gt; ShowS
 showList :: [OpenParams] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103729"><span id="local-6989586621679103731"><span class="annot"><span class="annottext">(forall x. OpenParams -&gt; Rep OpenParams x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103988"><span id="local-6989586621679103990"><span class="annot"><span class="annottext">(forall x. OpenParams -&gt; Rep OpenParams x)
 -&gt; (forall x. Rep OpenParams x -&gt; OpenParams) -&gt; Generic OpenParams
 forall x. Rep OpenParams x -&gt; OpenParams
 forall x. OpenParams -&gt; Rep OpenParams x
@@ -120,7 +120,7 @@ to :: forall x. Rep OpenParams x -&gt; OpenParams
 </span><span id="line-42"></span><span class="hs-keyword">data</span><span> </span><span id="SaveParams"><span class="annot"><a href="Recalc.Univer.Protocol.html#SaveParams"><span class="hs-identifier hs-var">SaveParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SaveParams"><span class="annot"><a href="Recalc.Univer.Protocol.html#SaveParams"><span class="hs-identifier hs-var">SaveParams</span></a></span></span><span> </span><span class="hs-special">{</span><span id="save%27uri"><span class="annot"><span class="annottext">SaveParams -&gt; URI
 </span><a href="Recalc.Univer.Protocol.html#save%27uri"><span class="hs-identifier hs-var hs-var">save'uri</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">URI</span></span><span class="hs-special">,</span><span> </span><span id="save%27asUri"><span class="annot"><span class="annottext">SaveParams -&gt; URI
 </span><a href="Recalc.Univer.Protocol.html#save%27asUri"><span class="hs-identifier hs-var hs-var">save'asUri</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">URI</span></span><span class="hs-special">}</span><span>
-</span><span id="line-43"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103737"><span id="local-6989586621679103739"><span class="annot"><span class="annottext">(forall x. SaveParams -&gt; Rep SaveParams x)
+</span><span id="line-43"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103996"><span id="local-6989586621679103998"><span class="annot"><span class="annottext">(forall x. SaveParams -&gt; Rep SaveParams x)
 -&gt; (forall x. Rep SaveParams x -&gt; SaveParams) -&gt; Generic SaveParams
 forall x. Rep SaveParams x -&gt; SaveParams
 forall x. SaveParams -&gt; Rep SaveParams x
@@ -130,7 +130,7 @@ $cfrom :: forall x. SaveParams -&gt; Rep SaveParams x
 from :: forall x. SaveParams -&gt; Rep SaveParams x
 $cto :: forall x. Rep SaveParams x -&gt; SaveParams
 to :: forall x. Rep SaveParams x -&gt; SaveParams
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103742"><span id="local-6989586621679103747"><span id="local-6989586621679103751"><span class="annot"><span class="annottext">Int -&gt; SaveParams -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104001"><span id="local-6989586621679104006"><span id="local-6989586621679104010"><span class="annot"><span class="annottext">Int -&gt; SaveParams -&gt; ShowS
 [SaveParams] -&gt; ShowS
 SaveParams -&gt; String
 (Int -&gt; SaveParams -&gt; ShowS)
@@ -149,7 +149,7 @@ showList :: [SaveParams] -&gt; ShowS
 </span><span id="line-44"></span><span>
 </span><span id="line-45"></span><span class="hs-keyword">newtype</span><span> </span><span id="CloseParams"><span class="annot"><a href="Recalc.Univer.Protocol.html#CloseParams"><span class="hs-identifier hs-var">CloseParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CloseParams"><span class="annot"><a href="Recalc.Univer.Protocol.html#CloseParams"><span class="hs-identifier hs-var">CloseParams</span></a></span></span><span> </span><span class="hs-special">{</span><span id="close%27uri"><span class="annot"><span class="annottext">CloseParams -&gt; URI
 </span><a href="Recalc.Univer.Protocol.html#close%27uri"><span class="hs-identifier hs-var hs-var">close'uri</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">URI</span></span><span class="hs-special">}</span><span>
-</span><span id="line-46"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103756"><span id="local-6989586621679103758"><span class="annot"><span class="annottext">(forall x. CloseParams -&gt; Rep CloseParams x)
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104015"><span id="local-6989586621679104017"><span class="annot"><span class="annottext">(forall x. CloseParams -&gt; Rep CloseParams x)
 -&gt; (forall x. Rep CloseParams x -&gt; CloseParams)
 -&gt; Generic CloseParams
 forall x. Rep CloseParams x -&gt; CloseParams
@@ -160,7 +160,7 @@ $cfrom :: forall x. CloseParams -&gt; Rep CloseParams x
 from :: forall x. CloseParams -&gt; Rep CloseParams x
 $cto :: forall x. Rep CloseParams x -&gt; CloseParams
 to :: forall x. Rep CloseParams x -&gt; CloseParams
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103761"><span id="local-6989586621679103765"><span id="local-6989586621679103769"><span class="annot"><span class="annottext">Int -&gt; CloseParams -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104020"><span id="local-6989586621679104024"><span id="local-6989586621679104028"><span class="annot"><span class="annottext">Int -&gt; CloseParams -&gt; ShowS
 [CloseParams] -&gt; ShowS
 CloseParams -&gt; String
 (Int -&gt; CloseParams -&gt; ShowS)
@@ -185,7 +185,7 @@ showList :: [CloseParams] -&gt; ShowS
 </span><span id="line-51"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="setRangeValues%27cells"><span class="annot"><span class="annottext">SetRangeValuesParams -&gt; Cells
 </span><a href="Recalc.Univer.Protocol.html#setRangeValues%27cells"><span class="hs-identifier hs-var hs-var">setRangeValues'cells</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span><span>
 </span><span id="line-52"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-53"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103776"><span id="local-6989586621679103778"><span class="annot"><span class="annottext">(forall x. SetRangeValuesParams -&gt; Rep SetRangeValuesParams x)
+</span><span id="line-53"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104035"><span id="local-6989586621679104037"><span class="annot"><span class="annottext">(forall x. SetRangeValuesParams -&gt; Rep SetRangeValuesParams x)
 -&gt; (forall x. Rep SetRangeValuesParams x -&gt; SetRangeValuesParams)
 -&gt; Generic SetRangeValuesParams
 forall x. Rep SetRangeValuesParams x -&gt; SetRangeValuesParams
@@ -196,7 +196,7 @@ $cfrom :: forall x. SetRangeValuesParams -&gt; Rep SetRangeValuesParams x
 from :: forall x. SetRangeValuesParams -&gt; Rep SetRangeValuesParams x
 $cto :: forall x. Rep SetRangeValuesParams x -&gt; SetRangeValuesParams
 to :: forall x. Rep SetRangeValuesParams x -&gt; SetRangeValuesParams
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103781"><span id="local-6989586621679103788"><span id="local-6989586621679103792"><span class="annot"><span class="annottext">Int -&gt; SetRangeValuesParams -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104040"><span id="local-6989586621679104047"><span id="local-6989586621679104051"><span class="annot"><span class="annottext">Int -&gt; SetRangeValuesParams -&gt; ShowS
 [SetRangeValuesParams] -&gt; ShowS
 SetRangeValuesParams -&gt; String
 (Int -&gt; SetRangeValuesParams -&gt; ShowS)
@@ -223,7 +223,7 @@ showList :: [SetRangeValuesParams] -&gt; ShowS
 </span><span id="line-59"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="insertSheet%27sheetName"><span class="annot"><span class="annottext">InsertSheetParams -&gt; Text
 </span><a href="Recalc.Univer.Protocol.html#insertSheet%27sheetName"><span class="hs-identifier hs-var hs-var">insertSheet'sheetName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
 </span><span id="line-60"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-61"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103800"><span id="local-6989586621679103808"><span id="local-6989586621679103812"><span class="annot"><span class="annottext">Int -&gt; InsertSheetParams -&gt; ShowS
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104059"><span id="local-6989586621679104067"><span id="local-6989586621679104071"><span class="annot"><span class="annottext">Int -&gt; InsertSheetParams -&gt; ShowS
 [InsertSheetParams] -&gt; ShowS
 InsertSheetParams -&gt; String
 (Int -&gt; InsertSheetParams -&gt; ShowS)
@@ -238,7 +238,7 @@ $cshow :: InsertSheetParams -&gt; String
 show :: InsertSheetParams -&gt; String
 $cshowList :: [InsertSheetParams] -&gt; ShowS
 showList :: [InsertSheetParams] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103815"><span id="local-6989586621679103817"><span class="annot"><span class="annottext">(forall x. InsertSheetParams -&gt; Rep InsertSheetParams x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104074"><span id="local-6989586621679104076"><span class="annot"><span class="annottext">(forall x. InsertSheetParams -&gt; Rep InsertSheetParams x)
 -&gt; (forall x. Rep InsertSheetParams x -&gt; InsertSheetParams)
 -&gt; Generic InsertSheetParams
 forall x. Rep InsertSheetParams x -&gt; InsertSheetParams
@@ -257,7 +257,7 @@ to :: forall x. Rep InsertSheetParams x -&gt; InsertSheetParams
 </span><span id="line-65"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="removeSheet%27sheetName"><span class="annot"><span class="annottext">RemoveSheetParams -&gt; Text
 </span><a href="Recalc.Univer.Protocol.html#removeSheet%27sheetName"><span class="hs-identifier hs-var hs-var">removeSheet'sheetName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
 </span><span id="line-66"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-67"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103823"><span id="local-6989586621679103828"><span id="local-6989586621679103832"><span class="annot"><span class="annottext">Int -&gt; RemoveSheetParams -&gt; ShowS
+</span><span id="line-67"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104082"><span id="local-6989586621679104087"><span id="local-6989586621679104091"><span class="annot"><span class="annottext">Int -&gt; RemoveSheetParams -&gt; ShowS
 [RemoveSheetParams] -&gt; ShowS
 RemoveSheetParams -&gt; String
 (Int -&gt; RemoveSheetParams -&gt; ShowS)
@@ -272,7 +272,7 @@ $cshow :: RemoveSheetParams -&gt; String
 show :: RemoveSheetParams -&gt; String
 $cshowList :: [RemoveSheetParams] -&gt; ShowS
 showList :: [RemoveSheetParams] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103835"><span id="local-6989586621679103837"><span class="annot"><span class="annottext">(forall x. RemoveSheetParams -&gt; Rep RemoveSheetParams x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104094"><span id="local-6989586621679104096"><span class="annot"><span class="annottext">(forall x. RemoveSheetParams -&gt; Rep RemoveSheetParams x)
 -&gt; (forall x. Rep RemoveSheetParams x -&gt; RemoveSheetParams)
 -&gt; Generic RemoveSheetParams
 forall x. Rep RemoveSheetParams x -&gt; RemoveSheetParams
@@ -295,7 +295,7 @@ to :: forall x. Rep RemoveSheetParams x -&gt; RemoveSheetParams
 </span><span id="line-73"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="setWorksheetOrder%27to"><span class="annot"><span class="annottext">SetWorksheetOrderParams -&gt; Int
 </span><a href="Recalc.Univer.Protocol.html#setWorksheetOrder%27to"><span class="hs-identifier hs-var hs-var">setWorksheetOrder'to</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
 </span><span id="line-74"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-75"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103845"><span id="local-6989586621679103852"><span id="local-6989586621679103856"><span class="annot"><span class="annottext">Int -&gt; SetWorksheetOrderParams -&gt; ShowS
+</span><span id="line-75"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104104"><span id="local-6989586621679104111"><span id="local-6989586621679104115"><span class="annot"><span class="annottext">Int -&gt; SetWorksheetOrderParams -&gt; ShowS
 [SetWorksheetOrderParams] -&gt; ShowS
 SetWorksheetOrderParams -&gt; String
 (Int -&gt; SetWorksheetOrderParams -&gt; ShowS)
@@ -310,7 +310,7 @@ $cshow :: SetWorksheetOrderParams -&gt; String
 show :: SetWorksheetOrderParams -&gt; String
 $cshowList :: [SetWorksheetOrderParams] -&gt; ShowS
 showList :: [SetWorksheetOrderParams] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103859"><span id="local-6989586621679103861"><span class="annot"><span class="annottext">(forall x.
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104118"><span id="local-6989586621679104120"><span class="annot"><span class="annottext">(forall x.
  SetWorksheetOrderParams -&gt; Rep SetWorksheetOrderParams x)
 -&gt; (forall x.
     Rep SetWorksheetOrderParams x -&gt; SetWorksheetOrderParams)
@@ -325,9 +325,9 @@ $cto :: forall x. Rep SetWorksheetOrderParams x -&gt; SetWorksheetOrderParams
 to :: forall x. Rep SetWorksheetOrderParams x -&gt; SetWorksheetOrderParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-76"></span><span>
-</span><span id="line-77"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679103865"><span id="local-6989586621679103869"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetOrderParams"><span class="hs-identifier hs-type">SetWorksheetOrderParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-78"></span><span>  </span><span id="local-6989586621679103974"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SetWorksheetOrderParams
-</span><a href="#local-6989586621679103974"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser SetWorksheetOrderParams
+</span><span id="line-77"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104124"><span id="local-6989586621679104128"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetOrderParams"><span class="hs-identifier hs-type">SetWorksheetOrderParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-78"></span><span>  </span><span id="local-6989586621679104233"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SetWorksheetOrderParams
+</span><a href="#local-6989586621679104233"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser SetWorksheetOrderParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
 Options -&gt; Value -&gt; Parser a
@@ -342,7 +342,7 @@ Options -&gt; Value -&gt; Parser a
 </span><span id="line-83"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="setWorksheetName%27newName"><span class="annot"><span class="annottext">SetWorksheetNameParams -&gt; Text
 </span><a href="Recalc.Univer.Protocol.html#setWorksheetName%27newName"><span class="hs-identifier hs-var hs-var">setWorksheetName'newName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
 </span><span id="line-84"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-85"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679103983"><span id="local-6989586621679103989"><span id="local-6989586621679103993"><span class="annot"><span class="annottext">Int -&gt; SetWorksheetNameParams -&gt; ShowS
+</span><span id="line-85"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104242"><span id="local-6989586621679104248"><span id="local-6989586621679104252"><span class="annot"><span class="annottext">Int -&gt; SetWorksheetNameParams -&gt; ShowS
 [SetWorksheetNameParams] -&gt; ShowS
 SetWorksheetNameParams -&gt; String
 (Int -&gt; SetWorksheetNameParams -&gt; ShowS)
@@ -357,7 +357,7 @@ $cshow :: SetWorksheetNameParams -&gt; String
 show :: SetWorksheetNameParams -&gt; String
 $cshowList :: [SetWorksheetNameParams] -&gt; ShowS
 showList :: [SetWorksheetNameParams] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679103996"><span id="local-6989586621679103998"><span class="annot"><span class="annottext">(forall x. SetWorksheetNameParams -&gt; Rep SetWorksheetNameParams x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104255"><span id="local-6989586621679104257"><span class="annot"><span class="annottext">(forall x. SetWorksheetNameParams -&gt; Rep SetWorksheetNameParams x)
 -&gt; (forall x.
     Rep SetWorksheetNameParams x -&gt; SetWorksheetNameParams)
 -&gt; Generic SetWorksheetNameParams
@@ -383,7 +383,7 @@ to :: forall x. Rep SetWorksheetNameParams x -&gt; SetWorksheetNameParams
 </span><span id="line-92"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="defineFunction%27output"><span class="annot"><span class="annottext">DefineFunctionParams -&gt; CellRange
 </span><a href="Recalc.Univer.Protocol.html#defineFunction%27output"><span class="hs-identifier hs-var hs-var">defineFunction'output</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CellRange</span></span><span>
 </span><span id="line-93"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-94"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104007"><span id="local-6989586621679104017"><span id="local-6989586621679104021"><span class="annot"><span class="annottext">Int -&gt; DefineFunctionParams -&gt; ShowS
+</span><span id="line-94"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104266"><span id="local-6989586621679104276"><span id="local-6989586621679104280"><span class="annot"><span class="annottext">Int -&gt; DefineFunctionParams -&gt; ShowS
 [DefineFunctionParams] -&gt; ShowS
 DefineFunctionParams -&gt; String
 (Int -&gt; DefineFunctionParams -&gt; ShowS)
@@ -398,7 +398,7 @@ $cshow :: DefineFunctionParams -&gt; String
 show :: DefineFunctionParams -&gt; String
 $cshowList :: [DefineFunctionParams] -&gt; ShowS
 showList :: [DefineFunctionParams] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104029"><span id="local-6989586621679104031"><span class="annot"><span class="annottext">(forall x. DefineFunctionParams -&gt; Rep DefineFunctionParams x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104288"><span id="local-6989586621679104290"><span class="annot"><span class="annottext">(forall x. DefineFunctionParams -&gt; Rep DefineFunctionParams x)
 -&gt; (forall x. Rep DefineFunctionParams x -&gt; DefineFunctionParams)
 -&gt; Generic DefineFunctionParams
 forall x. Rep DefineFunctionParams x -&gt; DefineFunctionParams
@@ -447,7 +447,7 @@ to :: forall x. Rep DefineFunctionParams x -&gt; DefineFunctionParams
 </span><span id="line-129"></span><span>    </span><span id="User"><span class="annot"><a href="Recalc.Univer.Protocol.html#User"><span class="hs-identifier hs-var">User</span></a></span></span><span>
 </span><span id="line-130"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Defined name</span></span><span>
 </span><span id="line-131"></span><span>    </span><span id="DefinedName"><span class="annot"><a href="Recalc.Univer.Protocol.html#DefinedName"><span class="hs-identifier hs-var">DefinedName</span></a></span></span><span>
-</span><span id="line-132"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104051"><span id="local-6989586621679104053"><span id="local-6989586621679104057"><span class="annot"><span class="annottext">Int -&gt; FunctionType -&gt; ShowS
+</span><span id="line-132"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104310"><span id="local-6989586621679104312"><span id="local-6989586621679104316"><span class="annot"><span class="annottext">Int -&gt; FunctionType -&gt; ShowS
 [FunctionType] -&gt; ShowS
 FunctionType -&gt; String
 (Int -&gt; FunctionType -&gt; ShowS)
@@ -462,7 +462,7 @@ $cshow :: FunctionType -&gt; String
 show :: FunctionType -&gt; String
 $cshowList :: [FunctionType] -&gt; ShowS
 showList :: [FunctionType] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104060"><span id="local-6989586621679104068"><span id="local-6989586621679104074"><span id="local-6989586621679104082"><span id="local-6989586621679104084"><span id="local-6989586621679104088"><span id="local-6989586621679104092"><span id="local-6989586621679104096"><span class="annot"><span class="annottext">Int -&gt; FunctionType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104319"><span id="local-6989586621679104327"><span id="local-6989586621679104333"><span id="local-6989586621679104341"><span id="local-6989586621679104343"><span id="local-6989586621679104347"><span id="local-6989586621679104351"><span id="local-6989586621679104355"><span class="annot"><span class="annottext">Int -&gt; FunctionType
 FunctionType -&gt; Int
 FunctionType -&gt; [FunctionType]
 FunctionType -&gt; FunctionType
@@ -513,7 +513,7 @@ enumFromThenTo :: FunctionType -&gt; FunctionType -&gt; FunctionType -&gt; [Func
 </span><span id="line-137"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="parameter%27example"><span class="annot"><span class="annottext">FunctionParameter -&gt; Text
 </span><a href="Recalc.Univer.Protocol.html#parameter%27example"><span class="hs-identifier hs-var hs-var">parameter'example</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
 </span><span id="line-138"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-139"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104104"><span id="local-6989586621679104110"><span id="local-6989586621679104114"><span class="annot"><span class="annottext">Int -&gt; FunctionParameter -&gt; ShowS
+</span><span id="line-139"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104363"><span id="local-6989586621679104369"><span id="local-6989586621679104373"><span class="annot"><span class="annottext">Int -&gt; FunctionParameter -&gt; ShowS
 [FunctionParameter] -&gt; ShowS
 FunctionParameter -&gt; String
 (Int -&gt; FunctionParameter -&gt; ShowS)
@@ -528,7 +528,7 @@ $cshow :: FunctionParameter -&gt; String
 show :: FunctionParameter -&gt; String
 $cshowList :: [FunctionParameter] -&gt; ShowS
 showList :: [FunctionParameter] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104117"><span id="local-6989586621679104119"><span class="annot"><span class="annottext">(forall x. FunctionParameter -&gt; Rep FunctionParameter x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104376"><span id="local-6989586621679104378"><span class="annot"><span class="annottext">(forall x. FunctionParameter -&gt; Rep FunctionParameter x)
 -&gt; (forall x. Rep FunctionParameter x -&gt; FunctionParameter)
 -&gt; Generic FunctionParameter
 forall x. Rep FunctionParameter x -&gt; FunctionParameter
@@ -553,7 +553,7 @@ to :: forall x. Rep FunctionParameter x -&gt; FunctionParameter
 </span><span id="line-146"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="functionDescription%27params"><span class="annot"><span class="annottext">FunctionDescription -&gt; [FunctionParameter]
 </span><a href="Recalc.Univer.Protocol.html#functionDescription%27params"><span class="hs-identifier hs-var hs-var">functionDescription'params</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionParameter"><span class="hs-identifier hs-type">FunctionParameter</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-147"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-148"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104128"><span id="local-6989586621679104137"><span id="local-6989586621679104141"><span class="annot"><span class="annottext">Int -&gt; FunctionDescription -&gt; ShowS
+</span><span id="line-148"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104387"><span id="local-6989586621679104396"><span id="local-6989586621679104400"><span class="annot"><span class="annottext">Int -&gt; FunctionDescription -&gt; ShowS
 [FunctionDescription] -&gt; ShowS
 FunctionDescription -&gt; String
 (Int -&gt; FunctionDescription -&gt; ShowS)
@@ -568,7 +568,7 @@ $cshow :: FunctionDescription -&gt; String
 show :: FunctionDescription -&gt; String
 $cshowList :: [FunctionDescription] -&gt; ShowS
 showList :: [FunctionDescription] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104144"><span id="local-6989586621679104146"><span class="annot"><span class="annottext">(forall x. FunctionDescription -&gt; Rep FunctionDescription x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104403"><span id="local-6989586621679104405"><span class="annot"><span class="annottext">(forall x. FunctionDescription -&gt; Rep FunctionDescription x)
 -&gt; (forall x. Rep FunctionDescription x -&gt; FunctionDescription)
 -&gt; Generic FunctionDescription
 forall x. Rep FunctionDescription x -&gt; FunctionDescription
@@ -588,7 +588,7 @@ to :: forall x. Rep FunctionDescription x -&gt; FunctionDescription
 </span><a href="Recalc.Univer.Protocol.html#ann%27title"><span class="hs-identifier hs-var hs-var">ann'title</span></a></span></span><span class="hs-special">,</span><span> </span><span id="ann%27message"><span class="annot"><span class="annottext">Annotation -&gt; Text
 </span><a href="Recalc.Univer.Protocol.html#ann%27message"><span class="hs-identifier hs-var hs-var">ann'message</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
 </span><span id="line-154"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-155"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104152"><span id="local-6989586621679104157"><span class="annot"><span class="annottext">Annotation -&gt; Annotation -&gt; Bool
+</span><span id="line-155"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104411"><span id="local-6989586621679104416"><span class="annot"><span class="annottext">Annotation -&gt; Annotation -&gt; Bool
 (Annotation -&gt; Annotation -&gt; Bool)
 -&gt; (Annotation -&gt; Annotation -&gt; Bool) -&gt; Eq Annotation
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -596,7 +596,7 @@ $c== :: Annotation -&gt; Annotation -&gt; Bool
 == :: Annotation -&gt; Annotation -&gt; Bool
 $c/= :: Annotation -&gt; Annotation -&gt; Bool
 /= :: Annotation -&gt; Annotation -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104162"><span id="local-6989586621679104164"><span class="annot"><span class="annottext">(forall x. Annotation -&gt; Rep Annotation x)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104421"><span id="local-6989586621679104423"><span class="annot"><span class="annottext">(forall x. Annotation -&gt; Rep Annotation x)
 -&gt; (forall x. Rep Annotation x -&gt; Annotation) -&gt; Generic Annotation
 forall x. Rep Annotation x -&gt; Annotation
 forall x. Annotation -&gt; Rep Annotation x
@@ -606,7 +606,7 @@ $cfrom :: forall x. Annotation -&gt; Rep Annotation x
 from :: forall x. Annotation -&gt; Rep Annotation x
 $cto :: forall x. Rep Annotation x -&gt; Annotation
 to :: forall x. Rep Annotation x -&gt; Annotation
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104167"><span id="local-6989586621679104172"><span id="local-6989586621679104176"><span class="annot"><span class="annottext">Int -&gt; Annotation -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104426"><span id="local-6989586621679104431"><span id="local-6989586621679104435"><span class="annot"><span class="annottext">Int -&gt; Annotation -&gt; ShowS
 [Annotation] -&gt; ShowS
 Annotation -&gt; String
 (Int -&gt; Annotation -&gt; ShowS)
@@ -632,7 +632,7 @@ showList :: [Annotation] -&gt; ShowS
 </span><span id="line-161"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="customData%27info"><span class="annot"><span class="annottext">CustomData -&gt; [Annotation]
 </span><a href="Recalc.Univer.Protocol.html#customData%27info"><span class="hs-identifier hs-var hs-var">customData'info</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Recalc.Univer.Protocol.html#Annotation"><span class="hs-identifier hs-type">Annotation</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-162"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-163"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104183"><span id="local-6989586621679104185"><span class="annot"><span class="annottext">(forall x. CustomData -&gt; Rep CustomData x)
+</span><span id="line-163"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104442"><span id="local-6989586621679104444"><span class="annot"><span class="annottext">(forall x. CustomData -&gt; Rep CustomData x)
 -&gt; (forall x. Rep CustomData x -&gt; CustomData) -&gt; Generic CustomData
 forall x. Rep CustomData x -&gt; CustomData
 forall x. CustomData -&gt; Rep CustomData x
@@ -642,7 +642,7 @@ $cfrom :: forall x. CustomData -&gt; Rep CustomData x
 from :: forall x. CustomData -&gt; Rep CustomData x
 $cto :: forall x. Rep CustomData x -&gt; CustomData
 to :: forall x. Rep CustomData x -&gt; CustomData
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104188"><span id="local-6989586621679104195"><span id="local-6989586621679104199"><span class="annot"><span class="annottext">Int -&gt; CustomData -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679104447"><span id="local-6989586621679104454"><span id="local-6989586621679104458"><span class="annot"><span class="annottext">Int -&gt; CustomData -&gt; ShowS
 [CustomData] -&gt; ShowS
 CustomData -&gt; String
 (Int -&gt; CustomData -&gt; ShowS)
@@ -665,15 +665,15 @@ showList :: [CustomData] -&gt; ShowS
 </span><span id="line-168"></span><span class="hs-keyword">newtype</span><span> </span><span id="BooleanInt"><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-var">BooleanInt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="BooleanInt"><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-var">BooleanInt</span></a></span></span><span> </span><span class="hs-special">{</span><span id="boolean"><span class="annot"><span class="annottext">BooleanInt -&gt; Bool
 </span><a href="Recalc.Univer.Protocol.html#boolean"><span class="hs-identifier hs-var hs-var">boolean</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">}</span><span>
 </span><span id="line-169"></span><span>
-</span><span id="line-170"></span><span class="hs-keyword">data</span><span> </span><span id="CellStyle"><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-var">CellStyle</span></a></span></span><span> </span><span id="local-6989586621679103490"><span class="annot"><a href="#local-6989586621679103490"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CellStyle"><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-var">CellStyle</span></a></span></span><span>
+</span><span id="line-170"></span><span class="hs-keyword">data</span><span> </span><span id="CellStyle"><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-var">CellStyle</span></a></span></span><span> </span><span id="local-6989586621679103749"><span class="annot"><a href="#local-6989586621679103749"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CellStyle"><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-var">CellStyle</span></a></span></span><span>
 </span><span id="line-171"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="cellStyle%27bl"><span class="annot"><span class="annottext">forall (f :: * -&gt; *). CellStyle f -&gt; f BooleanInt
-</span><a href="Recalc.Univer.Protocol.html#cellStyle%27bl"><span class="hs-identifier hs-var hs-var">cellStyle'bl</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103490"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span><span>
+</span><a href="Recalc.Univer.Protocol.html#cellStyle%27bl"><span class="hs-identifier hs-var hs-var">cellStyle'bl</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103749"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span><span>
 </span><span id="line-172"></span><span>  </span><span class="annot"><span class="hs-comment">-- ^ bold</span></span><span>
 </span><span id="line-173"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="cellStyle%27it"><span class="annot"><span class="annottext">forall (f :: * -&gt; *). CellStyle f -&gt; f BooleanInt
-</span><a href="Recalc.Univer.Protocol.html#cellStyle%27it"><span class="hs-identifier hs-var hs-var">cellStyle'it</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103490"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span><span>
+</span><a href="Recalc.Univer.Protocol.html#cellStyle%27it"><span class="hs-identifier hs-var hs-var">cellStyle'it</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679103749"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span><span>
 </span><span id="line-174"></span><span>  </span><span class="annot"><span class="hs-comment">-- ^ italic</span></span><span>
 </span><span id="line-175"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-176"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104207"><span id="local-6989586621679104209"><span class="annot"><span class="annottext">(forall x. CellStyle f -&gt; Rep (CellStyle f) x)
+</span><span id="line-176"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104466"><span id="local-6989586621679104468"><span class="annot"><span class="annottext">(forall x. CellStyle f -&gt; Rep (CellStyle f) x)
 -&gt; (forall x. Rep (CellStyle f) x -&gt; CellStyle f)
 -&gt; Generic (CellStyle f)
 forall x. Rep (CellStyle f) x -&gt; CellStyle f
@@ -710,7 +710,7 @@ to :: forall x. Rep (CellStyle f) x -&gt; CellStyle f
 </span><a href="Recalc.Univer.Protocol.html#cellData%27custom"><span class="hs-identifier hs-var hs-var">cellData'custom</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Nullable</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CustomData"><span class="hs-identifier hs-type">CustomData</span></a></span><span>
 </span><span id="line-192"></span><span>  </span><span class="annot"><span class="hs-comment">-- ^ Custom field</span></span><span>
 </span><span id="line-193"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-194"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104219"><span id="local-6989586621679104221"><span class="annot"><span class="annottext">(forall x. CellData -&gt; Rep CellData x)
+</span><span id="line-194"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104478"><span id="local-6989586621679104480"><span class="annot"><span class="annottext">(forall x. CellData -&gt; Rep CellData x)
 -&gt; (forall x. Rep CellData x -&gt; CellData) -&gt; Generic CellData
 forall x. Rep CellData x -&gt; CellData
 forall x. CellData -&gt; Rep CellData x
@@ -722,9 +722,9 @@ $cto :: forall x. Rep CellData x -&gt; CellData
 to :: forall x. Rep CellData x -&gt; CellData
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-195"></span><span>
-</span><span id="line-196"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104224"><span id="local-6989586621679104229"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellData"><span class="hs-identifier hs-type">CellData</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-197"></span><span>  </span><span id="local-6989586621679104235"><span class="annot"><span class="annottext">show :: CellData -&gt; String
-</span><a href="#local-6989586621679104235"><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; String
+</span><span id="line-196"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104483"><span id="local-6989586621679104488"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellData"><span class="hs-identifier hs-type">CellData</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-197"></span><span>  </span><span id="local-6989586621679104494"><span class="annot"><span class="annottext">show :: CellData -&gt; String
+</span><a href="#local-6989586621679104494"><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; String)
 -&gt; (CellData -&gt; ByteString) -&gt; CellData -&gt; String
@@ -755,7 +755,7 @@ forall a. ToJSON a =&gt; a -&gt; ByteString
 </span><span id="line-218"></span><span class="hs-comment">--      (custom `merge` custom')</span><span>
 </span><span id="line-219"></span><span>
 </span><span id="line-220"></span><span class="hs-keyword">newtype</span><span> </span><span id="Cells"><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-var">Cells</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Cells"><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-var">Cells</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellData"><span class="hs-identifier hs-type">CellData</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-221"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104241"><span id="local-6989586621679104248"><span id="local-6989586621679104251"><span class="annot"><span class="annottext">Int -&gt; Cells -&gt; ShowS
+</span><span id="line-221"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679104500"><span id="local-6989586621679104507"><span id="local-6989586621679104510"><span class="annot"><span class="annottext">Int -&gt; Cells -&gt; ShowS
 [Cells] -&gt; ShowS
 Cells -&gt; String
 (Int -&gt; Cells -&gt; ShowS)
@@ -774,8 +774,8 @@ showList :: [Cells] -&gt; ShowS
 </span><span id="line-224"></span><span>
 </span><span id="line-225"></span><span class="hs-comment">{-- Params --}</span><span>
 </span><span id="line-226"></span><span>
-</span><span id="line-227"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104257"><span id="local-6989586621679104261"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#OpenParams"><span class="hs-identifier hs-type">OpenParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-228"></span><span>  </span><span id="local-6989586621679104314"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser OpenParams
+</span><span id="line-227"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104516"><span id="local-6989586621679104520"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#OpenParams"><span class="hs-identifier hs-type">OpenParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-228"></span><span>  </span><span id="local-6989586621679104573"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser OpenParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser OpenParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -783,8 +783,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-229"></span><span>
-</span><span id="line-230"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104317"><span id="local-6989586621679104321"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SaveParams"><span class="hs-identifier hs-type">SaveParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-231"></span><span>  </span><span id="local-6989586621679104371"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SaveParams
+</span><span id="line-230"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104576"><span id="local-6989586621679104580"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SaveParams"><span class="hs-identifier hs-type">SaveParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-231"></span><span>  </span><span id="local-6989586621679104630"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SaveParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser SaveParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -792,8 +792,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-232"></span><span>
-</span><span id="line-233"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104374"><span id="local-6989586621679104378"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CloseParams"><span class="hs-identifier hs-type">CloseParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-234"></span><span>  </span><span id="local-6989586621679104422"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CloseParams
+</span><span id="line-233"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104633"><span id="local-6989586621679104637"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CloseParams"><span class="hs-identifier hs-type">CloseParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-234"></span><span>  </span><span id="local-6989586621679104681"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CloseParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser CloseParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -801,8 +801,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-235"></span><span>
-</span><span id="line-236"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104425"><span id="local-6989586621679104429"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetRangeValuesParams"><span class="hs-identifier hs-type">SetRangeValuesParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-237"></span><span>  </span><span id="local-6989586621679104490"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SetRangeValuesParams
+</span><span id="line-236"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104684"><span id="local-6989586621679104688"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetRangeValuesParams"><span class="hs-identifier hs-type">SetRangeValuesParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-237"></span><span>  </span><span id="local-6989586621679104749"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SetRangeValuesParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser SetRangeValuesParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -810,8 +810,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-238"></span><span>
-</span><span id="line-239"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104493"><span id="local-6989586621679104497"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#InsertSheetParams"><span class="hs-identifier hs-type">InsertSheetParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-240"></span><span>  </span><span id="local-6989586621679104567"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser InsertSheetParams
+</span><span id="line-239"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104752"><span id="local-6989586621679104756"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#InsertSheetParams"><span class="hs-identifier hs-type">InsertSheetParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-240"></span><span>  </span><span id="local-6989586621679104826"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser InsertSheetParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser InsertSheetParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -819,8 +819,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-241"></span><span>
-</span><span id="line-242"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104570"><span id="local-6989586621679104574"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#RemoveSheetParams"><span class="hs-identifier hs-type">RemoveSheetParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-243"></span><span>  </span><span id="local-6989586621679104625"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser RemoveSheetParams
+</span><span id="line-242"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104829"><span id="local-6989586621679104833"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#RemoveSheetParams"><span class="hs-identifier hs-type">RemoveSheetParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-243"></span><span>  </span><span id="local-6989586621679104884"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser RemoveSheetParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser RemoveSheetParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -828,8 +828,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-244"></span><span>
-</span><span id="line-245"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104628"><span id="local-6989586621679104632"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetNameParams"><span class="hs-identifier hs-type">SetWorksheetNameParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-246"></span><span>  </span><span id="local-6989586621679104691"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SetWorksheetNameParams
+</span><span id="line-245"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104887"><span id="local-6989586621679104891"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#SetWorksheetNameParams"><span class="hs-identifier hs-type">SetWorksheetNameParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-246"></span><span>  </span><span id="local-6989586621679104950"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser SetWorksheetNameParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser SetWorksheetNameParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -837,8 +837,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-247"></span><span>
-</span><span id="line-248"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104694"><span id="local-6989586621679104698"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#DefineFunctionParams"><span class="hs-identifier hs-type">DefineFunctionParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-249"></span><span>  </span><span id="local-6989586621679104783"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser DefineFunctionParams
+</span><span id="line-248"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104953"><span id="local-6989586621679104957"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#DefineFunctionParams"><span class="hs-identifier hs-type">DefineFunctionParams</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-249"></span><span>  </span><span id="local-6989586621679105042"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser DefineFunctionParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser DefineFunctionParams
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -846,9 +846,9 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-250"></span><span>
-</span><span id="line-251"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104786"><span id="local-6989586621679104790"><span id="local-6989586621679104793"><span id="local-6989586621679104796"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionType"><span class="hs-identifier hs-type">FunctionType</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-252"></span><span>  </span><span id="local-6989586621679104802"><span class="annot"><span class="annottext">toJSON :: FunctionType -&gt; Value
-</span><a href="#local-6989586621679104802"><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Value
+</span><span id="line-251"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105045"><span id="local-6989586621679105049"><span id="local-6989586621679105052"><span id="local-6989586621679105055"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionType"><span class="hs-identifier hs-type">FunctionType</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-252"></span><span>  </span><span id="local-6989586621679105061"><span class="annot"><span class="annottext">toJSON :: FunctionType -&gt; Value
+</span><a href="#local-6989586621679105061"><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Value
 forall a. ToJSON a =&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Json.toJSON</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Value) -&gt; (FunctionType -&gt; Int) -&gt; FunctionType -&gt; Value
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -856,8 +856,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. Enum a =&gt; a -&gt; Int
 </span><span class="hs-identifier hs-var">fromEnum</span></span><span>
 </span><span id="line-253"></span><span>
-</span><span id="line-254"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104807"><span id="local-6989586621679104811"><span id="local-6989586621679104814"><span id="local-6989586621679104817"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionParameter"><span class="hs-identifier hs-type">FunctionParameter</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-255"></span><span>  </span><span id="local-6989586621679104916"><span class="annot"><span class="annottext">toJSON :: FunctionParameter -&gt; Value
+</span><span id="line-254"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105066"><span id="local-6989586621679105070"><span id="local-6989586621679105073"><span id="local-6989586621679105076"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionParameter"><span class="hs-identifier hs-type">FunctionParameter</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-255"></span><span>  </span><span id="local-6989586621679105175"><span class="annot"><span class="annottext">toJSON :: FunctionParameter -&gt; Value
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; FunctionParameter -&gt; Value
 forall a.
 (Generic a, GToJSON' Value Zero (Rep a)) =&gt;
@@ -865,8 +865,8 @@ Options -&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Json.genericToJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-256"></span><span>
-</span><span id="line-257"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679104920"><span id="local-6989586621679104924"><span id="local-6989586621679104927"><span id="local-6989586621679104930"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionDescription"><span class="hs-identifier hs-type">FunctionDescription</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-258"></span><span>  </span><span id="local-6989586621679105042"><span class="annot"><span class="annottext">toJSON :: FunctionDescription -&gt; Value
+</span><span id="line-257"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105179"><span id="local-6989586621679105183"><span id="local-6989586621679105186"><span id="local-6989586621679105189"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#FunctionDescription"><span class="hs-identifier hs-type">FunctionDescription</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-258"></span><span>  </span><span id="local-6989586621679105301"><span class="annot"><span class="annottext">toJSON :: FunctionDescription -&gt; Value
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; FunctionDescription -&gt; Value
 forall a.
 (Generic a, GToJSON' Value Zero (Rep a)) =&gt;
@@ -876,10 +876,10 @@ Options -&gt; a -&gt; Value
 </span><span id="line-259"></span><span>
 </span><span id="line-260"></span><span class="hs-comment">{-- Cells --}</span><span>
 </span><span id="line-261"></span><span>
-</span><span id="line-262"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105045"><span id="local-6989586621679105049"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-263"></span><span>  </span><span id="local-6989586621679105056"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser BooleanInt
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span id="local-6989586621679105057"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679105057"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; BooleanInt
+</span><span id="line-262"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105304"><span id="local-6989586621679105308"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-263"></span><span>  </span><span id="local-6989586621679105315"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser BooleanInt
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span id="local-6989586621679105316"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679105316"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; BooleanInt
 </span><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-var">BooleanInt</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; BooleanInt) -&gt; (Int -&gt; Bool) -&gt; Int -&gt; BooleanInt
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
@@ -887,19 +887,19 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. FromJSON a =&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.parseJSON</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679105057"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><a href="#local-6989586621679105316"><span class="hs-identifier hs-var">v</span></a></span><span>
 </span><span id="line-264"></span><span>
-</span><span id="line-265"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105061"><span id="local-6989586621679105065"><span id="local-6989586621679105068"><span id="local-6989586621679105071"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-266"></span><span>  </span><span id="local-6989586621679105074"><span class="annot"><span class="annottext">toJSON :: BooleanInt -&gt; Value
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span><span> </span><span id="local-6989586621679105075"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679105075"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a. ToJSON a =&gt; a -&gt; Value
+</span><span id="line-265"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105320"><span id="local-6989586621679105324"><span id="local-6989586621679105327"><span id="local-6989586621679105330"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-266"></span><span>  </span><span id="local-6989586621679105333"><span class="annot"><span class="annottext">toJSON :: BooleanInt -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#BooleanInt"><span class="hs-identifier hs-type">BooleanInt</span></a></span><span> </span><span id="local-6989586621679105334"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679105334"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a. ToJSON a =&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Json.toJSON</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-special">(</span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679105075"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679105334"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
 </span><span id="line-267"></span><span>
-</span><span id="line-268"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105078"><span id="local-6989586621679105082"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Annotation"><span class="hs-identifier hs-type">Annotation</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-269"></span><span>  </span><span id="local-6989586621679105132"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser Annotation
+</span><span id="line-268"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105337"><span id="local-6989586621679105341"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Annotation"><span class="hs-identifier hs-type">Annotation</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-269"></span><span>  </span><span id="local-6989586621679105391"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser Annotation
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser Annotation
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -907,8 +907,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-270"></span><span>
-</span><span id="line-271"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105135"><span id="local-6989586621679105139"><span id="local-6989586621679105142"><span id="local-6989586621679105145"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Annotation"><span class="hs-identifier hs-type">Annotation</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-272"></span><span>  </span><span id="local-6989586621679105208"><span class="annot"><span class="annottext">toJSON :: Annotation -&gt; Value
+</span><span id="line-271"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105394"><span id="local-6989586621679105398"><span id="local-6989586621679105401"><span id="local-6989586621679105404"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Annotation"><span class="hs-identifier hs-type">Annotation</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-272"></span><span>  </span><span id="local-6989586621679105467"><span class="annot"><span class="annottext">toJSON :: Annotation -&gt; Value
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Annotation -&gt; Value
 forall a.
 (Generic a, GToJSON' Value Zero (Rep a)) =&gt;
@@ -916,8 +916,8 @@ Options -&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Json.genericToJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-273"></span><span>
-</span><span id="line-274"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105211"><span id="local-6989586621679105215"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CustomData"><span class="hs-identifier hs-type">CustomData</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-275"></span><span>  </span><span id="local-6989586621679105274"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CustomData
+</span><span id="line-274"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105470"><span id="local-6989586621679105474"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CustomData"><span class="hs-identifier hs-type">CustomData</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-275"></span><span>  </span><span id="local-6989586621679105533"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CustomData
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser CustomData
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -925,8 +925,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-276"></span><span>
-</span><span id="line-277"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105277"><span id="local-6989586621679105281"><span id="local-6989586621679105284"><span id="local-6989586621679105287"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CustomData"><span class="hs-identifier hs-type">CustomData</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-278"></span><span>  </span><span id="local-6989586621679105364"><span class="annot"><span class="annottext">toJSON :: CustomData -&gt; Value
+</span><span id="line-277"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105536"><span id="local-6989586621679105540"><span id="local-6989586621679105543"><span id="local-6989586621679105546"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CustomData"><span class="hs-identifier hs-type">CustomData</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-278"></span><span>  </span><span id="local-6989586621679105623"><span class="annot"><span class="annottext">toJSON :: CustomData -&gt; Value
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; CustomData -&gt; Value
 forall a.
 (Generic a, GToJSON' Value Zero (Rep a)) =&gt;
@@ -934,8 +934,8 @@ Options -&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Json.genericToJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-279"></span><span>
-</span><span id="line-280"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105367"><span id="local-6989586621679105371"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-type">CellStyle</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-281"></span><span>  </span><span id="local-6989586621679105423"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser (CellStyle Maybe)
+</span><span id="line-280"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105626"><span id="local-6989586621679105630"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-type">CellStyle</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-281"></span><span>  </span><span id="local-6989586621679105682"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser (CellStyle Maybe)
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser (CellStyle Maybe)
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -943,8 +943,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-282"></span><span>
-</span><span id="line-283"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105426"><span id="local-6989586621679105430"><span id="local-6989586621679105433"><span id="local-6989586621679105436"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-type">CellStyle</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span class="hs-special">)</span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-284"></span><span>  </span><span id="local-6989586621679105501"><span class="annot"><span class="annottext">toJSON :: CellStyle Maybe -&gt; Value
+</span><span id="line-283"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105685"><span id="local-6989586621679105689"><span id="local-6989586621679105692"><span id="local-6989586621679105695"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellStyle"><span class="hs-identifier hs-type">CellStyle</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span class="hs-special">)</span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-284"></span><span>  </span><span id="local-6989586621679105760"><span class="annot"><span class="annottext">toJSON :: CellStyle Maybe -&gt; Value
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; CellStyle Maybe -&gt; Value
 forall a.
 (Generic a, GToJSON' Value Zero (Rep a)) =&gt;
@@ -952,8 +952,8 @@ Options -&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Json.genericToJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-285"></span><span>
-</span><span id="line-286"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105504"><span id="local-6989586621679105508"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellData"><span class="hs-identifier hs-type">CellData</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-287"></span><span>  </span><span id="local-6989586621679105598"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CellData
+</span><span id="line-286"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105763"><span id="local-6989586621679105767"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellData"><span class="hs-identifier hs-type">CellData</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-287"></span><span>  </span><span id="local-6989586621679105857"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CellData
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; Value -&gt; Parser CellData
 forall a.
 (Generic a, GFromJSON Zero (Rep a)) =&gt;
@@ -961,8 +961,8 @@ Options -&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.genericParseJSON</span></span><span> </span><span class="annot"><span class="annottext">Options
 </span><span class="hs-identifier hs-var">aesonOptions</span></span><span>
 </span><span id="line-288"></span><span>
-</span><span id="line-289"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105601"><span id="local-6989586621679105604"><span id="local-6989586621679105607"><span id="local-6989586621679105610"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellData"><span class="hs-identifier hs-type">CellData</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-290"></span><span>  </span><span id="local-6989586621679105737"><span class="annot"><span class="annottext">toJSON :: CellData -&gt; Value
+</span><span id="line-289"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105860"><span id="local-6989586621679105863"><span id="local-6989586621679105866"><span id="local-6989586621679105869"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#CellData"><span class="hs-identifier hs-type">CellData</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-290"></span><span>  </span><span id="local-6989586621679105996"><span class="annot"><span class="annottext">toJSON :: CellData -&gt; Value
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options -&gt; CellData -&gt; Value
 forall a.
 (Generic a, GToJSON' Value Zero (Rep a)) =&gt;
@@ -972,10 +972,10 @@ Options -&gt; a -&gt; Value
 </span><span id="line-291"></span><span>
 </span><span id="line-292"></span><span class="hs-comment">--</span><span>
 </span><span id="line-293"></span><span>
-</span><span id="line-294"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105740"><span id="local-6989586621679105744"><span id="local-6989586621679105747"><span id="local-6989586621679105750"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-295"></span><span>  </span><span id="local-6989586621679105772"><span class="annot"><span class="annottext">toJSON :: Cells -&gt; Value
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span><span> </span><span id="local-6989586621679105773"><span class="annot"><span class="annottext">Map (Int, Int) CellData
-</span><a href="#local-6989586621679105773"><span class="hs-identifier hs-var">cells</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-294"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105999"><span id="local-6989586621679106003"><span id="local-6989586621679106006"><span id="local-6989586621679106009"><span class="annot"><span class="hs-identifier hs-type">Json.ToJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-295"></span><span>  </span><span id="local-6989586621679106031"><span class="annot"><span class="annottext">toJSON :: Cells -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span><span> </span><span id="local-6989586621679106032"><span class="annot"><span class="annottext">Map (Int, Int) CellData
+</span><a href="#local-6989586621679106032"><span class="hs-identifier hs-var">cells</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-296"></span><span>    </span><span class="annot"><span class="annottext">Map Int (Map Int CellData) -&gt; Value
 forall a. ToJSON a =&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Json.toJSON</span></span><span>
@@ -1088,16 +1088,16 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Map (Int, Int) CellData -&gt; [((Int, Int), CellData)]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.assocs</span></span><span> </span><span class="annot"><span class="annottext">Map (Int, Int) CellData
-</span><a href="#local-6989586621679105773"><span class="hs-identifier hs-var">cells</span></a></span><span>
+</span><a href="#local-6989586621679106032"><span class="hs-identifier hs-var">cells</span></a></span><span>
 </span><span id="line-306"></span><span>
 </span><span id="line-307"></span><span class="annot"><span class="hs-comment">-- | assumes the input list is sorted and that the @repr@ function respects the order</span></span><span>
-</span><span id="line-308"></span><span id="local-6989586621679103640"><span id="local-6989586621679103641"><span class="annot"><a href="Recalc.Univer.Protocol.html#quotientOn"><span class="hs-identifier hs-type">quotientOn</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679103640"><span class="hs-identifier hs-type">q</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679103641"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679103640"><span class="hs-identifier hs-type">q</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679103641"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679103640"><span class="hs-identifier hs-type">q</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679103641"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-308"></span><span id="local-6989586621679103899"><span id="local-6989586621679103900"><span class="annot"><a href="Recalc.Univer.Protocol.html#quotientOn"><span class="hs-identifier hs-type">quotientOn</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679103899"><span class="hs-identifier hs-type">q</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679103900"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679103899"><span class="hs-identifier hs-type">q</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679103900"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679103899"><span class="hs-identifier hs-type">q</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679103900"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
 </span><span id="line-309"></span><span id="quotientOn"><span class="annot"><span class="annottext">quotientOn :: forall q a. Eq q =&gt; (a -&gt; q) -&gt; [a] -&gt; [(q, [a])]
-</span><a href="Recalc.Univer.Protocol.html#quotientOn"><span class="hs-identifier hs-var hs-var">quotientOn</span></a></span></span><span> </span><span id="local-6989586621679105784"><span class="annot"><span class="annottext">a -&gt; q
-</span><a href="#local-6989586621679105784"><span class="hs-identifier hs-var">repr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([a] -&gt; (q, [a])) -&gt; [[a]] -&gt; [(q, [a])]
+</span><a href="Recalc.Univer.Protocol.html#quotientOn"><span class="hs-identifier hs-var hs-var">quotientOn</span></a></span></span><span> </span><span id="local-6989586621679106043"><span class="annot"><span class="annottext">a -&gt; q
+</span><a href="#local-6989586621679106043"><span class="hs-identifier hs-var">repr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([a] -&gt; (q, [a])) -&gt; [[a]] -&gt; [(q, [a])]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; (q, [a])
-</span><a href="#local-6989586621679105785"><span class="hs-identifier hs-var">repack</span></a></span><span> </span><span class="annot"><span class="annottext">([[a]] -&gt; [(q, [a])]) -&gt; ([a] -&gt; [[a]]) -&gt; [a] -&gt; [(q, [a])]
+</span><a href="#local-6989586621679106044"><span class="hs-identifier hs-var">repack</span></a></span><span> </span><span class="annot"><span class="annottext">([[a]] -&gt; [(q, [a])]) -&gt; ([a] -&gt; [[a]]) -&gt; [a] -&gt; [(q, [a])]
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Bool) -&gt; [a] -&gt; [[a]]
 forall a. (a -&gt; a -&gt; Bool) -&gt; [a] -&gt; [[a]]
@@ -1106,19 +1106,19 @@ forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(q -&gt; q -&gt; Bool) -&gt; (a -&gt; q) -&gt; a -&gt; a -&gt; Bool
 forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; q
-</span><a href="#local-6989586621679105784"><span class="hs-identifier hs-var">repr</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679106043"><span class="hs-identifier hs-var">repr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-310"></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-311"></span><span>  </span><span id="local-6989586621679105785"><span class="annot"><span class="annottext">repack :: [a] -&gt; (q, [a])
-</span><a href="#local-6989586621679105785"><span class="hs-identifier hs-var hs-var">repack</span></a></span></span><span> </span><span id="local-6989586621679105788"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679105788"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; q
-</span><a href="#local-6989586621679105784"><span class="hs-identifier hs-var">repr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[a] -&gt; a
+</span><span id="line-311"></span><span>  </span><span id="local-6989586621679106044"><span class="annot"><span class="annottext">repack :: [a] -&gt; (q, [a])
+</span><a href="#local-6989586621679106044"><span class="hs-identifier hs-var hs-var">repack</span></a></span></span><span> </span><span id="local-6989586621679106047"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679106047"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; q
+</span><a href="#local-6989586621679106043"><span class="hs-identifier hs-var">repr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[a] -&gt; a
 forall a. HasCallStack =&gt; [a] -&gt; a
 </span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679105788"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679105788"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679106047"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679106047"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-312"></span><span>
-</span><span id="line-313"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679105792"><span id="local-6989586621679105795"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-314"></span><span>  </span><span id="local-6989586621679105805"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser Cells
+</span><span id="line-313"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679106051"><span id="local-6989586621679106054"><span class="annot"><span class="hs-identifier hs-type">Json.FromJSON</span></span><span> </span><span class="annot"><a href="Recalc.Univer.Protocol.html#Cells"><span class="hs-identifier hs-type">Cells</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-314"></span><span>  </span><span id="local-6989586621679106064"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser Cells
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Map Int (Map Int CellData) -&gt; Cells)
 -&gt; Parser (Map Int (Map Int CellData)) -&gt; Parser Cells
 forall a b. (a -&gt; b) -&gt; Parser a -&gt; Parser b
@@ -1131,7 +1131,7 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Map Int (Map Int CellData) -&gt; Map (Int, Int) CellData
 forall {b}. Map Int (Map Int b) -&gt; Map (Int, Int) b
-</span><a href="#local-6989586621679105806"><span class="hs-identifier hs-var">flattenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Parser (Map Int (Map Int CellData)) -&gt; Parser Cells)
+</span><a href="#local-6989586621679106065"><span class="hs-identifier hs-var">flattenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Parser (Map Int (Map Int CellData)) -&gt; Parser Cells)
 -&gt; (Value -&gt; Parser (Map Int (Map Int CellData)))
 -&gt; Value
 -&gt; Parser Cells
@@ -1140,23 +1140,23 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. FromJSON a =&gt; Value -&gt; Parser a
 </span><span class="hs-identifier hs-var">Json.parseJSON</span></span><span>
 </span><span id="line-315"></span><span>   </span><span class="hs-keyword">where</span><span>
-</span><span id="line-316"></span><span>    </span><span id="local-6989586621679105806"><span class="annot"><span class="annottext">flattenMap :: Map Int (Map Int b) -&gt; Map (Int, Int) b
-</span><a href="#local-6989586621679105806"><span class="hs-identifier hs-var hs-var">flattenMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Map (Int, Int) b -&gt; Int -&gt; Map Int b -&gt; Map (Int, Int) b)
+</span><span id="line-316"></span><span>    </span><span id="local-6989586621679106065"><span class="annot"><span class="annottext">flattenMap :: Map Int (Map Int b) -&gt; Map (Int, Int) b
+</span><a href="#local-6989586621679106065"><span class="hs-identifier hs-var hs-var">flattenMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Map (Int, Int) b -&gt; Int -&gt; Map Int b -&gt; Map (Int, Int) b)
 -&gt; Map (Int, Int) b -&gt; Map Int (Map Int b) -&gt; Map (Int, Int) b
 forall a k b. (a -&gt; k -&gt; b -&gt; a) -&gt; a -&gt; Map k b -&gt; a
 </span><span class="hs-identifier hs-var">Map.foldlWithKey'</span></span><span> </span><span class="annot"><span class="annottext">Map (Int, Int) b -&gt; Int -&gt; Map Int b -&gt; Map (Int, Int) b
 forall {a} {k} {b}.
 (Ord a, Ord k) =&gt;
 Map (a, k) b -&gt; a -&gt; Map k b -&gt; Map (a, k) b
-</span><a href="#local-6989586621679105815"><span class="hs-identifier hs-var">mergeMaps</span></a></span><span> </span><span class="annot"><span class="annottext">Map (Int, Int) b
+</span><a href="#local-6989586621679106074"><span class="hs-identifier hs-var">mergeMaps</span></a></span><span> </span><span class="annot"><span class="annottext">Map (Int, Int) b
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
 </span><span id="line-317"></span><span>
-</span><span id="line-318"></span><span>    </span><span id="local-6989586621679105815"><span class="annot"><span class="annottext">mergeMaps :: Map (a, k) b -&gt; a -&gt; Map k b -&gt; Map (a, k) b
-</span><a href="#local-6989586621679105815"><span class="hs-identifier hs-var hs-var">mergeMaps</span></a></span></span><span> </span><span id="local-6989586621679105831"><span class="annot"><span class="annottext">Map (a, k) b
-</span><a href="#local-6989586621679105831"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679105832"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679105832"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map (a, k) b
-</span><a href="#local-6989586621679105831"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-operator">&lt;&gt;</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map (a, k) b -&gt; Map (a, k) b)
+</span><span id="line-318"></span><span>    </span><span id="local-6989586621679106074"><span class="annot"><span class="annottext">mergeMaps :: Map (a, k) b -&gt; a -&gt; Map k b -&gt; Map (a, k) b
+</span><a href="#local-6989586621679106074"><span class="hs-identifier hs-var hs-var">mergeMaps</span></a></span></span><span> </span><span id="local-6989586621679106090"><span class="annot"><span class="annottext">Map (a, k) b
+</span><a href="#local-6989586621679106090"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679106091"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679106091"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map (a, k) b
+</span><a href="#local-6989586621679106090"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-operator">&lt;&gt;</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map (a, k) b -&gt; Map (a, k) b)
 -&gt; (Map k b -&gt; Map (a, k) b) -&gt; Map k b -&gt; Map (a, k) b
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Map (a, k) b -&gt; k -&gt; b -&gt; Map (a, k) b)
@@ -1166,20 +1166,20 @@ forall a k b. (a -&gt; k -&gt; b -&gt; a) -&gt; a -&gt; Map k b -&gt; a
 forall {a} {b} {a}.
 (Ord a, Ord b) =&gt;
 a -&gt; Map (a, b) a -&gt; b -&gt; a -&gt; Map (a, b) a
-</span><a href="#local-6989586621679105833"><span class="hs-identifier hs-var">collectEntries</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679105832"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map (a, k) b
+</span><a href="#local-6989586621679106092"><span class="hs-identifier hs-var">collectEntries</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679106091"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map (a, k) b
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
-</span><span id="line-319"></span><span>    </span><span id="local-6989586621679105833"><span class="annot"><span class="annottext">collectEntries :: a -&gt; Map (a, b) a -&gt; b -&gt; a -&gt; Map (a, b) a
-</span><a href="#local-6989586621679105833"><span class="hs-identifier hs-var hs-var">collectEntries</span></a></span></span><span> </span><span id="local-6989586621679105843"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679105843"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679105844"><span class="annot"><span class="annottext">Map (a, b) a
-</span><a href="#local-6989586621679105844"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679105845"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679105845"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span id="local-6989586621679105846"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679105846"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; a -&gt; Map (a, b) a -&gt; Map (a, b) a
+</span><span id="line-319"></span><span>    </span><span id="local-6989586621679106092"><span class="annot"><span class="annottext">collectEntries :: a -&gt; Map (a, b) a -&gt; b -&gt; a -&gt; Map (a, b) a
+</span><a href="#local-6989586621679106092"><span class="hs-identifier hs-var hs-var">collectEntries</span></a></span></span><span> </span><span id="local-6989586621679106102"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679106102"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679106103"><span class="annot"><span class="annottext">Map (a, b) a
+</span><a href="#local-6989586621679106103"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679106104"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679106104"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span id="local-6989586621679106105"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679106105"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; a -&gt; Map (a, b) a -&gt; Map (a, b) a
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679105843"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679105845"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679105846"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Map (a, b) a
-</span><a href="#local-6989586621679105844"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><a href="#local-6989586621679106102"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679106104"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679106105"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Map (a, b) a
+</span><a href="#local-6989586621679106103"><span class="hs-identifier hs-var">m</span></a></span><span>
 </span><span id="line-320"></span></pre></body></html>

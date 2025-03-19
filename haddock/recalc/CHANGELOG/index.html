@@ -447,14 +447,14 @@
 <nav>
     <ul>
         <li><a href="#revision-history-for-recalc">Revision history for recalc</a></li>
-        <li><a href="#0900-2025-03-07">0.9.0.0 -- 2025-03-07</a></li>
+        <li><a href="#0940-2025-03-19">0.9.4.0 -- 2025-03-19</a></li>
     </ul>
 </nav>
 </aside>
             <main id="terminal-mkdocs-main-content">
 <section id="mkdocs-terminal-content">
     <h1 id="revision-history-for-recalc">Revision history for recalc</h1>
-<h2 id="0900-2025-03-07">0.9.0.0 -- 2025-03-07</h2>
+<h2 id="0940-2025-03-19">0.9.4.0 -- 2025-03-19</h2>
 <ul>
 <li>Initial version: project skeleton for recalculation engine + test suite</li>
 <li>First implementation: minimal recalculation engine for generic language
@@ -498,7 +498,14 @@
 * Librarize the project (recalc-engine, recalc-server, recalc-univer and recalc),
   simplify many things (eg. type checking, recalculation engine, tests by adding
   <code>Recalc.Repl</code>) fix more bugs, add tests. Add hmatrix and deps.
-* Implement sheet-defined functions.</p>
+* Implement sheet-defined functions.
+* Implement implicit arguments (recalc), evaluation requires work.
+* Extend <code>Recalc</code> interface (recalc-engine) and allow <code>inferElaborate</code> to allow
+  type inference with term elaboration.
+* Generalize the <code>Recalc</code> interface to allow different type for elaborated term,
+  fix some bugs. Do recomputation in one phase (per cell first type inference and
+  elaboration, then evaluation of the elaborated term). Add some tests to prevent
+  such bugs. Adapt driver to not send elaborated terms for type annotations.</p>
 </section>
 
             </main>

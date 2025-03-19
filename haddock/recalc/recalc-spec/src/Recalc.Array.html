@@ -40,100 +40,100 @@ This module provides a few core operations on multi-dimensional arrays.
 </span><span id="line-40"></span><span class="hs-comment">-- Example: Contracting a @[3, 4, 5]@ tensor with a @[5, 6, 7]@ tensor</span><span>
 </span><span id="line-41"></span><span class="hs-comment">-- along the last dimension of the first and the first dimension of</span><span>
 </span><span id="line-42"></span><span class="hs-comment">-- the second results in a @[3, 4, 6, 7]@ tensor.</span><span>
-</span><span id="line-43"></span><span id="local-6989586621679121230"><span class="annot"><a href="Recalc.Array.html#tensorContract"><span class="hs-identifier hs-type">tensorContract</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Numeric</span></span><span> </span><span class="annot"><a href="#local-6989586621679121230"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Array</span></span><span> </span><span class="annot"><a href="#local-6989586621679121230"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Array</span></span><span> </span><span class="annot"><a href="#local-6989586621679121230"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Array</span></span><span> </span><span class="annot"><a href="#local-6989586621679121230"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-43"></span><span id="local-6989586621679127765"><span class="annot"><a href="Recalc.Array.html#tensorContract"><span class="hs-identifier hs-type">tensorContract</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Numeric</span></span><span> </span><span class="annot"><a href="#local-6989586621679127765"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Array</span></span><span> </span><span class="annot"><a href="#local-6989586621679127765"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Array</span></span><span> </span><span class="annot"><a href="#local-6989586621679127765"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Array</span></span><span> </span><span class="annot"><a href="#local-6989586621679127765"><span class="hs-identifier hs-type">a</span></a></span></span><span>
 </span><span id="line-44"></span><span id="tensorContract"><span class="annot"><span class="annottext">tensorContract :: forall a.
 Numeric a =&gt;
 [Int] -&gt; [Int] -&gt; Array a -&gt; Array a -&gt; Array a
-</span><a href="Recalc.Array.html#tensorContract"><span class="hs-identifier hs-var hs-var">tensorContract</span></a></span></span><span> </span><span id="local-6989586621679121313"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121313"><span class="hs-identifier hs-var">xAxes</span></a></span></span><span> </span><span id="local-6989586621679121314"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121314"><span class="hs-identifier hs-var">yAxes</span></a></span></span><span> </span><span id="local-6989586621679121315"><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121315"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679121316"><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121316"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Recalc.Array.html#tensorContract"><span class="hs-identifier hs-var hs-var">tensorContract</span></a></span></span><span> </span><span id="local-6989586621679127848"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127848"><span class="hs-identifier hs-var">xAxes</span></a></span></span><span> </span><span id="local-6989586621679127849"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127849"><span class="hs-identifier hs-var">yAxes</span></a></span></span><span> </span><span id="local-6989586621679127850"><span class="annot"><span class="annottext">Array a
+</span><a href="#local-6989586621679127850"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679127851"><span class="annot"><span class="annottext">Array a
+</span><a href="#local-6989586621679127851"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-45"></span><span>  </span><span class="hs-keyword">let</span><span>
-</span><span id="line-46"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679121321"><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121321"><span class="hs-identifier hs-var">x'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679121322"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121322"><span class="hs-identifier hs-var">xShape</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Array a
+</span><span id="line-46"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679127856"><span class="annot"><span class="annottext">Array a
+</span><a href="#local-6989586621679127856"><span class="hs-identifier hs-var">x'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127857"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127857"><span class="hs-identifier hs-var">xShape</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Array a
 forall a b. Convert a b =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">convert</span></span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121315"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Array a -&gt; [Int]
+</span><a href="#local-6989586621679127850"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Array a -&gt; [Int]
 forall a. Array a -&gt; [Int]
 </span><span class="hs-identifier hs-var">ArrayS.shapeL</span></span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121321"><span class="hs-identifier hs-var">x'</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-47"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679121327"><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121327"><span class="hs-identifier hs-var">y'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679121328"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121328"><span class="hs-identifier hs-var">yShape</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Array a
+</span><a href="#local-6989586621679127856"><span class="hs-identifier hs-var">x'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679127862"><span class="annot"><span class="annottext">Array a
+</span><a href="#local-6989586621679127862"><span class="hs-identifier hs-var">y'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127863"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127863"><span class="hs-identifier hs-var">yShape</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Array a
 forall a b. Convert a b =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">convert</span></span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121316"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Array a -&gt; [Int]
+</span><a href="#local-6989586621679127851"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Array a -&gt; [Int]
 forall a. Array a -&gt; [Int]
 </span><span class="hs-identifier hs-var">ArrayS.shapeL</span></span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121327"><span class="hs-identifier hs-var">y'</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679127862"><span class="hs-identifier hs-var">y'</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-48"></span><span>
 </span><span id="line-49"></span><span>    </span><span class="hs-comment">-- new tensor shape</span><span>
-</span><span id="line-50"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679121337"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121337"><span class="hs-identifier hs-var">xIxs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679121338"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121338"><span class="hs-identifier hs-var">xDims</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Int)] -&gt; ([Int], [Int])
+</span><span id="line-50"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679127872"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127872"><span class="hs-identifier hs-var">xIxs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127873"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127873"><span class="hs-identifier hs-var">xDims</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Int)] -&gt; ([Int], [Int])
 forall a b. [(a, b)] -&gt; ([a], [b])
 </span><span class="hs-identifier hs-var">unzip</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121340"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121341"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679121340"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121340"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679121341"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121341"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [(Int, Int)]
+</span><a href="#local-6989586621679127875"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127876"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679127875"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127875"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127876"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127876"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [(Int, Int)]
 forall a b. [a] -&gt; [b] -&gt; [(a, b)]
 </span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121322"><span class="hs-identifier hs-var">xShape</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121340"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int] -&gt; Bool
+</span><a href="#local-6989586621679127857"><span class="hs-identifier hs-var">xShape</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127875"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`notElem`</span></span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121313"><span class="hs-identifier hs-var">xAxes</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-51"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679121347"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121347"><span class="hs-identifier hs-var">yIxs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679121348"><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121348"><span class="hs-identifier hs-var">yDims</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Int)] -&gt; ([Int], [Int])
+</span><a href="#local-6989586621679127848"><span class="hs-identifier hs-var">xAxes</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679127882"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127882"><span class="hs-identifier hs-var">yIxs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127883"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127883"><span class="hs-identifier hs-var">yDims</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Int)] -&gt; ([Int], [Int])
 forall a b. [(a, b)] -&gt; ([a], [b])
 </span><span class="hs-identifier hs-var">unzip</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121349"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121350"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679121349"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121349"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679121350"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121350"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [(Int, Int)]
+</span><a href="#local-6989586621679127884"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127885"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679127884"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127884"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127885"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127885"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [(Int, Int)]
 forall a b. [a] -&gt; [b] -&gt; [(a, b)]
 </span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121328"><span class="hs-identifier hs-var">yShape</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679121349"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int] -&gt; Bool
+</span><a href="#local-6989586621679127863"><span class="hs-identifier hs-var">yShape</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127884"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`notElem`</span></span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121314"><span class="hs-identifier hs-var">yAxes</span></a></span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679127849"><span class="hs-identifier hs-var">yAxes</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-52"></span><span>
-</span><span id="line-53"></span><span>    </span><span id="local-6989586621679121351"><span class="annot"><span class="annottext">shape :: [Int]
-</span><a href="#local-6989586621679121351"><span class="hs-identifier hs-var hs-var">shape</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121338"><span class="hs-identifier hs-var">xDims</span></a></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [Int]
+</span><span id="line-53"></span><span>    </span><span id="local-6989586621679127886"><span class="annot"><span class="annottext">shape :: [Int]
+</span><a href="#local-6989586621679127886"><span class="hs-identifier hs-var hs-var">shape</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127873"><span class="hs-identifier hs-var">xDims</span></a></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [Int]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121348"><span class="hs-identifier hs-var">yDims</span></a></span><span>
+</span><a href="#local-6989586621679127883"><span class="hs-identifier hs-var">yDims</span></a></span><span>
 </span><span id="line-54"></span><span>
 </span><span id="line-55"></span><span>    </span><span class="hs-comment">-- prepare matrix-multiplication: align contraction dims, reshape into matrices</span><span>
-</span><span id="line-56"></span><span>    </span><span id="local-6989586621679121354"><span class="annot"><span class="annottext">xPermuted :: Array a
-</span><a href="#local-6989586621679121354"><span class="hs-identifier hs-var hs-var">xPermuted</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Array a -&gt; Array a
+</span><span id="line-56"></span><span>    </span><span id="local-6989586621679127889"><span class="annot"><span class="annottext">xPermuted :: Array a
+</span><a href="#local-6989586621679127889"><span class="hs-identifier hs-var hs-var">xPermuted</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Array a -&gt; Array a
 forall a. HasCallStack =&gt; [Int] -&gt; Array a -&gt; Array a
 </span><span class="hs-identifier hs-var">ArrayS.transpose</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121337"><span class="hs-identifier hs-var">xIxs</span></a></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [Int]
+</span><a href="#local-6989586621679127872"><span class="hs-identifier hs-var">xIxs</span></a></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [Int]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121313"><span class="hs-identifier hs-var">xAxes</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121321"><span class="hs-identifier hs-var">x'</span></a></span><span>
-</span><span id="line-57"></span><span>    </span><span id="local-6989586621679121358"><span class="annot"><span class="annottext">yPermuted :: Array a
-</span><a href="#local-6989586621679121358"><span class="hs-identifier hs-var hs-var">yPermuted</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Array a -&gt; Array a
+</span><a href="#local-6989586621679127848"><span class="hs-identifier hs-var">xAxes</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Array a
+</span><a href="#local-6989586621679127856"><span class="hs-identifier hs-var">x'</span></a></span><span>
+</span><span id="line-57"></span><span>    </span><span id="local-6989586621679127893"><span class="annot"><span class="annottext">yPermuted :: Array a
+</span><a href="#local-6989586621679127893"><span class="hs-identifier hs-var hs-var">yPermuted</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Array a -&gt; Array a
 forall a. HasCallStack =&gt; [Int] -&gt; Array a -&gt; Array a
 </span><span class="hs-identifier hs-var">ArrayS.transpose</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121314"><span class="hs-identifier hs-var">yAxes</span></a></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [Int]
+</span><a href="#local-6989586621679127849"><span class="hs-identifier hs-var">yAxes</span></a></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [Int]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121347"><span class="hs-identifier hs-var">yIxs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121327"><span class="hs-identifier hs-var">y'</span></a></span><span>
+</span><a href="#local-6989586621679127882"><span class="hs-identifier hs-var">yIxs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Array a
+</span><a href="#local-6989586621679127862"><span class="hs-identifier hs-var">y'</span></a></span><span>
 </span><span id="line-58"></span><span>
-</span><span id="line-59"></span><span>    </span><span id="local-6989586621679121367"><span class="annot"><span class="annottext">xMat :: Matrix a
-</span><a href="#local-6989586621679121367"><span class="hs-identifier hs-var hs-var">xMat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Vector a -&gt; Matrix a
+</span><span id="line-59"></span><span>    </span><span id="local-6989586621679127902"><span class="annot"><span class="annottext">xMat :: Matrix a
+</span><a href="#local-6989586621679127902"><span class="hs-identifier hs-var hs-var">xMat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Vector a -&gt; Matrix a
 forall t. Storable t =&gt; Int -&gt; Vector t -&gt; Matrix t
 </span><span class="hs-identifier hs-var">N.reshape</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int] -&gt; Int
 forall a. Num a =&gt; [a] -&gt; a
@@ -141,32 +141,32 @@ forall (t :: * -&gt; *) a. (Foldable t, Num a) =&gt; t a -&gt; a
 </span><span class="hs-identifier hs-var">product</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; [Int] -&gt; [Int]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121322"><span class="hs-identifier hs-var">xShape</span></a></span><span> </span><span class="hs-operator">!!</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121313"><span class="hs-identifier hs-var">xAxes</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Vector a
+</span><a href="#local-6989586621679127857"><span class="hs-identifier hs-var">xShape</span></a></span><span> </span><span class="hs-operator">!!</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679127848"><span class="hs-identifier hs-var">xAxes</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Vector a
 forall a. (HasCallStack, Unbox a) =&gt; Array a -&gt; Vector a
 </span><span class="hs-identifier hs-var">ArrayS.toVector</span></span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121354"><span class="hs-identifier hs-var">xPermuted</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-60"></span><span>    </span><span id="local-6989586621679121377"><span class="annot"><span class="annottext">yMat :: Matrix a
-</span><a href="#local-6989586621679121377"><span class="hs-identifier hs-var hs-var">yMat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Vector a -&gt; Matrix a
+</span><a href="#local-6989586621679127889"><span class="hs-identifier hs-var">xPermuted</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>    </span><span id="local-6989586621679127912"><span class="annot"><span class="annottext">yMat :: Matrix a
+</span><a href="#local-6989586621679127912"><span class="hs-identifier hs-var hs-var">yMat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Vector a -&gt; Matrix a
 forall t. Storable t =&gt; Int -&gt; Vector t -&gt; Matrix t
 </span><span class="hs-identifier hs-var">N.reshape</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int] -&gt; Int
 forall a. Num a =&gt; [a] -&gt; a
 forall (t :: * -&gt; *) a. (Foldable t, Num a) =&gt; t a -&gt; a
 </span><span class="hs-identifier hs-var">product</span></span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121348"><span class="hs-identifier hs-var">yDims</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Vector a
+</span><a href="#local-6989586621679127883"><span class="hs-identifier hs-var">yDims</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Array a -&gt; Vector a
 forall a. (HasCallStack, Unbox a) =&gt; Array a -&gt; Vector a
 </span><span class="hs-identifier hs-var">ArrayS.toVector</span></span><span> </span><span class="annot"><span class="annottext">Array a
-</span><a href="#local-6989586621679121358"><span class="hs-identifier hs-var">yPermuted</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679127893"><span class="hs-identifier hs-var">yPermuted</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-61"></span><span>
 </span><span id="line-62"></span><span>    </span><span class="hs-comment">-- contract</span><span>
-</span><span id="line-63"></span><span>    </span><span id="local-6989586621679121406"><span class="annot"><span class="annottext">result :: Vector a
-</span><a href="#local-6989586621679121406"><span class="hs-identifier hs-var hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Matrix a -&gt; Vector a
+</span><span id="line-63"></span><span>    </span><span id="local-6989586621679127941"><span class="annot"><span class="annottext">result :: Vector a
+</span><a href="#local-6989586621679127941"><span class="hs-identifier hs-var hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Matrix a -&gt; Vector a
 forall t. Element t =&gt; Matrix t -&gt; Vector t
 </span><span class="hs-identifier hs-var">flatten</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Matrix a
-</span><a href="#local-6989586621679121367"><span class="hs-identifier hs-var">xMat</span></a></span><span> </span><span class="annot"><span class="annottext">Matrix a -&gt; Matrix a -&gt; Matrix a
+</span><a href="#local-6989586621679127902"><span class="hs-identifier hs-var">xMat</span></a></span><span> </span><span class="annot"><span class="annottext">Matrix a -&gt; Matrix a -&gt; Matrix a
 forall t. Numeric t =&gt; Matrix t -&gt; Matrix t -&gt; Matrix t
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Matrix a
-</span><a href="#local-6989586621679121377"><span class="hs-identifier hs-var">yMat</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679127912"><span class="hs-identifier hs-var">yMat</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-64"></span><span>  </span><span class="hs-keyword">in</span><span>
 </span><span id="line-65"></span><span>    </span><span class="annot"><span class="annottext">Array a -&gt; Array a
 forall a b. Convert a b =&gt; a -&gt; b
@@ -175,6 +175,6 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Vector a -&gt; Array a
 forall a. (HasCallStack, Unbox a) =&gt; [Int] -&gt; Vector a -&gt; Array a
 </span><span class="hs-identifier hs-var">ArrayS.fromVector</span></span><span> </span><span class="annot"><span class="annottext">[Int]
-</span><a href="#local-6989586621679121351"><span class="hs-identifier hs-var">shape</span></a></span><span> </span><span class="annot"><span class="annottext">Vector a
-</span><a href="#local-6989586621679121406"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><a href="#local-6989586621679127886"><span class="hs-identifier hs-var">shape</span></a></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679127941"><span class="hs-identifier hs-var">result</span></a></span><span>
 </span><span id="line-66"></span></pre></body></html>

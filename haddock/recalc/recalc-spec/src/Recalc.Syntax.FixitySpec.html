@@ -17,14 +17,14 @@ Description : Tests for the precedence parsing and pretty-printing utility.
 </span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html"><span class="hs-identifier">Recalc.Syntax.Parser</span></a></span><span>
 </span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Test.html"><span class="hs-identifier">Recalc.Syntax.Test</span></a></span><span>
 </span><span id="line-19"></span><span>
-</span><span id="line-20"></span><span class="hs-keyword">data</span><span> </span><span id="OP1"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP1"><span class="hs-identifier hs-var">OP1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TR"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#TR"><span class="hs-identifier hs-var">TR</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="HMM"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#HMM"><span class="hs-identifier hs-var">HMM</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="NEG"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#NEG"><span class="hs-identifier hs-var">NEG</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="NOT"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#NOT"><span class="hs-identifier hs-var">NOT</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126461"><span id="local-6989586621679126463"><span class="annot"><span class="annottext">OP1 -&gt; OP1 -&gt; Bool
+</span><span id="line-20"></span><span class="hs-keyword">data</span><span> </span><span id="OP1"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP1"><span class="hs-identifier hs-var">OP1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TR"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#TR"><span class="hs-identifier hs-var">TR</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="HMM"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#HMM"><span class="hs-identifier hs-var">HMM</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="NEG"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#NEG"><span class="hs-identifier hs-var">NEG</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="NOT"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#NOT"><span class="hs-identifier hs-var">NOT</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679131779"><span id="local-6989586621679131781"><span class="annot"><span class="annottext">OP1 -&gt; OP1 -&gt; Bool
 (OP1 -&gt; OP1 -&gt; Bool) -&gt; (OP1 -&gt; OP1 -&gt; Bool) -&gt; Eq OP1
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c== :: OP1 -&gt; OP1 -&gt; Bool
 == :: OP1 -&gt; OP1 -&gt; Bool
 $c/= :: OP1 -&gt; OP1 -&gt; Bool
 /= :: OP1 -&gt; OP1 -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126468"><span id="local-6989586621679126470"><span id="local-6989586621679126474"><span class="annot"><span class="annottext">Int -&gt; OP1 -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131786"><span id="local-6989586621679131788"><span id="local-6989586621679131792"><span class="annot"><span class="annottext">Int -&gt; OP1 -&gt; ShowS
 [OP1] -&gt; ShowS
 OP1 -&gt; String
 (Int -&gt; OP1 -&gt; ShowS)
@@ -40,14 +40,14 @@ showList :: [OP1] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-21"></span><span>
 </span><span id="line-22"></span><span class="hs-keyword">data</span><span> </span><span id="OP"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-var">OP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DOT"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#DOT"><span class="hs-identifier hs-var">DOT</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="ADD"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#ADD"><span class="hs-identifier hs-var">ADD</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="MUL"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#MUL"><span class="hs-identifier hs-var">MUL</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="DIV"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#DIV"><span class="hs-identifier hs-var">DIV</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="EXP"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#EXP"><span class="hs-identifier hs-var">EXP</span></a></span></span><span>
-</span><span id="line-23"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126483"><span id="local-6989586621679126485"><span class="annot"><span class="annottext">OP -&gt; OP -&gt; Bool
+</span><span id="line-23"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679131801"><span id="local-6989586621679131803"><span class="annot"><span class="annottext">OP -&gt; OP -&gt; Bool
 (OP -&gt; OP -&gt; Bool) -&gt; (OP -&gt; OP -&gt; Bool) -&gt; Eq OP
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c== :: OP -&gt; OP -&gt; Bool
 == :: OP -&gt; OP -&gt; Bool
 $c/= :: OP -&gt; OP -&gt; Bool
 /= :: OP -&gt; OP -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126489"><span id="local-6989586621679126491"><span id="local-6989586621679126495"><span class="annot"><span class="annottext">Int -&gt; OP -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131807"><span id="local-6989586621679131809"><span id="local-6989586621679131813"><span class="annot"><span class="annottext">Int -&gt; OP -&gt; ShowS
 [OP] -&gt; ShowS
 OP -&gt; String
 (Int -&gt; OP -&gt; ShowS)
@@ -63,14 +63,14 @@ showList :: [OP] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-24"></span><span>
 </span><span id="line-25"></span><span class="hs-keyword">data</span><span> </span><span id="E"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#E"><span class="hs-identifier hs-var">E</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="N"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#N"><span class="hs-identifier hs-var">N</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="OP1"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP1"><span class="hs-identifier hs-var">OP1</span></a></span></span><span> </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP1"><span class="hs-identifier hs-type">OP1</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#E"><span class="hs-identifier hs-type">E</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="OP"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-var">OP</span></a></span></span><span> </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-type">OP</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#E"><span class="hs-identifier hs-type">E</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#E"><span class="hs-identifier hs-type">E</span></a></span><span>
-</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126501"><span id="local-6989586621679126510"><span class="annot"><span class="annottext">E -&gt; E -&gt; Bool
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679131819"><span id="local-6989586621679131828"><span class="annot"><span class="annottext">E -&gt; E -&gt; Bool
 (E -&gt; E -&gt; Bool) -&gt; (E -&gt; E -&gt; Bool) -&gt; Eq E
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c== :: E -&gt; E -&gt; Bool
 == :: E -&gt; E -&gt; Bool
 $c/= :: E -&gt; E -&gt; Bool
 /= :: E -&gt; E -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126513"><span id="local-6989586621679126526"><span id="local-6989586621679126529"><span class="annot"><span class="annottext">Int -&gt; E -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131831"><span id="local-6989586621679131844"><span id="local-6989586621679131847"><span class="annot"><span class="annottext">Int -&gt; E -&gt; ShowS
 [E] -&gt; ShowS
 E -&gt; String
 (Int -&gt; E -&gt; ShowS) -&gt; (E -&gt; String) -&gt; ([E] -&gt; ShowS) -&gt; Show E
@@ -147,19 +147,19 @@ forall ann. LayoutOptions -&gt; Doc ann -&gt; SimpleDocStream ann
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc Any
 forall {ann}. Int -&gt; E -&gt; Doc ann
-</span><a href="#local-6989586621679126539"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679131857"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span>
 </span><span id="line-41"></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-42"></span><span>  </span><span id="local-6989586621679126539"><span class="annot"><span class="annottext">pp :: Int -&gt; E -&gt; Doc ann
-</span><a href="#local-6989586621679126539"><span class="hs-identifier hs-var hs-var">pp</span></a></span></span><span> </span><span id="local-6989586621679126543"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679126543"><span class="hs-identifier hs-var">prec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-43"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126546"><span class="annot"><span class="annottext">OP -&gt; Bool
-</span><a href="#local-6989586621679126546"><span class="hs-identifier hs-var">left</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126547"><span class="annot"><span class="annottext">OP -&gt; Bool
-</span><a href="#local-6989586621679126547"><span class="hs-identifier hs-var">right</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126548"><span class="annot"><span class="annottext">(Int -&gt; t1 -&gt; Doc ann) -&gt; OP1 -&gt; t1 -&gt; Doc ann
-</span><a href="#local-6989586621679126548"><span class="hs-identifier hs-var">ppOp1</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126549"><span class="annot"><span class="annottext">(Int -&gt; t2 -&gt; Doc ann) -&gt; OP -&gt; t2 -&gt; t2 -&gt; Doc ann
-</span><a href="#local-6989586621679126549"><span class="hs-identifier hs-var">ppRightOp2</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126550"><span class="annot"><span class="annottext">(Int -&gt; t3 -&gt; Doc ann) -&gt; OP -&gt; t3 -&gt; t3 -&gt; Doc ann
-</span><a href="#local-6989586621679126550"><span class="hs-identifier hs-var">ppLeftOp2</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126551"><span class="annot"><span class="annottext">(Int -&gt; t4 -&gt; Doc ann) -&gt; OP -&gt; t4 -&gt; t4 -&gt; Doc ann
-</span><a href="#local-6989586621679126551"><span class="hs-identifier hs-var">ppOp2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[Fixity OP1 OP]]
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679131857"><span class="annot"><span class="annottext">pp :: Int -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131857"><span class="hs-identifier hs-var hs-var">pp</span></a></span></span><span> </span><span id="local-6989586621679131861"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679131861"><span class="hs-identifier hs-var">prec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679131864"><span class="annot"><span class="annottext">OP -&gt; Bool
+</span><a href="#local-6989586621679131864"><span class="hs-identifier hs-var">left</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131865"><span class="annot"><span class="annottext">OP -&gt; Bool
+</span><a href="#local-6989586621679131865"><span class="hs-identifier hs-var">right</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131866"><span class="annot"><span class="annottext">(Int -&gt; t1 -&gt; Doc ann) -&gt; OP1 -&gt; t1 -&gt; Doc ann
+</span><a href="#local-6989586621679131866"><span class="hs-identifier hs-var">ppOp1</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131867"><span class="annot"><span class="annottext">(Int -&gt; t2 -&gt; Doc ann) -&gt; OP -&gt; t2 -&gt; t2 -&gt; Doc ann
+</span><a href="#local-6989586621679131867"><span class="hs-identifier hs-var">ppRightOp2</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131868"><span class="annot"><span class="annottext">(Int -&gt; t3 -&gt; Doc ann) -&gt; OP -&gt; t3 -&gt; t3 -&gt; Doc ann
+</span><a href="#local-6989586621679131868"><span class="hs-identifier hs-var">ppLeftOp2</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131869"><span class="annot"><span class="annottext">(Int -&gt; t4 -&gt; Doc ann) -&gt; OP -&gt; t4 -&gt; t4 -&gt; Doc ann
+</span><a href="#local-6989586621679131869"><span class="hs-identifier hs-var">ppOp2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[Fixity OP1 OP]]
 -&gt; Int
 -&gt; (OP -&gt; Bool, OP -&gt; Bool,
     (Int -&gt; t1 -&gt; Doc ann) -&gt; OP1 -&gt; t1 -&gt; Doc ann,
@@ -177,66 +177,66 @@ forall op1 op2 t1 ann t2 t3 t4.
     (Int -&gt; t4 -&gt; Doc ann) -&gt; op2 -&gt; t4 -&gt; t4 -&gt; Doc ann)
 </span><a href="Recalc.Syntax.Fixity.html#ppHelpers"><span class="hs-identifier hs-var">ppHelpers</span></a></span><span> </span><span class="annot"><span class="annottext">[[Fixity OP1 OP]]
 </span><a href="Recalc.Syntax.FixitySpec.html#myOps"><span class="hs-identifier hs-var">myOps</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679126543"><span class="hs-identifier hs-var">prec</span></a></span><span>
+</span><a href="#local-6989586621679131861"><span class="hs-identifier hs-var">prec</span></a></span><span>
 </span><span id="line-44"></span><span>    </span><span class="hs-keyword">in</span><span>  </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-45"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#N"><span class="hs-identifier hs-type">N</span></a></span><span> </span><span id="local-6989586621679126553"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679126553"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Doc ann
+</span><span id="line-45"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#N"><span class="hs-identifier hs-type">N</span></a></span><span> </span><span id="local-6989586621679131871"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679131871"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Doc ann
 forall ann. Int -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">pretty</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679126553"><span class="hs-identifier hs-var">i</span></a></span><span>
-</span><span id="line-46"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP1"><span class="hs-identifier hs-type">OP1</span></a></span><span> </span><span id="local-6989586621679126554"><span class="annot"><span class="annottext">OP1
-</span><a href="#local-6989586621679126554"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679126555"><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126555"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; E -&gt; Doc ann) -&gt; OP1 -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131871"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-46"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP1"><span class="hs-identifier hs-type">OP1</span></a></span><span> </span><span id="local-6989586621679131872"><span class="annot"><span class="annottext">OP1
+</span><a href="#local-6989586621679131872"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679131873"><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131873"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; E -&gt; Doc ann) -&gt; OP1 -&gt; E -&gt; Doc ann
 forall {t1} {ann}. (Int -&gt; t1 -&gt; Doc ann) -&gt; OP1 -&gt; t1 -&gt; Doc ann
-</span><a href="#local-6989586621679126548"><span class="hs-identifier hs-var">ppOp1</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
-</span><a href="#local-6989586621679126539"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP1
-</span><a href="#local-6989586621679126554"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126555"><span class="hs-identifier hs-var">x</span></a></span><span>
-</span><span id="line-47"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-type">OP</span></a></span><span> </span><span id="local-6989586621679126556"><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126556"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679126557"><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126557"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679126558"><span class="annot"><span class="annottext">y :: E
-</span><a href="#local-6989586621679126558"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-type">OP</span></a></span><span> </span><span id="local-6989586621679126559"><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126559"><span class="hs-identifier hs-var">op'</span></a></span></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131866"><span class="hs-identifier hs-var">ppOp1</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131857"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP1
+</span><a href="#local-6989586621679131872"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131873"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-47"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-type">OP</span></a></span><span> </span><span id="local-6989586621679131874"><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131874"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679131875"><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131875"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679131876"><span class="annot"><span class="annottext">y :: E
+</span><a href="#local-6989586621679131876"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-type">OP</span></a></span><span> </span><span id="local-6989586621679131877"><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131877"><span class="hs-identifier hs-var">op'</span></a></span></span><span> </span><span class="annot"><span class="annottext">E
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">E
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span>
 </span><span id="line-48"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126556"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">OP -&gt; OP -&gt; Bool
+</span><a href="#local-6989586621679131874"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">OP -&gt; OP -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126559"><span class="hs-identifier hs-var">op'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">OP -&gt; Bool
-</span><a href="#local-6989586621679126547"><span class="hs-identifier hs-var">right</span></a></span><span> </span><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126556"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; E -&gt; Doc ann) -&gt; OP -&gt; E -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131877"><span class="hs-identifier hs-var">op'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">OP -&gt; Bool
+</span><a href="#local-6989586621679131865"><span class="hs-identifier hs-var">right</span></a></span><span> </span><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131874"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; E -&gt; Doc ann) -&gt; OP -&gt; E -&gt; E -&gt; Doc ann
 forall {ann} {t2}.
 (Int -&gt; t2 -&gt; Doc ann) -&gt; OP -&gt; t2 -&gt; t2 -&gt; Doc ann
-</span><a href="#local-6989586621679126549"><span class="hs-identifier hs-var">ppRightOp2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
-</span><a href="#local-6989586621679126539"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126556"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126557"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126558"><span class="hs-identifier hs-var">y</span></a></span><span>
-</span><span id="line-49"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-type">OP</span></a></span><span> </span><span id="local-6989586621679126560"><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126560"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679126561"><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126561"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679126562"><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126562"><span class="hs-identifier hs-var">y</span></a></span></span><span>
+</span><a href="#local-6989586621679131867"><span class="hs-identifier hs-var">ppRightOp2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131857"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131874"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131875"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131876"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-49"></span><span>          </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#OP"><span class="hs-identifier hs-type">OP</span></a></span><span> </span><span id="local-6989586621679131878"><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131878"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679131879"><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131879"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679131880"><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131880"><span class="hs-identifier hs-var">y</span></a></span></span><span>
 </span><span id="line-50"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">OP -&gt; Bool
-</span><a href="#local-6989586621679126546"><span class="hs-identifier hs-var">left</span></a></span><span> </span><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126560"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; E -&gt; Doc ann) -&gt; OP -&gt; E -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131864"><span class="hs-identifier hs-var">left</span></a></span><span> </span><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131878"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; E -&gt; Doc ann) -&gt; OP -&gt; E -&gt; E -&gt; Doc ann
 forall {ann} {t2}.
 (Int -&gt; t2 -&gt; Doc ann) -&gt; OP -&gt; t2 -&gt; t2 -&gt; Doc ann
-</span><a href="#local-6989586621679126550"><span class="hs-identifier hs-var">ppLeftOp2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
-</span><a href="#local-6989586621679126539"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126560"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126561"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126562"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><a href="#local-6989586621679131868"><span class="hs-identifier hs-var">ppLeftOp2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131857"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131878"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131879"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131880"><span class="hs-identifier hs-var">y</span></a></span><span>
 </span><span id="line-51"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; E -&gt; Doc ann) -&gt; OP -&gt; E -&gt; E -&gt; Doc ann
 forall {ann} {t2}.
 (Int -&gt; t2 -&gt; Doc ann) -&gt; OP -&gt; t2 -&gt; t2 -&gt; Doc ann
-</span><a href="#local-6989586621679126551"><span class="hs-identifier hs-var">ppOp2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
-</span><a href="#local-6989586621679126539"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP
-</span><a href="#local-6989586621679126560"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126561"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126562"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><a href="#local-6989586621679131869"><span class="hs-identifier hs-var">ppOp2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; E -&gt; Doc ann
+</span><a href="#local-6989586621679131857"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="annot"><span class="annottext">OP
+</span><a href="#local-6989586621679131878"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131879"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131880"><span class="hs-identifier hs-var">y</span></a></span><span>
 </span><span id="line-52"></span><span>
 </span><span id="line-53"></span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#e"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Recalc.Syntax.Parser.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#E"><span class="hs-identifier hs-type">E</span></a></span><span>
 </span><span id="line-54"></span><span id="e"><span class="annot"><span class="annottext">e :: Parser E
@@ -307,13 +307,13 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. String -&gt; [a] -&gt; (a -&gt; Expectation) -&gt; Spec
 </span><a href="Recalc.Syntax.FixitySpec.html#manyIt"><span class="hs-identifier hs-var">manyIt</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;parses&quot;</span></span><span> </span><span class="annot"><span class="annottext">[(String, E, Bool)]
-</span><a href="#local-6989586621679126571"><span class="hs-identifier hs-var">succeeds</span></a></span><span>
+</span><a href="#local-6989586621679131889"><span class="hs-identifier hs-var">succeeds</span></a></span><span>
 </span><span id="line-66"></span><span>    </span><span class="annot"><span class="annottext">(((String, E, Bool) -&gt; Expectation) -&gt; Spec)
 -&gt; ((String, E, Bool) -&gt; Expectation) -&gt; Spec
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679126572"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679126572"><span class="hs-identifier hs-var">input</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126573"><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126573"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679131890"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679131890"><span class="hs-identifier hs-var">input</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131891"><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131891"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; Parser E -&gt; String -&gt; E -&gt; Expectation
 forall a.
 (Eq a, Show a) =&gt;
@@ -321,8 +321,8 @@ SheetId -&gt; Parser a -&gt; String -&gt; a -&gt; Expectation
 </span><a href="Recalc.Syntax.Test.html#parseTest"><span class="hs-identifier hs-var">parseTest</span></a></span><span> </span><span class="annot"><span class="annottext">SheetId
 </span><a href="Recalc.Syntax.FixitySpec.html#sheetId"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">Parser E
 </span><a href="Recalc.Syntax.FixitySpec.html#e"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679126572"><span class="hs-identifier hs-var">input</span></a></span><span> </span><span class="annot"><span class="annottext">E
-</span><a href="#local-6989586621679126573"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><a href="#local-6989586621679131890"><span class="hs-identifier hs-var">input</span></a></span><span> </span><span class="annot"><span class="annottext">E
+</span><a href="#local-6989586621679131891"><span class="hs-identifier hs-var">x</span></a></span><span>
 </span><span id="line-67"></span><span>
 </span><span id="line-68"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
 forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
@@ -340,18 +340,18 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. String -&gt; [a] -&gt; (a -&gt; Expectation) -&gt; Spec
 </span><a href="Recalc.Syntax.FixitySpec.html#manyIt"><span class="hs-identifier hs-var">manyIt</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;re-encodes&quot;</span></span><span> </span><span class="annot"><span class="annottext">[(String, E, Bool)]
-</span><a href="#local-6989586621679126571"><span class="hs-identifier hs-var">succeeds</span></a></span><span>
+</span><a href="#local-6989586621679131889"><span class="hs-identifier hs-var">succeeds</span></a></span><span>
 </span><span id="line-70"></span><span>    </span><span class="annot"><span class="annottext">(((String, E, Bool) -&gt; Expectation) -&gt; Spec)
 -&gt; ((String, E, Bool) -&gt; Expectation) -&gt; Spec
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679126576"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679126576"><span class="hs-identifier hs-var">input</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">E
-</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126577"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679126577"><span class="hs-identifier hs-var">check</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679131894"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679131894"><span class="hs-identifier hs-var">input</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">E
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679131895"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679131895"><span class="hs-identifier hs-var">check</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-71"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; Expectation -&gt; Expectation
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679126577"><span class="hs-identifier hs-var">check</span></a></span><span> </span><span class="annot"><span class="annottext">(Expectation -&gt; Expectation) -&gt; Expectation -&gt; Expectation
+</span><a href="#local-6989586621679131895"><span class="hs-identifier hs-var">check</span></a></span><span> </span><span class="annot"><span class="annottext">(Expectation -&gt; Expectation) -&gt; Expectation -&gt; Expectation
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId
 -&gt; ReaderT SheetId (Parsec Void String) String
@@ -368,8 +368,8 @@ SheetId -&gt; Parser a -&gt; String -&gt; a -&gt; Expectation
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser E
 </span><a href="Recalc.Syntax.FixitySpec.html#e"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679126576"><span class="hs-identifier hs-var">input</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679126576"><span class="hs-identifier hs-var">input</span></a></span><span>
+</span><a href="#local-6989586621679131894"><span class="hs-identifier hs-var">input</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679131894"><span class="hs-identifier hs-var">input</span></a></span><span>
 </span><span id="line-72"></span><span>
 </span><span id="line-73"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; Spec -&gt; Spec
 forall a. HasCallStack =&gt; String -&gt; SpecWith a -&gt; SpecWith a
@@ -383,7 +383,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. String -&gt; [a] -&gt; (a -&gt; Expectation) -&gt; Spec
 </span><a href="Recalc.Syntax.FixitySpec.html#manyIt"><span class="hs-identifier hs-var">manyIt</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;rejects&quot;</span></span><span> </span><span class="annot"><span class="annottext">[String]
-</span><a href="#local-6989586621679126578"><span class="hs-identifier hs-var">rejects</span></a></span><span> </span><span class="annot"><span class="annottext">((String -&gt; Expectation) -&gt; Spec)
+</span><a href="#local-6989586621679131896"><span class="hs-identifier hs-var">rejects</span></a></span><span> </span><span class="annot"><span class="annottext">((String -&gt; Expectation) -&gt; Spec)
 -&gt; (String -&gt; Expectation) -&gt; Spec
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SheetId -&gt; Parser E -&gt; String -&gt; Expectation
@@ -393,8 +393,8 @@ forall a. Show a =&gt; SheetId -&gt; Parser a -&gt; String -&gt; Expectation
 </span><a href="Recalc.Syntax.FixitySpec.html#e"><span class="hs-identifier hs-var">e</span></a></span><span>
 </span><span id="line-74"></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-75"></span><span>  </span><span class="hs-comment">-- [(string input, expected, True &lt;--&gt; test render(parse(input)) == input)]</span><span>
-</span><span id="line-76"></span><span>  </span><span id="local-6989586621679126571"><span class="annot"><span class="annottext">succeeds :: [(String, E, Bool)]
-</span><a href="#local-6989586621679126571"><span class="hs-identifier hs-var hs-var">succeeds</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679131889"><span class="annot"><span class="annottext">succeeds :: [(String, E, Bool)]
+</span><a href="#local-6989586621679131889"><span class="hs-identifier hs-var hs-var">succeeds</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-77"></span><span>    </span><span class="hs-comment">-- prefix</span><span>
 </span><span id="line-78"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;-1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">OP1 -&gt; E -&gt; E
@@ -684,8 +684,8 @@ forall a. Show a =&gt; SheetId -&gt; Parser a -&gt; String -&gt; Expectation
 </span><span id="line-109"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-110"></span><span>    </span><span class="hs-special">]</span><span>
 </span><span id="line-111"></span><span>
-</span><span id="line-112"></span><span>  </span><span id="local-6989586621679126578"><span class="annot"><span class="annottext">rejects :: [String]
-</span><a href="#local-6989586621679126578"><span class="hs-identifier hs-var hs-var">rejects</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-112"></span><span>  </span><span id="local-6989586621679131896"><span class="annot"><span class="annottext">rejects :: [String]
+</span><a href="#local-6989586621679131896"><span class="hs-identifier hs-var hs-var">rejects</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-113"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;&quot;</span></span><span>
 </span><span id="line-114"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
@@ -699,35 +699,35 @@ forall a. Show a =&gt; SheetId -&gt; Parser a -&gt; String -&gt; Expectation
 </span><span id="line-118"></span><span>    </span><span class="hs-special">]</span><span>
 </span><span id="line-119"></span><span>
 </span><span id="line-120"></span><span class="annot"><span class="hs-comment">-- | test a list of examples, enumerating them 1, 2, ..</span></span><span>
-</span><span id="line-121"></span><span id="local-6989586621679126375"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#manyIt"><span class="hs-identifier hs-type">manyIt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679126375"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679126375"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Expectation</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Spec</span></span></span><span>
+</span><span id="line-121"></span><span id="local-6989586621679131693"><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#manyIt"><span class="hs-identifier hs-type">manyIt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679131693"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679131693"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Expectation</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Spec</span></span></span><span>
 </span><span id="line-122"></span><span id="manyIt"><span class="annot"><span class="annottext">manyIt :: forall a. String -&gt; [a] -&gt; (a -&gt; Expectation) -&gt; Spec
-</span><a href="Recalc.Syntax.FixitySpec.html#manyIt"><span class="hs-identifier hs-var hs-var">manyIt</span></a></span></span><span> </span><span id="local-6989586621679126625"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679126625"><span class="hs-identifier hs-var">verb</span></a></span></span><span> </span><span id="local-6989586621679126626"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679126626"><span class="hs-identifier hs-var">cases</span></a></span></span><span> </span><span id="local-6989586621679126627"><span class="annot"><span class="annottext">a -&gt; Expectation
-</span><a href="#local-6989586621679126627"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Recalc.Syntax.FixitySpec.html#manyIt"><span class="hs-identifier hs-var hs-var">manyIt</span></a></span></span><span> </span><span id="local-6989586621679131943"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679131943"><span class="hs-identifier hs-var">verb</span></a></span></span><span> </span><span id="local-6989586621679131944"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679131944"><span class="hs-identifier hs-var">cases</span></a></span></span><span> </span><span id="local-6989586621679131945"><span class="annot"><span class="annottext">a -&gt; Expectation
+</span><a href="#local-6989586621679131945"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-123"></span><span>  </span><span class="annot"><span class="annottext">(a -&gt; Int -&gt; Spec) -&gt; [a] -&gt; [Int] -&gt; Spec
 forall (m :: * -&gt; *) a b c.
 Applicative m =&gt;
 (a -&gt; b -&gt; m c) -&gt; [a] -&gt; [b] -&gt; m ()
-</span><span class="hs-identifier hs-var">zipWithM_</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679126628"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679126628"><span class="hs-identifier hs-var">ex</span></a></span></span><span> </span><span id="local-6989586621679126629"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679126629"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Expectation -&gt; SpecWith (Arg Expectation)
+</span><span class="hs-identifier hs-var">zipWithM_</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679131946"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679131946"><span class="hs-identifier hs-var">ex</span></a></span></span><span> </span><span id="local-6989586621679131947"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679131947"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Expectation -&gt; SpecWith (Arg Expectation)
 forall a.
 (HasCallStack, Example a) =&gt;
 String -&gt; a -&gt; SpecWith (Arg a)
 </span><span class="hs-identifier hs-var">it</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; String
 forall {a}. Show a =&gt; a -&gt; String
-</span><a href="#local-6989586621679126630"><span class="hs-identifier hs-var">message</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679126629"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Expectation
-</span><a href="#local-6989586621679126627"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679126628"><span class="hs-identifier hs-var">ex</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679126626"><span class="hs-identifier hs-var">cases</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679131948"><span class="hs-identifier hs-var">message</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679131947"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Expectation
+</span><a href="#local-6989586621679131945"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679131946"><span class="hs-identifier hs-var">ex</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679131944"><span class="hs-identifier hs-var">cases</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span>
 </span><span id="line-124"></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-125"></span><span>  </span><span id="local-6989586621679126630"><span class="annot"><span class="annottext">message :: a -&gt; String
-</span><a href="#local-6989586621679126630"><span class="hs-identifier hs-var hs-var">message</span></a></span></span><span> </span><span id="local-6989586621679126638"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679126638"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679126625"><span class="hs-identifier hs-var">verb</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
+</span><span id="line-125"></span><span>  </span><span id="local-6989586621679131948"><span class="annot"><span class="annottext">message :: a -&gt; String
+</span><a href="#local-6989586621679131948"><span class="hs-identifier hs-var hs-var">message</span></a></span></span><span> </span><span id="local-6989586621679131956"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679131956"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679131943"><span class="hs-identifier hs-var">verb</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot; example-&quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
@@ -735,7 +735,7 @@ forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; String
 forall {a}. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679126638"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679131956"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-126"></span><span>
 </span><span id="line-127"></span><span class="annot"><a href="Recalc.Syntax.FixitySpec.html#sheetId"><span class="hs-identifier hs-type">sheetId</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SheetId</span></span><span>
 </span><span id="line-128"></span><span id="sheetId"><span class="annot"><span class="annottext">sheetId :: SheetId

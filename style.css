@@ -36,3 +36,23 @@
   margin: -15px 0 0 -20px;
   border-radius: 8px 8px 0 0;
 }
+
+.terminal h1 {
+  font-size: 14pt;
+}
+
+.terminal h2 {
+  font-size: 13pt;
+}
+
+h2::before {
+  content: "* ";
+}
+
+.terminal h3 {
+  font-size: 12pt;
+}
+
+h3::before {
+  content: "** ";
+}

@@ -1,0 +1,855 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="annot"><span class="hs-comment">{-|
+Module      : Recalc.Syntax.Unify
+Description : A simple unification algorithm for terms.
+-}</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Recalc.Syntax.Unify</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- ** Substitutions</span></span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier">Subst</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier">apply</span></a></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** Unification</span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#unify"><span class="hs-identifier">unify</span></a></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** Errors</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier">UnificationError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#unificationErrorAnnotation"><span class="hs-identifier">unificationErrorAnnotation</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Error.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadError</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">throwError</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Array.Dynamic</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Array</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">on</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">foldl'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Set</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter.Render.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">renderStrict</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html"><span class="hs-identifier">Recalc.Syntax.Term</span></a></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Recalc.Univer</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Annotation</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Annotation</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">data</span><span> </span><span id="UnificationError"><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier hs-var">UnificationError</span></a></span></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="UnifyMismatchI"><span class="annot"><a href="Recalc.Syntax.Unify.html#UnifyMismatchI"><span class="hs-identifier hs-var">UnifyMismatchI</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="UnifyMismatchC"><span class="annot"><a href="Recalc.Syntax.Unify.html#UnifyMismatchC"><span class="hs-identifier hs-var">UnifyMismatchC</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Check"><span class="hs-identifier hs-type">Check</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Check"><span class="hs-identifier hs-type">Check</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="OccursCheck"><span class="annot"><a href="Recalc.Syntax.Unify.html#OccursCheck"><span class="hs-identifier hs-var">OccursCheck</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679132103"><span id="local-6989586621679132115"><span class="annot"><span class="annottext">UnificationError -&gt; UnificationError -&gt; Bool
+(UnificationError -&gt; UnificationError -&gt; Bool)
+-&gt; (UnificationError -&gt; UnificationError -&gt; Bool)
+-&gt; Eq UnificationError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: UnificationError -&gt; UnificationError -&gt; Bool
+== :: UnificationError -&gt; UnificationError -&gt; Bool
+$c/= :: UnificationError -&gt; UnificationError -&gt; Bool
+/= :: UnificationError -&gt; UnificationError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132121"><span id="local-6989586621679132136"><span id="local-6989586621679132140"><span class="annot"><span class="annottext">Int -&gt; UnificationError -&gt; ShowS
+[UnificationError] -&gt; ShowS
+UnificationError -&gt; String
+(Int -&gt; UnificationError -&gt; ShowS)
+-&gt; (UnificationError -&gt; String)
+-&gt; ([UnificationError] -&gt; ShowS)
+-&gt; Show UnificationError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; UnificationError -&gt; ShowS
+showsPrec :: Int -&gt; UnificationError -&gt; ShowS
+$cshow :: UnificationError -&gt; String
+show :: UnificationError -&gt; String
+$cshowList :: [UnificationError] -&gt; ShowS
+showList :: [UnificationError] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">type</span><span> </span><span id="Subst"><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-var">Subst</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="annot"><span class="hs-comment">-- | unify two terms</span></span><span>
+</span><span id="line-46"></span><span id="local-6989586621679131980"><span class="annot"><a href="Recalc.Syntax.Unify.html#unify"><span class="hs-identifier hs-type">unify</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier hs-type">UnificationError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679131980"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Check"><span class="hs-identifier hs-type">Check</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Check"><span class="hs-identifier hs-type">Check</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679131980"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span></span><span>
+</span><span id="line-47"></span><span id="unify"><span class="annot"><span class="annottext">unify :: forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unify"><span class="hs-identifier hs-var hs-var">unify</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-operator hs-var">`unifyC`</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="annot"><span class="hs-comment">-- | checkable term unification</span></span><span>
+</span><span id="line-50"></span><span id="local-6989586621679131987"><span class="annot"><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-type">unifyC</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier hs-type">UnificationError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679131987"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Check"><span class="hs-identifier hs-type">Check</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Check"><span class="hs-identifier hs-type">Check</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679131987"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span></span><span>
+</span><span id="line-51"></span><span id="unifyC"><span class="annot"><span class="annottext">unifyC :: forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var hs-var">unifyC</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679132151"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132151"><span class="hs-identifier hs-var">lhs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132152"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132152"><span class="hs-identifier hs-var">rhs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679132153"><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132153"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Term m -&gt; Term m
+</span><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier hs-var">apply</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132153"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132151"><span class="hs-identifier hs-var">lhs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Term m -&gt; Term m
+</span><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier hs-var">apply</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132153"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132152"><span class="hs-identifier hs-var">rhs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-type">Inf</span></a></span><span> </span><span id="local-6989586621679132156"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132156"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-type">Inf</span></a></span><span> </span><span id="local-6989586621679132159"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132159"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyI"><span class="hs-identifier hs-var">unifyI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132156"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132159"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132153"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-type">Lam</span></a></span><span> </span><span id="local-6989586621679132163"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132163"><span class="hs-identifier hs-var">eps</span></a></span></span><span> </span><span id="local-6989586621679132164"><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132164"><span class="hs-identifier hs-var">_pat</span></a></span></span><span> </span><span id="local-6989586621679132165"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132165"><span class="hs-identifier hs-var">body</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-type">Lam</span></a></span><span> </span><span id="local-6989586621679132170"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132170"><span class="hs-identifier hs-var">eps'</span></a></span></span><span> </span><span id="local-6989586621679132171"><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132171"><span class="hs-identifier hs-var">_pat'</span></a></span></span><span> </span><span id="local-6989586621679132172"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132172"><span class="hs-identifier hs-var">body'</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132163"><span class="hs-identifier hs-var">eps</span></a></span><span> </span><span class="annot"><span class="annottext">Arg -&gt; Arg -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132170"><span class="hs-identifier hs-var">eps'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var">unifyC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132165"><span class="hs-identifier hs-var">body</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132172"><span class="hs-identifier hs-var">body'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132153"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679132173"><span class="annot"><span class="annottext">(Term 'Check, Term 'Check)
+</span><a href="#local-6989586621679132173"><span class="hs-identifier hs-var">eq</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UnificationError -&gt; f Subst
+forall a. UnificationError -&gt; f a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; UnificationError
+</span><a href="Recalc.Syntax.Unify.html#UnifyMismatchC"><span class="hs-identifier hs-var">UnifyMismatchC</span></a></span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check)
+</span><a href="#local-6989586621679132173"><span class="hs-identifier hs-var">eq</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="annot"><span class="hs-comment">-- | simple structural unification for inferrable terms</span></span><span>
+</span><span id="line-58"></span><span id="local-6989586621679131991"><span class="annot"><a href="Recalc.Syntax.Unify.html#unifyI"><span class="hs-identifier hs-type">unifyI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier hs-type">UnificationError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679131991"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679131991"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span></span><span>
+</span><span id="line-59"></span><span id="unifyI"><span class="annot"><span class="annottext">unifyI :: forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyI"><span class="hs-identifier hs-var hs-var">unifyI</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679132182"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132182"><span class="hs-identifier hs-var">lhs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132183"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132183"><span class="hs-identifier hs-var">rhs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679132184"><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Term 'Infer -&gt; Term 'Infer
+forall (m :: Mode). Subst -&gt; Term m -&gt; Term m
+</span><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier hs-var">apply</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132182"><span class="hs-identifier hs-var">lhs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; Term 'Infer -&gt; Term 'Infer
+forall (m :: Mode). Subst -&gt; Term m -&gt; Term m
+</span><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier hs-var">apply</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132183"><span class="hs-identifier hs-var">rhs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Ann"><span class="hs-identifier hs-type">Ann</span></a></span><span> </span><span id="local-6989586621679132187"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132187"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679132188"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132188"><span class="hs-identifier hs-var">ty</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Ann"><span class="hs-identifier hs-type">Ann</span></a></span><span> </span><span id="local-6989586621679132193"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132193"><span class="hs-identifier hs-var">x'</span></a></span></span><span> </span><span id="local-6989586621679132194"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132194"><span class="hs-identifier hs-var">ty'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var">unifyC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132187"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132193"><span class="hs-identifier hs-var">x'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Subst -&gt; f Subst) -&gt; f Subst -&gt; f Subst
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyI"><span class="hs-identifier hs-var">unifyI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132188"><span class="hs-identifier hs-var">ty</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132194"><span class="hs-identifier hs-var">ty'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-type">Pi</span></a></span><span> </span><span id="local-6989586621679132198"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132198"><span class="hs-identifier hs-var">eps</span></a></span></span><span> </span><span id="local-6989586621679132199"><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132199"><span class="hs-identifier hs-var">_n</span></a></span></span><span> </span><span id="local-6989586621679132200"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132200"><span class="hs-identifier hs-var">dom</span></a></span></span><span> </span><span id="local-6989586621679132201"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132201"><span class="hs-identifier hs-var">range</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-type">Pi</span></a></span><span> </span><span id="local-6989586621679132207"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132207"><span class="hs-identifier hs-var">eps'</span></a></span></span><span> </span><span id="local-6989586621679132208"><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132208"><span class="hs-identifier hs-var">_n'</span></a></span></span><span> </span><span id="local-6989586621679132209"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132209"><span class="hs-identifier hs-var">dom'</span></a></span></span><span> </span><span id="local-6989586621679132210"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132210"><span class="hs-identifier hs-var">range'</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132198"><span class="hs-identifier hs-var">eps</span></a></span><span> </span><span class="annot"><span class="annottext">Arg -&gt; Arg -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132207"><span class="hs-identifier hs-var">eps'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var">unifyC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132201"><span class="hs-identifier hs-var">range</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132210"><span class="hs-identifier hs-var">range'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Subst -&gt; f Subst) -&gt; f Subst -&gt; f Subst
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var">unifyC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132200"><span class="hs-identifier hs-var">dom</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132209"><span class="hs-identifier hs-var">dom'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-type">Bound</span></a></span><span> </span><span id="local-6989586621679132213"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132213"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-type">Bound</span></a></span><span> </span><span id="local-6989586621679132217"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132217"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132213"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132217"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; f Subst
+forall a. a -&gt; f a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-type">Ref</span></a></span><span> </span><span id="local-6989586621679132220"><span class="annot"><span class="annottext">(URI, Text)
+</span><a href="#local-6989586621679132220"><span class="hs-identifier hs-var">ref</span></a></span></span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679132221"><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679132221"><span class="hs-identifier hs-var">cr</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-type">Ref</span></a></span><span> </span><span id="local-6989586621679132234"><span class="annot"><span class="annottext">(URI, Text)
+</span><a href="#local-6989586621679132234"><span class="hs-identifier hs-var">ref'</span></a></span></span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679132235"><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679132235"><span class="hs-identifier hs-var">cr'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">(URI, Text)
+</span><a href="#local-6989586621679132220"><span class="hs-identifier hs-var">ref</span></a></span><span> </span><span class="annot"><span class="annottext">(URI, Text) -&gt; (URI, Text) -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">(URI, Text)
+</span><a href="#local-6989586621679132234"><span class="hs-identifier hs-var">ref'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679132221"><span class="hs-identifier hs-var">cr</span></a></span><span> </span><span class="annot"><span class="annottext">CellRange -&gt; CellRange -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679132235"><span class="hs-identifier hs-var">cr'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; f Subst
+forall a. a -&gt; f a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a></span><span> </span><span id="local-6989586621679132238"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132238"><span class="hs-identifier hs-var">td</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a></span><span> </span><span id="local-6989586621679132241"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132241"><span class="hs-identifier hs-var">td'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(TensorDescriptor, TensorDescriptor) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(TensorDescriptor, TensorDescriptor) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyTensor"><span class="hs-identifier hs-var">unifyTensor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132238"><span class="hs-identifier hs-var">td</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132241"><span class="hs-identifier hs-var">td'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorOf"><span class="hs-identifier hs-type">TensorOf</span></a></span><span> </span><span id="local-6989586621679132245"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132245"><span class="hs-identifier hs-var">td</span></a></span></span><span> </span><span id="local-6989586621679132246"><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132246"><span class="hs-identifier hs-var">arr</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorOf"><span class="hs-identifier hs-type">TensorOf</span></a></span><span> </span><span id="local-6989586621679132256"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132256"><span class="hs-identifier hs-var">td'</span></a></span></span><span> </span><span id="local-6989586621679132257"><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132257"><span class="hs-identifier hs-var">arr'</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShapeL -&gt; ShapeL -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(ShapeL -&gt; ShapeL -&gt; Bool)
+-&gt; (Array (Term 'Check) -&gt; ShapeL)
+-&gt; Array (Term 'Check)
+-&gt; Array (Term 'Check)
+-&gt; Bool
+forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">Array (Term 'Check) -&gt; ShapeL
+forall a. Array a -&gt; ShapeL
+</span><span class="hs-identifier hs-var">Array.shapeL</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132246"><span class="hs-identifier hs-var">arr</span></a></span><span> </span><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132257"><span class="hs-identifier hs-var">arr'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-68"></span><span>        </span><span class="annot"><span class="annottext">((Term 'Check, Term 'Check) -&gt; f Subst -&gt; f Subst)
+-&gt; f Subst -&gt; Array (Term 'Check, Term 'Check) -&gt; f Subst
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Array a -&gt; b
+</span><span class="hs-identifier hs-var">Array.foldrA</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Subst -&gt; f Subst) -&gt; f Subst -&gt; f Subst
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">(=&lt;&lt;)</span></span><span> </span><span class="annot"><span class="annottext">((Subst -&gt; f Subst) -&gt; f Subst -&gt; f Subst)
+-&gt; ((Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst)
+-&gt; (Term 'Check, Term 'Check)
+-&gt; f Subst
+-&gt; f Subst
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var">unifyC</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TensorDescriptor, TensorDescriptor) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(TensorDescriptor, TensorDescriptor) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyTensor"><span class="hs-identifier hs-var">unifyTensor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132245"><span class="hs-identifier hs-var">td</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132256"><span class="hs-identifier hs-var">td'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-69"></span><span>          </span><span class="annot"><span class="annottext">(Array (Term 'Check, Term 'Check) -&gt; f Subst)
+-&gt; Array (Term 'Check, Term 'Check) -&gt; f Subst
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Check -&gt; Term 'Check -&gt; (Term 'Check, Term 'Check))
+-&gt; Array (Term 'Check)
+-&gt; Array (Term 'Check)
+-&gt; Array (Term 'Check, Term 'Check)
+forall a b c.
+HasCallStack =&gt;
+(a -&gt; b -&gt; c) -&gt; Array a -&gt; Array b -&gt; Array c
+</span><span class="hs-identifier hs-var">Array.zipWithA</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132246"><span class="hs-identifier hs-var">arr</span></a></span><span> </span><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132257"><span class="hs-identifier hs-var">arr'</span></a></span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679132263"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132263"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#App"><span class="hs-operator hs-type">`App`</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679132265"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132265"><span class="hs-identifier hs-var">eps</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132266"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132266"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132272"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132272"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#App"><span class="hs-operator hs-type">`App`</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679132273"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132273"><span class="hs-identifier hs-var">eps'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132274"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132274"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132265"><span class="hs-identifier hs-var">eps</span></a></span><span> </span><span class="annot"><span class="annottext">Arg -&gt; Arg -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132273"><span class="hs-identifier hs-var">eps'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-72"></span><span>        </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var">unifyC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132266"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132274"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Subst -&gt; f Subst) -&gt; f Subst -&gt; f Subst
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyI"><span class="hs-identifier hs-var">unifyI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132263"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132272"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-type">Free</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Implicit"><span class="hs-identifier hs-type">Implicit</span></a></span><span> </span><span id="local-6989586621679132279"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132279"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132280"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132280"><span class="hs-identifier hs-var">ty</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+Int -&gt; Term 'Infer -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyImplicit"><span class="hs-identifier hs-var">unifyImplicit</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132279"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132280"><span class="hs-identifier hs-var">ty</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679132282"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132282"><span class="hs-identifier hs-var">ty</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132283"><span class="annot"><span class="annottext">var :: Term 'Infer
+</span><a href="#local-6989586621679132283"><span class="hs-identifier hs-var">var</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-type">Free</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Implicit"><span class="hs-identifier hs-type">Implicit</span></a></span><span class="hs-special">{</span><span class="hs-special">}</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyI"><span class="hs-identifier hs-var">unifyI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132283"><span class="hs-identifier hs-var">var</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132282"><span class="hs-identifier hs-var">ty</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-type">Free</span></a></span><span> </span><span id="local-6989586621679132287"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679132287"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-type">Free</span></a></span><span> </span><span id="local-6989586621679132292"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679132292"><span class="hs-identifier hs-var">n'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679132287"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Name -&gt; Name -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679132292"><span class="hs-identifier hs-var">n'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; f Subst
+forall a. a -&gt; f a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679132293"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132293"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132294"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132294"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132293"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Infer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132294"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; f Subst
+forall a. a -&gt; f a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132184"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UnificationError -&gt; f Subst
+forall a. UnificationError -&gt; f a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer) -&gt; UnificationError
+</span><a href="Recalc.Syntax.Unify.html#UnifyMismatchI"><span class="hs-identifier hs-var">UnifyMismatchI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132293"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132294"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span id="local-6989586621679132008"><span class="annot"><a href="Recalc.Syntax.Unify.html#unifyTensor"><span class="hs-identifier hs-type">unifyTensor</span></a></span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier hs-type">UnificationError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679132008"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorDescriptor"><span class="hs-identifier hs-type">TensorDescriptor</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorDescriptor"><span class="hs-identifier hs-type">TensorDescriptor</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679132008"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span></span><span>
+</span><span id="line-82"></span><span id="unifyTensor"><span class="annot"><span class="annottext">unifyTensor :: forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(TensorDescriptor, TensorDescriptor) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyTensor"><span class="hs-identifier hs-var hs-var">unifyTensor</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorDescriptor"><span class="hs-identifier hs-type">TensorDescriptor</span></a></span><span> </span><span id="local-6989586621679132303"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132303"><span class="hs-identifier hs-var">base</span></a></span></span><span> </span><span id="local-6989586621679132304"><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132304"><span class="hs-identifier hs-var">dims</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorDescriptor"><span class="hs-identifier hs-type">TensorDescriptor</span></a></span><span> </span><span id="local-6989586621679132305"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132305"><span class="hs-identifier hs-var">base'</span></a></span></span><span> </span><span id="local-6989586621679132306"><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132306"><span class="hs-identifier hs-var">dims'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679132307"><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132307"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-83"></span><span>  </span><span class="annot"><span class="annottext">((Term 'Check, Term 'Check) -&gt; f Subst -&gt; f Subst)
+-&gt; f Subst -&gt; [(Term 'Check, Term 'Check)] -&gt; f Subst
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Subst -&gt; f Subst) -&gt; f Subst -&gt; f Subst
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">(=&lt;&lt;)</span></span><span> </span><span class="annot"><span class="annottext">((Subst -&gt; f Subst) -&gt; f Subst -&gt; f Subst)
+-&gt; ((Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst)
+-&gt; (Term 'Check, Term 'Check)
+-&gt; f Subst
+-&gt; f Subst
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Check, Term 'Check) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyC"><span class="hs-identifier hs-var">unifyC</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+(Term 'Infer, Term 'Infer) -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyI"><span class="hs-identifier hs-var">unifyI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132303"><span class="hs-identifier hs-var">base</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132305"><span class="hs-identifier hs-var">base'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132307"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Term 'Check] -&gt; [Term 'Check] -&gt; [(Term 'Check, Term 'Check)]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132304"><span class="hs-identifier hs-var">dims</span></a></span><span> </span><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132306"><span class="hs-identifier hs-var">dims'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span id="local-6989586621679132031"><span class="annot"><a href="Recalc.Syntax.Unify.html#unifyImplicit"><span class="hs-identifier hs-type">unifyImplicit</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier hs-type">UnificationError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679132031"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679132031"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span></span><span>
+</span><span id="line-86"></span><span id="unifyImplicit"><span class="annot"><span class="annottext">unifyImplicit :: forall (f :: * -&gt; *).
+MonadError UnificationError f =&gt;
+Int -&gt; Term 'Infer -&gt; Subst -&gt; f Subst
+</span><a href="Recalc.Syntax.Unify.html#unifyImplicit"><span class="hs-identifier hs-var hs-var">unifyImplicit</span></a></span></span><span> </span><span id="local-6989586621679132321"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132321"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679132322"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132322"><span class="hs-identifier hs-var">ty</span></a></span></span><span> </span><span id="local-6989586621679132323"><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132323"><span class="hs-identifier hs-var">s</span></a></span></span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Name
+</span><a href="Recalc.Syntax.Term.html#Implicit"><span class="hs-identifier hs-var">Implicit</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132321"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Infer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132322"><span class="hs-identifier hs-var">ty</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; f Subst
+forall a. a -&gt; f a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132323"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132321"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Set Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; Set a -&gt; Bool
+forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
+</span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Set Int
+</span><a href="Recalc.Syntax.Unify.html#implicitVars"><span class="hs-identifier hs-var">implicitVars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132322"><span class="hs-identifier hs-var">ty</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UnificationError -&gt; f Subst
+forall a. UnificationError -&gt; f a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer -&gt; UnificationError
+</span><a href="Recalc.Syntax.Unify.html#OccursCheck"><span class="hs-identifier hs-var">OccursCheck</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132321"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132322"><span class="hs-identifier hs-var">ty</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-90"></span><span>      </span><span class="hs-comment">-- insert new unification var into substitution</span><span>
+</span><span id="line-91"></span><span>      </span><span class="annot"><span class="annottext">Subst -&gt; f Subst
+forall a. a -&gt; f a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Subst -&gt; f Subst) -&gt; (Subst -&gt; Subst) -&gt; Subst -&gt; f Subst
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer -&gt; Subst -&gt; Subst
+forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132321"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132322"><span class="hs-identifier hs-var">ty</span></a></span><span>
+</span><span id="line-92"></span><span>        </span><span class="hs-comment">-- update substitution with new mapping</span><span>
+</span><span id="line-93"></span><span>        </span><span class="annot"><span class="annottext">(Subst -&gt; f Subst) -&gt; Subst -&gt; f Subst
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer -&gt; Term 'Infer) -&gt; Subst -&gt; Subst
+forall a b k. (a -&gt; b) -&gt; Map k a -&gt; Map k b
+</span><span class="hs-identifier hs-var">Map.map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Term 'Infer -&gt; Term 'Infer
+forall (m :: Mode). Subst -&gt; Term m -&gt; Term m
+</span><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier hs-var">apply</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(Int, Term 'Infer)] -&gt; Subst
+forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132321"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132322"><span class="hs-identifier hs-var">ty</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132323"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span class="annot"><a href="Recalc.Syntax.Unify.html#implicitVars"><span class="hs-identifier hs-type">implicitVars</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Infer"><span class="hs-identifier hs-type">Infer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-96"></span><span id="implicitVars"><span class="annot"><span class="annottext">implicitVars :: Term 'Infer -&gt; Set Int
+</span><a href="Recalc.Syntax.Unify.html#implicitVars"><span class="hs-identifier hs-var hs-var">implicitVars</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Infer -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-97"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-98"></span><span>  </span><span id="local-6989586621679132047"><span class="annot"><a href="#local-6989586621679132329"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679132047"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-99"></span><span>  </span><span id="local-6989586621679132329"><span class="annot"><span class="annottext">go :: forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679132330"><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-type">Inf</span></a></span><span> </span><span id="local-6989586621679132332"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132332"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Infer -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132332"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-101"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-type">Lam</span></a></span><span> </span><span class="annot"><span class="annottext">Arg
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679132334"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132334"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132334"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-102"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Ann"><span class="hs-identifier hs-type">Ann</span></a></span><span> </span><span id="local-6989586621679132336"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132336"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span id="local-6989586621679132337"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132337"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Infer -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132336"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132337"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-103"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-type">Pi</span></a></span><span> </span><span class="annot"><span class="annottext">Arg
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679132339"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132339"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679132340"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132340"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132339"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132340"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-104"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a></span><span> </span><span id="local-6989586621679132342"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132342"><span class="hs-identifier hs-var">td</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; TensorDescriptor -&gt; Set Int
+</span><a href="#local-6989586621679132343"><span class="hs-identifier hs-var">goTensor</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132342"><span class="hs-identifier hs-var">td</span></a></span><span>
+</span><span id="line-105"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorOf"><span class="hs-identifier hs-type">TensorOf</span></a></span><span> </span><span id="local-6989586621679132347"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132347"><span class="hs-identifier hs-var">td</span></a></span></span><span> </span><span id="local-6989586621679132348"><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132348"><span class="hs-identifier hs-var">arr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Set Int -&gt; Term 'Check -&gt; Set Int)
+-&gt; Set Int -&gt; Array (Term 'Check) -&gt; Set Int
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Array a -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set Int -&gt; TensorDescriptor -&gt; Set Int
+</span><a href="#local-6989586621679132343"><span class="hs-identifier hs-var">goTensor</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132347"><span class="hs-identifier hs-var">td</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132348"><span class="hs-identifier hs-var">arr</span></a></span><span>
+</span><span id="line-106"></span><span>    </span><span id="local-6989586621679132350"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132350"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#App"><span class="hs-operator hs-type">`App`</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Arg
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132351"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132351"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Infer -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132350"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132351"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-107"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-type">Free</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Implicit"><span class="hs-identifier hs-type">Implicit</span></a></span><span> </span><span id="local-6989586621679132354"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132354"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Set Int -&gt; Set Int
+forall a. Ord a =&gt; a -&gt; Set a -&gt; Set a
+</span><span class="hs-identifier hs-var">Set.insert</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132354"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span>
+</span><span id="line-108"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Elaborate"><span class="hs-identifier hs-type">Elaborate</span></a></span><span> </span><span id="local-6989586621679132358"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132358"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132358"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-comment">-- should not be used</span><span>
+</span><span id="line-109"></span><span>    </span><span class="annot"><span class="annottext">Term m
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132330"><span class="hs-identifier hs-var">vars</span></a></span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span>  </span><span id="local-6989586621679132343"><span class="annot"><span class="annottext">goTensor :: Set Int -&gt; TensorDescriptor -&gt; Set Int
+</span><a href="#local-6989586621679132343"><span class="hs-identifier hs-var hs-var">goTensor</span></a></span></span><span> </span><span id="local-6989586621679132360"><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132360"><span class="hs-identifier hs-var">vars</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorDescriptor"><span class="hs-identifier hs-type">TensorDescriptor</span></a></span><span> </span><span id="local-6989586621679132361"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132361"><span class="hs-identifier hs-var">base</span></a></span></span><span> </span><span id="local-6989586621679132362"><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132362"><span class="hs-identifier hs-var">dims</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-112"></span><span>    </span><span class="annot"><span class="annottext">(Set Int -&gt; Term 'Check -&gt; Set Int)
+-&gt; Set Int -&gt; [Term 'Check] -&gt; Set Int
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Check -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set Int -&gt; Term 'Infer -&gt; Set Int
+forall (m :: Mode). Set Int -&gt; Term m -&gt; Set Int
+</span><a href="#local-6989586621679132329"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set Int
+</span><a href="#local-6989586621679132360"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132361"><span class="hs-identifier hs-var">base</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132362"><span class="hs-identifier hs-var">dims</span></a></span><span>
+</span><span id="line-113"></span><span>
+</span><span id="line-114"></span><span id="local-6989586621679131990"><span class="annot"><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier hs-type">apply</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679131990"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679131990"><span class="hs-identifier hs-type">m</span></a></span></span><span>
+</span><span id="line-115"></span><span id="apply"><span class="annot"><span class="annottext">apply :: forall (m :: Mode). Subst -&gt; Term m -&gt; Term m
+</span><a href="Recalc.Syntax.Unify.html#apply"><span class="hs-identifier hs-var hs-var">apply</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term m -&gt; Term m
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-operator hs-var">`go`</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-116"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-117"></span><span>  </span><span id="local-6989586621679132053"><span class="annot"><a href="#local-6989586621679132365"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#Subst"><span class="hs-identifier hs-type">Subst</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679132053"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679132053"><span class="hs-identifier hs-type">m</span></a></span></span><span>
+</span><span id="line-118"></span><span>  </span><span id="local-6989586621679132365"><span class="annot"><span class="annottext">go :: forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679132366"><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679132367"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-119"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-type">Inf</span></a></span><span> </span><span id="local-6989586621679132369"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132369"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Inf"><span class="hs-identifier hs-var">Inf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Infer -&gt; Term 'Infer
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132369"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-120"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-type">Lam</span></a></span><span> </span><span id="local-6989586621679132373"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132373"><span class="hs-identifier hs-var">eps</span></a></span></span><span> </span><span id="local-6989586621679132374"><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132374"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679132375"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132375"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Arg -&gt; Maybe CaseInsensitive -&gt; Term 'Check -&gt; Term 'Check
+</span><a href="Recalc.Syntax.Term.html#Lam"><span class="hs-identifier hs-var">Lam</span></a></span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132373"><span class="hs-identifier hs-var">eps</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132374"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132375"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Ann"><span class="hs-identifier hs-type">Ann</span></a></span><span> </span><span id="local-6989586621679132378"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132378"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span id="local-6989586621679132379"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132379"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Term 'Check -&gt; Term 'Infer -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ann"><span class="hs-identifier hs-var">Ann</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132378"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Infer -&gt; Term 'Infer
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132379"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-type">Pi</span></a></span><span> </span><span id="local-6989586621679132383"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132383"><span class="hs-identifier hs-var">eps</span></a></span></span><span> </span><span id="local-6989586621679132384"><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132384"><span class="hs-identifier hs-var">xn</span></a></span></span><span> </span><span id="local-6989586621679132385"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132385"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679132386"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132386"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Arg
+-&gt; Maybe CaseInsensitive
+-&gt; Term 'Check
+-&gt; Term 'Check
+-&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Pi"><span class="hs-identifier hs-var">Pi</span></a></span><span> </span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132383"><span class="hs-identifier hs-var">eps</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe CaseInsensitive
+</span><a href="#local-6989586621679132384"><span class="hs-identifier hs-var">xn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132385"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132386"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a></span><span> </span><span id="local-6989586621679132388"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132388"><span class="hs-identifier hs-var">td</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TensorDescriptor -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Tensor"><span class="hs-identifier hs-var">Tensor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; TensorDescriptor -&gt; TensorDescriptor
+</span><a href="#local-6989586621679132389"><span class="hs-identifier hs-var">goTensor</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132388"><span class="hs-identifier hs-var">td</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-124"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorOf"><span class="hs-identifier hs-type">TensorOf</span></a></span><span> </span><span id="local-6989586621679132393"><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132393"><span class="hs-identifier hs-var">td</span></a></span></span><span> </span><span id="local-6989586621679132394"><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132394"><span class="hs-identifier hs-var">arr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TensorDescriptor -&gt; Array (Term 'Check) -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#TensorOf"><span class="hs-identifier hs-var">TensorOf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; TensorDescriptor -&gt; TensorDescriptor
+</span><a href="#local-6989586621679132389"><span class="hs-identifier hs-var">goTensor</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">TensorDescriptor
+</span><a href="#local-6989586621679132393"><span class="hs-identifier hs-var">td</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">(Term 'Check -&gt; Term 'Check)
+-&gt; Array (Term 'Check) -&gt; Array (Term 'Check)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Array (Term 'Check)
+</span><a href="#local-6989586621679132394"><span class="hs-identifier hs-var">arr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-125"></span><span>    </span><span id="local-6989586621679132397"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132397"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#App"><span class="hs-operator hs-type">`App`</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679132398"><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132398"><span class="hs-identifier hs-var">eps</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132399"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132399"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Infer -&gt; Term 'Infer
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132397"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; (Arg, Term 'Check) -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#App"><span class="hs-operator hs-var">`App`</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Arg
+</span><a href="#local-6989586621679132398"><span class="hs-identifier hs-var">eps</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132399"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Elaborate"><span class="hs-identifier hs-type">Elaborate</span></a></span><span> </span><span id="local-6989586621679132401"><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132401"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Term 'Check -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Elaborate"><span class="hs-identifier hs-var">Elaborate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132367"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Check
+</span><a href="#local-6989586621679132401"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-type">Free</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Implicit"><span class="hs-identifier hs-type">Implicit</span></a></span><span> </span><span id="local-6989586621679132404"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132404"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679132405"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132405"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Subst -&gt; Maybe (Term 'Infer)
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132404"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132366"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-129"></span><span>          </span><span class="annot"><span class="annottext">Term m
+Term 'Infer
+</span><a href="#local-6989586621679132405"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-130"></span><span>    </span><span class="hs-comment">-- no-ops</span><span>
+</span><span id="line-131"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-type">Free</span></a></span><span> </span><span id="local-6989586621679132408"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679132408"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Free"><span class="hs-identifier hs-var">Free</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679132408"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-132"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-type">Set</span></a></span><span> </span><span id="local-6989586621679132411"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132411"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Set"><span class="hs-identifier hs-var">Set</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132411"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-133"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-type">Bound</span></a></span><span> </span><span id="local-6989586621679132413"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132413"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Bound"><span class="hs-identifier hs-var">Bound</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132413"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-134"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-type">Ref</span></a></span><span> </span><span id="local-6989586621679132415"><span class="annot"><span class="annottext">(URI, Text)
+</span><a href="#local-6989586621679132415"><span class="hs-identifier hs-var">sheetId</span></a></span></span><span> </span><span id="local-6989586621679132416"><span class="annot"><span class="annottext">RefInfo
+</span><a href="#local-6989586621679132416"><span class="hs-identifier hs-var">refInfo</span></a></span></span><span> </span><span id="local-6989586621679132417"><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679132417"><span class="hs-identifier hs-var">cr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(URI, Text) -&gt; RefInfo -&gt; CellRange -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Ref"><span class="hs-identifier hs-var">Ref</span></a></span><span> </span><span class="annot"><span class="annottext">(URI, Text)
+</span><a href="#local-6989586621679132415"><span class="hs-identifier hs-var">sheetId</span></a></span><span> </span><span class="annot"><span class="annottext">RefInfo
+</span><a href="#local-6989586621679132416"><span class="hs-identifier hs-var">refInfo</span></a></span><span> </span><span class="annot"><span class="annottext">CellRange
+</span><a href="#local-6989586621679132417"><span class="hs-identifier hs-var">cr</span></a></span><span>
+</span><span id="line-135"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#Lit"><span class="hs-identifier hs-type">Lit</span></a></span><span> </span><span id="local-6989586621679132420"><span class="annot"><span class="annottext">Lit
+</span><a href="#local-6989586621679132420"><span class="hs-identifier hs-var">lit</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Lit -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#Lit"><span class="hs-identifier hs-var">Lit</span></a></span><span> </span><span class="annot"><span class="annottext">Lit
+</span><a href="#local-6989586621679132420"><span class="hs-identifier hs-var">lit</span></a></span><span>
+</span><span id="line-136"></span><span>    </span><span class="annot"><a href="Recalc.Syntax.Term.html#LitOf"><span class="hs-identifier hs-type">LitOf</span></a></span><span> </span><span id="local-6989586621679132423"><span class="annot"><span class="annottext">LitOf
+</span><a href="#local-6989586621679132423"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">LitOf -&gt; Term 'Infer
+</span><a href="Recalc.Syntax.Term.html#LitOf"><span class="hs-identifier hs-var">LitOf</span></a></span><span> </span><span class="annot"><span class="annottext">LitOf
+</span><a href="#local-6989586621679132423"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-137"></span><span>
+</span><span id="line-138"></span><span>  </span><span id="local-6989586621679132389"><span class="annot"><span class="annottext">goTensor :: Subst -&gt; Int -&gt; TensorDescriptor -&gt; TensorDescriptor
+</span><a href="#local-6989586621679132389"><span class="hs-identifier hs-var hs-var">goTensor</span></a></span></span><span> </span><span id="local-6989586621679132424"><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132424"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679132425"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132425"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#TensorDescriptor"><span class="hs-identifier hs-type">TensorDescriptor</span></a></span><span> </span><span id="local-6989586621679132426"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132426"><span class="hs-identifier hs-var">base</span></a></span></span><span> </span><span id="local-6989586621679132427"><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132427"><span class="hs-identifier hs-var">dims</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-139"></span><span>    </span><span class="annot"><span class="annottext">Term 'Infer -&gt; [Term 'Check] -&gt; TensorDescriptor
+</span><a href="Recalc.Syntax.Term.html#TensorDescriptor"><span class="hs-identifier hs-var">TensorDescriptor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Infer -&gt; Term 'Infer
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132424"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132425"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132426"><span class="hs-identifier hs-var">base</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Term 'Check -&gt; Term 'Check) -&gt; [Term 'Check] -&gt; [Term 'Check]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Subst -&gt; Int -&gt; Term 'Check -&gt; Term 'Check
+forall (m :: Mode). Subst -&gt; Int -&gt; Term m -&gt; Term m
+</span><a href="#local-6989586621679132365"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Subst
+</span><a href="#local-6989586621679132424"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132425"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Term 'Check]
+</span><a href="#local-6989586621679132427"><span class="hs-identifier hs-var">dims</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span>
+</span><span id="line-141"></span><span class="annot"><span class="hs-comment">-- | render unification errors</span></span><span>
+</span><span id="line-142"></span><span class="annot"><a href="Recalc.Syntax.Unify.html#unificationErrorAnnotation"><span class="hs-identifier hs-type">unificationErrorAnnotation</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnificationError"><span class="hs-identifier hs-type">UnificationError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Annotation</span></span><span>
+</span><span id="line-143"></span><span id="unificationErrorAnnotation"><span class="annot"><span class="annottext">unificationErrorAnnotation :: UnificationError -&gt; Annotation
+</span><a href="Recalc.Syntax.Unify.html#unificationErrorAnnotation"><span class="hs-identifier hs-var hs-var">unificationErrorAnnotation</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-144"></span><span>  </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnifyMismatchI"><span class="hs-identifier hs-type">UnifyMismatchI</span></a></span><span> </span><span id="local-6989586621679132428"><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer)
+</span><a href="#local-6989586621679132428"><span class="hs-identifier hs-var">tt</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer) -&gt; Annotation
+forall (m :: Mode). (Term m, Term m) -&gt; Annotation
+</span><a href="#local-6989586621679132429"><span class="hs-identifier hs-var">mismatch</span></a></span><span> </span><span class="annot"><span class="annottext">(Term 'Infer, Term 'Infer)
+</span><a href="#local-6989586621679132428"><span class="hs-identifier hs-var">tt</span></a></span><span>
+</span><span id="line-145"></span><span>  </span><span class="annot"><a href="Recalc.Syntax.Unify.html#UnifyMismatchC"><span class="hs-identifier hs-type">UnifyMismatchC</span></a></span><span> </span><span id="local-6989586621679132430"><span class="annot"><span class="annottext">(Term 'Check, Term 'Check)
+</span><a href="#local-6989586621679132430"><span class="hs-identifier hs-var">tt</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check) -&gt; Annotation
+forall (m :: Mode). (Term m, Term m) -&gt; Annotation
+</span><a href="#local-6989586621679132429"><span class="hs-identifier hs-var">mismatch</span></a></span><span> </span><span class="annot"><span class="annottext">(Term 'Check, Term 'Check)
+</span><a href="#local-6989586621679132430"><span class="hs-identifier hs-var">tt</span></a></span><span>
+</span><span id="line-146"></span><span>  </span><span class="annot"><a href="Recalc.Syntax.Unify.html#OccursCheck"><span class="hs-identifier hs-type">OccursCheck</span></a></span><span> </span><span id="local-6989586621679132431"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132431"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679132432"><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132432"><span class="hs-identifier hs-var">ty</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-147"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; [Doc Any] -&gt; Annotation
+forall ann. Text -&gt; [Doc ann] -&gt; Annotation
+</span><a href="Recalc.Syntax.Unify.html#ann"><span class="hs-identifier hs-var">ann</span></a></span><span>
+</span><span id="line-148"></span><span>      </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Unification Error&quot;</span></span><span>
+</span><span id="line-149"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;Implicit variable &#8216;&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Doc Any
+forall ann. Int -&gt; Doc ann
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+</span><span class="hs-identifier hs-var">pretty</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679132431"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;&#8217; occurs in &#8216;&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term 'Infer -&gt; Doc Any
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+forall ann. Term 'Infer -&gt; Doc ann
+</span><span class="hs-identifier hs-var">pretty</span></span><span> </span><span class="annot"><span class="annottext">Term 'Infer
+</span><a href="#local-6989586621679132432"><span class="hs-identifier hs-var">ty</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;&#8217;&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-150"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-151"></span><span>  </span><span id="local-6989586621679132066"><span class="annot"><a href="#local-6989586621679132429"><span class="hs-identifier hs-type">mismatch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679132066"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Recalc.Syntax.Term.html#Term"><span class="hs-identifier hs-type">Term</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679132066"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Annotation</span></span></span><span>
+</span><span id="line-152"></span><span>  </span><span id="local-6989586621679132429"><span class="annot"><span class="annottext">mismatch :: forall (m :: Mode). (Term m, Term m) -&gt; Annotation
+</span><a href="#local-6989586621679132429"><span class="hs-identifier hs-var hs-var">mismatch</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679132441"><span class="annot"><span class="annottext">Term m
+</span><a href="#local-6989586621679132441"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679132442"><span class="annot"><span class="annottext">Term m
+</span><a href="#local-6989586621679132442"><span class="hs-identifier hs-var">t'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-153"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; [Doc Any] -&gt; Annotation
+forall ann. Text -&gt; [Doc ann] -&gt; Annotation
+</span><a href="Recalc.Syntax.Unify.html#ann"><span class="hs-identifier hs-var">ann</span></a></span><span>
+</span><span id="line-154"></span><span>      </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Unification Error&quot;</span></span><span>
+</span><span id="line-155"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;Cannot match type &#8216;&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term m -&gt; Doc Any
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+forall ann. Term m -&gt; Doc ann
+</span><span class="hs-identifier hs-var">pretty</span></span><span> </span><span class="annot"><span class="annottext">Term m
+</span><a href="#local-6989586621679132441"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;&#8217; with &#8216;&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term m -&gt; Doc Any
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+forall ann. Term m -&gt; Doc ann
+</span><span class="hs-identifier hs-var">pretty</span></span><span> </span><span class="annot"><span class="annottext">Term m
+</span><a href="#local-6989586621679132442"><span class="hs-identifier hs-var">t'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;&#8217;&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-156"></span><span>
+</span><span id="line-157"></span><span id="local-6989586621679132067"><span class="annot"><a href="Recalc.Syntax.Unify.html#ann"><span class="hs-identifier hs-type">ann</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Doc</span></span><span> </span><span class="annot"><a href="#local-6989586621679132067"><span class="hs-identifier hs-type">ann</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Annotation</span></span></span><span>
+</span><span id="line-158"></span><span id="ann"><span class="annot"><span class="annottext">ann :: forall ann. Text -&gt; [Doc ann] -&gt; Annotation
+</span><a href="Recalc.Syntax.Unify.html#ann"><span class="hs-identifier hs-var hs-var">ann</span></a></span></span><span> </span><span id="local-6989586621679132443"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679132443"><span class="hs-identifier hs-var">title</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Annotation
+</span><span class="hs-identifier hs-var">Annotation</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679132443"><span class="hs-identifier hs-var">title</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Annotation)
+-&gt; ([Doc ann] -&gt; Text) -&gt; [Doc ann] -&gt; Annotation
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SimpleDocStream ann -&gt; Text
+forall ann. SimpleDocStream ann -&gt; Text
+</span><span class="hs-identifier hs-var">renderStrict</span></span><span> </span><span class="annot"><span class="annottext">(SimpleDocStream ann -&gt; Text)
+-&gt; ([Doc ann] -&gt; SimpleDocStream ann) -&gt; [Doc ann] -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LayoutOptions -&gt; Doc ann -&gt; SimpleDocStream ann
+forall ann. LayoutOptions -&gt; Doc ann -&gt; SimpleDocStream ann
+</span><span class="hs-identifier hs-var">layoutPretty</span></span><span> </span><span class="annot"><span class="annottext">LayoutOptions
+</span><span class="hs-identifier hs-var">defaultLayoutOptions</span></span><span> </span><span class="annot"><span class="annottext">(Doc ann -&gt; SimpleDocStream ann)
+-&gt; ([Doc ann] -&gt; Doc ann) -&gt; [Doc ann] -&gt; SimpleDocStream ann
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Doc ann] -&gt; Doc ann
+forall ann. [Doc ann] -&gt; Doc ann
+</span><span class="hs-identifier hs-var">cat</span></span><span>
+</span><span id="line-159"></span></pre></body></html>
