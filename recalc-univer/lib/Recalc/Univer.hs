@@ -48,7 +48,9 @@ class (Recalc t, Pretty t, Show (ErrorOf t)) => UniverRecalc t where
 
   define
     :: Text
-    -> Map CellAddr (Maybe ((String, CellType), Maybe (t, Maybe (TypeOf t, Maybe (ValueOf t)))))
+    -> Map
+        CellAddr
+        (Maybe ((String, CellType), Maybe (t, Maybe ((TypeOf t, ElaborationOf t), Maybe (ValueOf t)))))
     -> [(Text, CellRange)]
     -> CellRange
     -> EnvOf t
@@ -257,7 +259,7 @@ packCell Cell{..} =
             (_, Just err) -> CustomData [fetchErrorAnnotation @t err] [] []
             -- given a typing, set the type annotation
             -- (regardless of whether it is a formula or value)
-            (Just (_, Just (_, Just (ty, _))), _) ->
+            (Just (_, Just (_, Just ((ty, _), _))), _) ->
               CustomData [] [] [Annotation "" (renderPretty ty)]
             -- there should not be another state
             _ -> CustomData [] [Annotation "Invalid State" "This cell is in an invalid/unknown state."] []

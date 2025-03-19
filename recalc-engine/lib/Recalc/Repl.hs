@@ -98,7 +98,7 @@ eval
    . Recalc t
   => EnvOf t
   -- ^ custom context as specified
-  -> t
+  -> ElaborationOf t
   -- ^ term to evaluate
   -> Result (ErrorOf t) (ValueOf t)
 eval env t = runFetch @t env (Recalc.eval @t t)
@@ -135,7 +135,7 @@ execRecalc inputs = snd . recalc inputs
 {- internal -}
 
 runFetch :: EnvOf t -> FetchOf t a -> Result (ErrorOf t) a
-runFetch env = runFetchWith env (\_ _ -> throwError RefError)
+runFetch env = runFetchWith env (\_ -> throwError RefError)
 
 -- | create a new engine state, initialising the custom context
 newEngineState :: EnvOf t -> EngineStateOf t

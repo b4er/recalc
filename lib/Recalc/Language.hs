@@ -57,12 +57,14 @@ import Control.Monad.Reader.Class (MonadReader (ask))
 import Data.Array.Dynamic (Array, ShapeL)
 import Data.Array.Dynamic qualified as Array
 import Data.Function (on)
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (isNothing)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
+import GHC.Float (int2Double)
 import GHC.Generics (Generic)
 import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
@@ -254,6 +256,8 @@ deps' = go mempty
     Tensor td -> goTensor acc td
     TensorOf td arr -> Array.foldrA (flip go) (goTensor acc td) arr
     f `App` (_arg, x) -> go (go acc f) x
+    -- should not be used (just to make GHC happy)
+    Elaborate x -> go acc x
 
   goTensor acc (TensorDescriptor base _dims) = go acc base
 
@@ -294,123 +298,150 @@ quote = go 0
     either (error . show) id
       . runFetchWith
         (Env prelude)
-        (\_ (sheetId, ca) -> pure (Right (VNeutral (NRef sheetId (ca, ca)))))
+        (\(sheetId, ca) -> pure (damn, damn, VNeutral (NRef sheetId (ca, ca))))
 
   damn = error "quote: this shouldn't happen"
 
 -- * Bi-directional typechecking
 
-check' :: [Type] -> Type -> Term Check -> Spreadsheet ()
+-- | fails if the type does not check, returns an elaborated term otherwise
+check' :: [Type] -> Type -> Term Check -> Spreadsheet (Term Check)
 check' ctxt ty = \case
   Inf x -> do
-    ty' <- infer' ctxt x
+    (ty', x') <- infer' ctxt x
     when (quote ty' /= quote ty)
       $ throwSemanticError (TypeMismatch ty' ty)
-  x@(Lam EArg _ body) -> case ty of
+    pure (Inf x')
+  x@(Lam arg n body) -> case ty of
     VPi EArg _p t t' -> do
       t'' <- t' t
-      check' (t : ctxt) t'' body
-    ty' -> throwSemanticError (TypeMismatchPi x ty')
-  x@(Lam IArg _ body) -> case ty of
-    VPi IArg _p t t' -> do
-      t'' <- t' t
-      check' (t : ctxt) t'' body
+      Lam arg n <$> check' (t : ctxt) t'' body
     ty' -> throwSemanticError (TypeMismatchPi x ty')
 
 -- . traceShowWith ("check'"::String,ctxt,ty,)
 
-infer' :: [Type] -> Term Infer -> Spreadsheet Type
+infer' :: [Type] -> Term Infer -> Spreadsheet (Type, Term Infer)
 infer' ctxt = \case
   Ann e t -> do
     void $ inferUniverse' ctxt (Inf t)
-    t' <- eval' ctxt t
-    t' <$ check' ctxt t' e
-  Set k -> pure $ VSet (k + 1)
-  Pi _arg _p dom range -> do
-    m <- inferUniverse' ctxt dom
-    dom' <- eval' ctxt dom
+    t'' <- eval' ctxt t
+    e' <- check' ctxt t'' e
+    pure (t'', elaborate e')
+  Set k -> pure (VSet (k + 1), Set k)
+  Pi arg p dom range -> do
+    (m, dom') <- inferUniverse' ctxt dom
+    dom'' <- eval' ctxt dom
     -- regardless of _arg, the pi-bound variable needs to be accessible in the
     -- range
-    n <- inferUniverse' (dom' : ctxt) range
-    pure $ VSet (max m n)
-  Bound i -> pure (ctxt !! i)
+    (n, range') <- inferUniverse' (dom'' : ctxt) range
+    pure (VSet (max m n), Pi arg p (Inf dom') (Inf range'))
+  Bound i -> pure (ctxt !! i, Bound i)
   Free name -> do
     Env{globals} <- ask
     case Map.lookup name globals of
-      Just Decl{declType} -> pure declType
+      Just Decl{declType} -> pure (declType, Free name)
       Nothing -> throwSemanticError (UnknownIdentifier name)
-  Ref sheetId _ cr@(start, end)
-    | start == end -> fetchType (sheetId, start)
+  ref@(Ref sheetId _ cr@(start, end))
+    | start == end -> (,ref) <$> fetchType @(Term Infer) (sheetId, start)
     | otherwise -> do
-        ty0 <- fetchType (sheetId, start)
+        ty0 <- fetchType @(Term Infer) (sheetId, start)
         -- make sure all references match
-        types <- mapM (\ca -> (ca,) <$> fetchType (sheetId, ca)) (cellRangeAddrs cr)
+        types <- mapM (\ca -> (ca,) <$> fetchType @(Term Infer) (sheetId, ca)) (cellRangeAddrs cr)
         let errors = filter ((ty0 /=) . snd) types
         unless (null errors)
           $ throwSemanticError (IllegalArrayType errors)
-        pure (VTensor (cellRangeDescriptor' ty0 cr))
-  Lit{} -> pure (VSet 0)
-  LitOf val -> pure (inferLiteral val)
+        pure (VTensor (cellRangeDescriptor' ty0 cr), ref)
+  lit@Lit{} -> pure (VSet 0, lit)
+  lit@(LitOf val) -> pure (inferLiteral val, lit)
   -- infer for Tensor and TensorOf should never be called
   -- since it's not part of surface language..
   ---
   -- implement them anyway:
-  Tensor (TensorDescriptor base _dims) -> do
-    void $ inferUniverse' ctxt (Inf base)
-    pure (VSet 0)
+  Tensor (TensorDescriptor base dims) -> do
+    (_, base') <- inferUniverse' ctxt (Inf base)
+    pure (VSet 0, Tensor (TensorDescriptor base' dims))
   TensorOf (TensorDescriptor base dims) arr -> do
-    baseType <- infer' ctxt base
-    mapM_ (check' ctxt vint) dims
+    (baseType, base') <- infer' ctxt base
+    dims' <- mapM (check' ctxt vint) dims
     vdims <- mapM (eval' ctxt) dims
-    mapM_ (check' ctxt baseType) arr
-    pure . VTensor $ VTensorDescriptor baseType vdims
+    arr' <- mapM (check' ctxt baseType) arr
+    let term = TensorOf (TensorDescriptor base' dims') arr'
+    pure . (,term) . VTensor $ VTensorDescriptor baseType vdims
   f `App` (IArg, x) ->
     infer' ctxt f >>= \case
-      VPi IArg _ t t' -> do
-        check' ctxt t x
+      (VPi IArg _ t t', fnTerm) -> do
+        xTerm <- check' ctxt t x
         x' <- eval' ctxt x
-        t' x'
-      t@VPi{} -> throwSemanticError (IllegalImplicitApplication t)
-      t -> throwSemanticError (IllegalApplication t)
+        (,fnTerm `App` (IArg, xTerm)) <$> t' x'
+      (t@VPi{}, _) -> throwSemanticError (IllegalImplicitApplication t)
+      (t, _) -> throwSemanticError (IllegalApplication t)
   f `App` (EArg, x) ->
     resolveImplicits ctxt x =<< infer' ctxt f
+  -- we never infer elaborated terms..
+  Elaborate _ -> error "the impossible happened"
 
 -- . traceShowWith ("infer'"::String,ctxt,)
 
-resolveImplicits :: [Type] -> Term Check -> Type -> Spreadsheet Type
-resolveImplicits ctxt x ty = do
-  go 0 [] ty >>= \case
+resolveImplicits :: [Type] -> Term Check -> (Type, Term Infer) -> Spreadsheet (Type, Term Infer)
+resolveImplicits ctxt x (fnTy, fnTerm) = do
+  go 0 [] fnTy >>= \case
     Just (implicits, dom, range) -> do
       case x of
         -- if the argument is not a lambda and there were implicit arguments,
         -- try inferring the implicits from unification
         Inf x' | not (null implicits) -> do
-          xTy <- infer' ctxt x'
+          (xTy, xTerm) <- infer' ctxt x'
           case unify (quote xTy, quote dom) of
             Left err -> throwSemanticError (UnificationError err)
             Right s -> do
               let
+                -- unknown implicit arguments
+                implicits' =
+                  [ (k, n, quote d)
+                  | (k, (n, d)) <- zip [0 ..] implicits
+                  , isNothing (Map.lookup k s)
+                  ]
+
+                -- pi over implicits that were not inferred
+                piImplicits y =
+                  foldr (\(k, n, d) -> Inf . Pi IArg n d . sub k 0) y implicits'
+
                 -- lambda over implicits that were not inferred
-                absImplicits y =
-                  foldr
-                    (\(k, n, d) -> Inf . Pi IArg n d . sub k 0)
-                    y
-                    [ (k, n, quote d)
-                    | (k, (n, d)) <- zip [0 ..] implicits
-                    , isNothing (Map.lookup k s)
-                    ]
-              -- close over the uninferred ones, substitute inferred implicits
-              -- (wrap in eval . . quote to operate on terms)
-              eval' ctxt . absImplicits . apply s . quote
+                lamImplicits y =
+                  foldr (\(k, n, _) -> Lam IArg n . sub k 0) y implicits'
+                -- foldr (\(k, n, d) -> Inf . Pi IArg n d . sub k 0) y implicits'
+
+                -- apply all inferred implicits to term (elaboration)
+                fnTerm' =
+                  lamImplicits
+                    . Inf
+                    . (`App` (EArg, Inf xTerm))
+                    $ foldl'
+                      (\fn i -> fn `App` (IArg, Inf i))
+                      fnTerm
+                      [ case Map.lookup k s of
+                        Just v -> v
+                        Nothing -> Free (Implicit k)
+                      | (k, _) <- zip [0 ..] implicits
+                      ]
+
+              -- set elaborated term
+              fmap (,elaborate fnTerm')
+                -- close over the uninferred ones
+                . eval' ctxt
+                . piImplicits
+                -- substitute inferred implicits
+                . apply s
+                . quote
                 -- the resulting type
                 =<< range
                 =<< eval' ctxt x
         -- else, regular bi-directional application checking
         _ -> do
-          check' ctxt dom x
+          xTerm <- check' ctxt dom x
           x' <- eval' ctxt x
-          range x'
-    Nothing -> throwSemanticError (IllegalApplication ty)
+          (,fnTerm `App` (EArg, xTerm)) <$> range x'
+    Nothing -> throwSemanticError (IllegalApplication fnTy)
  where
   go
     :: Int
@@ -436,21 +467,21 @@ inferLiteral =
 
 -- | use this to determine the level in the type-hierarchy such
 -- that we do not need to type @type: type@
-inferUniverse' :: [Type] -> Term Check -> Spreadsheet Int
+inferUniverse' :: [Type] -> Term Check -> Spreadsheet (Int, Term Infer)
 inferUniverse' ctxt = \case
   Inf e -> do
-    t <- infer' ctxt e
+    (t, e') <- infer' ctxt e
     case quote t of
-      Inf (Set k) -> pure k
+      Inf (Set k) -> pure (k, e')
       Inf (Bound i) -> do
         let v = ctxt !! i
-        inferUniverse' ctxt (quote v)
+        (,Bound i) . fst <$> inferUniverse' ctxt (quote v)
       Inf (Free name) -> do
         Env{globals} <- ask
         case Map.lookup name globals of
-          Just Decl{declType = VSet k} -> pure k
+          Just Decl{declType = VSet k} -> pure (k, Free name)
           _ -> throwSemanticError (UnknownIdentifier name)
-      Inf Tensor{} -> pure 0
+      Inf tensor@Tensor{} -> pure (0, tensor)
       ty -> throwSemanticError (ExpectedSet ty)
   ty -> throwSemanticError (ExpectedSet ty)
 
@@ -468,15 +499,16 @@ eval' ctxt = \case
   Bound i -> pure (ctxt !! i)
   Ref sheetId _ cr@(start, end)
     -- if it's a single reference: just the value there
-    | start == end -> fetchValue (sheetId, start)
+    | start == end -> fetchValue @(Term Infer) (sheetId, start)
     | otherwise -> do
         let addrs = cellRangeAddrs cr
         -- evaluate the descriptor to get dimensions
-        vtd@(VTensorDescriptor _ vdims) <- (`cellRangeDescriptor'` cr) <$> fetchType (sheetId, start)
+        vtd@(VTensorDescriptor _ vdims) <-
+          (`cellRangeDescriptor'` cr) <$> fetchType @(Term Infer) (sheetId, start)
         vdims' <- evalShape vdims -- make sure they are integers
         -- evaluate each position in the referenced range
         VTensorOf vtd . Array.fromList vdims'
-          <$> concatMapM (\ca -> flattenTensor <$> fetchValue (sheetId, ca)) addrs
+          <$> concatMapM (\ca -> flattenTensor <$> fetchValue @(Term Infer) (sheetId, ca)) addrs
   Free name -> do
     Env{globals} <- ask
     case Map.lookup name globals of
@@ -492,6 +524,7 @@ eval' ctxt = \case
     f' <- eval' ctxt f
     x' <- eval' ctxt x
     vapp f' x'
+  Elaborate x -> eval' ctxt x
 
 evalTensor' :: [Value] -> TensorDescriptor -> Spreadsheet (Value, [Value])
 evalTensor' ctxt (TensorDescriptor base dims) = (,) <$> eval' ctxt base <*> mapM (eval' ctxt) dims
@@ -519,6 +552,7 @@ flattenTensor = \case
 instance Recalc (Term Infer) where
   type EnvOf (Term Infer) = Env
   type ErrorOf (Term Infer) = SemanticError
+  type ElaborationOf (Term Infer) = Term Infer
   type TypeOf (Term Infer) = Value
   type ValueOf (Term Infer) = Value
 
@@ -528,7 +562,7 @@ instance Recalc (Term Infer) where
 
   depsOf = deps'
 
-  infer = infer' []
+  inferElaborate = infer' []
   eval = eval' []
 
 -- | for error annotations and sheet-defined functions (not implemented) we need
@@ -642,13 +676,18 @@ prelude =
   mmultT = vpis [(IArg, "m", vint), (IArg, "n", vint), (IArg, "k", vint)]
     $ \[m, n, k] -> vtensor vint [m, n] `vfun` vtensor vint [n, k] `vfun` vtensor vint [m, k]
 
-  mmultImpl = vlam EArg (Just (CaseInsensitive "u")) $ \u -> VLam EArg (Just (CaseInsensitive "v")) $ \v ->
-    case (u, v) of
-      (VTensorOf _ arr, VTensorOf _ arr') -> do
-        iarr <- sequence (Array.mapA (fmap (undefined :: Int -> Double) . evalInt) arr)
-        iarr' <- sequence (Array.mapA (fmap undefined . evalInt) arr')
-        let
-          multArr = tensorContract [1] [0] iarr iarr'
-          vtd = VTensorDescriptor vint (vintOf <$> Array.shapeL multArr)
-        pure (VTensorOf vtd (vintOf . round <$> multArr))
-      _ -> pure . VNeutral $ NApp EArg (NApp EArg (NFree "mmult") u) v
+  mmultImpl =
+    vlam IArg (Just (CaseInsensitive "m")) $ \_ ->
+      vlam EArg (Just (CaseInsensitive "n")) $ \_ ->
+        vlam IArg (Just (CaseInsensitive "k")) $ \_ ->
+          vlam EArg (Just (CaseInsensitive "u")) $ \u ->
+            VLam EArg (Just (CaseInsensitive "v")) $ \v ->
+              case (u, v) of
+                (VTensorOf _ arr, VTensorOf _ arr') -> do
+                  iarr <- sequence (Array.mapA (fmap int2Double . evalInt) arr)
+                  iarr' <- sequence (Array.mapA (fmap int2Double . evalInt) arr')
+                  let
+                    multArr = tensorContract [1] [0] iarr iarr'
+                    vtd = VTensorDescriptor vint (vintOf <$> Array.shapeL multArr)
+                  pure (VTensorOf vtd (vintOf . round <$> multArr))
+                _ -> pure . VNeutral $ NApp EArg (NApp EArg (NFree "mmult") u) v

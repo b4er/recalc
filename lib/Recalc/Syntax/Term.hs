@@ -30,7 +30,13 @@ import Recalc.Univer.Protocol (quotientOn)
 
 -- * Terms
 
-data Mode = Check | Infer deriving (Eq, Show)
+-- | modes for typing: bi-directional type checking
+data Mode
+  = -- | checkable terms (and elaborated terms)
+    Check
+  | -- | inferrable terms
+    Infer
+  deriving (Eq, Show)
 
 -- ** Names
 
@@ -118,9 +124,16 @@ data Term (m :: Mode) where
   TensorOf :: !TensorDescriptor -> !(Array (Term Check)) -> Term Infer
   -- | application
   App :: !(Term Infer) -> !(Arg, Term Check) -> Term Infer
+  -- | elaborated terms (do not use before typechecking!)
+  Elaborate :: !(Term Check) -> Term Infer
 
 pattern (:$) :: Term Infer -> Term Check -> Term Infer
 pattern f :$ x = f `App` (EArg, x)
+
+-- | smart constructor (@x@ when passing @Elaborate (Inf x)@)
+elaborate :: Term Check -> Term Infer
+elaborate (Inf x) = x
+elaborate f = Elaborate f
 
 deriving instance Show (Term m)
 
@@ -140,6 +153,7 @@ instance Eq (Term m) where
   App f (EArg, x) == App g (EArg, y) = f == g && x == y
   App f (IArg, _x) == App g (IArg, _y) = f == g
   App{} == App{} = False
+  Elaborate x == Elaborate y = x == y
   _ == _ = False
 
 boolOf :: Bool -> Term Infer
@@ -177,6 +191,7 @@ subst i r = \case
   Tensor td -> Tensor (substTensor i r td)
   TensorOf td arr -> TensorOf (substTensor i r td) (subst i r <$> arr)
   x `App` (arg, y) -> subst i r x `App` (arg, subst i r y)
+  Elaborate x -> Elaborate (subst i r x)
 
 substTensor :: Int -> Term Infer -> TensorDescriptor -> TensorDescriptor
 substTensor i r (TensorDescriptor base dims) =
@@ -262,6 +277,7 @@ instance Pretty (Term m) where
                   $ map (pr env 0 . snd) ys'
                 | (arg, ys') <- quotientOn fst ys
                 ]
+      Elaborate x -> pretty x
 
     prTensor env (TensorDescriptor base dims) =
       align
@@ -342,6 +358,7 @@ sub k i = \case
   Tensor td -> Tensor (subTensor k i td)
   TensorOf td arr -> TensorOf (subTensor k i td) (sub k i <$> arr)
   x `App` (arg, y) -> sub k i x `App` (arg, sub k i y)
+  Elaborate x -> Elaborate (sub k i x)
 
 subTensor :: Int -> Int -> TensorDescriptor -> TensorDescriptor
 subTensor k i (TensorDescriptor base dims) =

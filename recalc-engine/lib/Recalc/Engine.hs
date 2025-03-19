@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -12,7 +13,7 @@ Description : The recalculation engine for generic spreadsheet languages.
 The evaluation strategy is inspired by the paper "Build systems à la carte",
 it maintains a 'DocumentStore' that tracks types, values and meta data (dummied
 out for now) for all cells, and a dependency graph of the cells for checking
-which cells are dirty (need to be recomputed).
+which cells are dirty (need to be recalculated).
 
 __References:__
   Andrey Mokhov, Neil Mitchell and Simon Peyton Jones.
@@ -99,6 +100,7 @@ import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
 import Text.Megaparsec (MonadParsec (eof), ParseErrorBundle, Parsec, parse)
 
+import Debug.Trace (traceShow)
 import Recalc.Engine.Core
 import Recalc.Engine.DependencyMap (Slow)
 import Recalc.Engine.DependencyMap qualified as Deps
@@ -107,12 +109,17 @@ import Recalc.Engine.DependencyMap qualified as Deps
 
 -- | The spreadsheet language interface. An instantiation of it can be used
 -- to declare the semantics of the provided language in a spreadsheet environment.
-class (Pretty t, Pretty (TypeOf t), Pretty (ValueOf t)) => Recalc t where
+class (Pretty t, Pretty (TypeOf t), Pretty (ElaborationOf t), Pretty (ValueOf t)) => Recalc t where
   -- | a custom environment (e.g. to bind global variables)
   type EnvOf t
 
   -- | a custom error type (errors during type inference, or evaluation)
   type ErrorOf t
+
+  -- | the value @t@ evaluates to
+  type ElaborationOf t
+
+  type ElaborationOf t = t
 
   -- | the types of values @t@
   type TypeOf t
@@ -123,7 +130,7 @@ class (Pretty t, Pretty (TypeOf t), Pretty (ValueOf t)) => Recalc t where
   -- | the language may differentiate between cells parsed as formula and value
   parseCell :: CellType -> ReaderT SheetId (Parsec Void String) t
 
-  -- | specify how to compute the cell references a term depends on
+  -- | specify how to calculate the cell references a term depends on
   depsOf :: t -> Set CellRangeRef
 
   -- | specify how a term's type is inferred
@@ -132,11 +139,12 @@ class (Pretty t, Pretty (TypeOf t), Pretty (ValueOf t)) => Recalc t where
 
   -- | specify how a term's type is inferred with term elaboration
   -- (defaults to identity elaboration)
-  inferElaborate :: t -> FetchOf t (TypeOf t, t)
+  inferElaborate :: t -> FetchOf t (TypeOf t, ElaborationOf t)
+  default inferElaborate :: (ElaborationOf t ~ t) => t -> FetchOf t (TypeOf t, ElaborationOf t)
   inferElaborate t = (,t) <$> infer t
 
   -- | specify how a term is evaluated
-  eval :: t -> FetchOf t (ValueOf t)
+  eval :: ElaborationOf t -> FetchOf t (ValueOf t)
 
   {-# MINIMAL (infer | inferElaborate), parseCell, depsOf, eval #-}
 
@@ -147,7 +155,7 @@ data Kind = Type | Value deriving (Eq, Ord, Show)
 
 -- | The spreadsheet engine can be queried for re-evaluation of
 -- cells (types and values) and volatile results.
-data Ix = CellIx !Kind !CellRef | VolatileIx
+data Ix = CellIx !CellRef | VolatileIx
   deriving (Eq, Ord, Show)
 
 -- assume megaparsec for now
@@ -170,28 +178,28 @@ newtype Fetch env err r a
       )
   deriving (Functor)
 
-type FetchOf t = Fetch (EnvOf t) (ErrorOf t) (Either (TypeOf t, t) (ValueOf t))
+type FetchOf t = Fetch (EnvOf t) (ErrorOf t) (TypeOf t, ElaborationOf t, ValueOf t)
 
 fetch :: Ix -> Fetch env err v v
 fetch ix = Fetch $ lift . ($ ix) =<< asks fst
 
 -- | fetch the value stored at a cell reference
 fetchValue :: CellRef -> FetchOf t (ValueOf t)
-fetchValue = fmap projectRight . fetch . CellIx Value
+fetchValue = fmap (\(_, _, v) -> v) . fetch . CellIx
 
 -- | fetch the type of the value at a cell reference
 fetchType :: CellRef -> FetchOf t (TypeOf t)
-fetchType = fmap (fst . projectLeft) . fetch . CellIx Type
+fetchType = fmap (\(t, _, _) -> t) . fetch . CellIx
 
 runFetchWith
   :: env
-  -> (Kind -> CellRef -> Except (FetchError err) v)
+  -> (CellRef -> Except (FetchError err) v)
   -- ^ callback that returns a value/type (depending on its kind)
   -> Fetch env err v a
   -- ^ a fetch task to run
   -> Either (FetchError err) a
 runFetchWith env f (Fetch v) = runExcept . runReaderT v . (,env) $ \case
-  CellIx k ref -> f k ref
+  CellIx ref -> f ref
   _ -> throwError RefError
 
 -- Applicative instance (cannot be derived due to the higher-rank type)
@@ -217,18 +225,18 @@ instance MonadReader env (Fetch env err r) where
   ask = Fetch (asks snd)
   local f (Fetch x) = Fetch (local (second f) x)
 
-type DocumentStore err f t v = Map URI (Document err f t v)
-type DocumentStoreOf f = DocumentStore (ErrorOf f) f (TypeOf f) (ValueOf f)
+type DocumentStore err f t e v = Map URI (Document err f t e v)
+type DocumentStoreOf f = DocumentStore (ErrorOf f) f (TypeOf f) (ElaborationOf f) (ValueOf f)
 
 -- a univer document
-data Document err f t v = Document
+data Document err f t e v = Document
   { sheetOrder :: ![Text]
   -- ^ sheets may be re-ordered (visually)
-  , sheets :: !(Map SheetName (Sheet err f t v))
+  , sheets :: !(Map SheetName (Sheet err f t e v))
   -- ^ store of sheets by their name
   }
 
-instance (Show err, Pretty f, Pretty t, Pretty v) => Show (Document err f t v) where
+instance (Show err, Pretty f, Pretty t, Pretty e, Pretty v) => Show (Document err f t e v) where
   show Document{..} =
     "Document {"
       <> "sheetOrder = "
@@ -240,8 +248,8 @@ instance (Show err, Pretty f, Pretty t, Pretty v) => Show (Document err f t v) w
     -- make sure keys show as [Col][Row] excel-style
     showKeys = Map.map (Map.mapKeys showExcel26)
 
-type Sheet err f t v = Map CellAddr (Cell err f t v)
-type SheetOf f = Sheet (ErrorOf f) f (TypeOf f) (ValueOf f)
+type Sheet err f t e v = Map CellAddr (Cell err f t e v)
+type SheetOf f = Sheet (ErrorOf f) f (TypeOf f) (ElaborationOf f) (ValueOf f)
 
 type Parsed = Either ParseError
 
@@ -254,11 +262,11 @@ data CellType
     CellValue
   deriving (Show)
 
-data Cell err f t v = Cell
-  { cell :: !(Maybe ((String, CellType), Maybe (f, Maybe (t, Maybe v))))
+data Cell err f t e v = Cell
+  { cell :: !(Maybe ((String, CellType), Maybe (f, Maybe ((t, e), Maybe v))))
   -- ^ a cell maybe only meta data. when it has a term (and therefore the input
-  -- and celltype are available), it can have a type. if it has a type, it can
-  -- have a value.
+  -- and celltype are available), it can have a type. if it has a type it must
+  -- have an associated elaborated term, and it can have a value.
   , cellDeps :: !(Set CellRangeRef)
   -- ^ dependencies of the cell
   , cellError :: !(Maybe (FetchError err))
@@ -267,9 +275,9 @@ data Cell err f t v = Cell
   -- ^ meta data (currently useless, should include style info like it once did)
   }
 
-type CellOf f = Cell (ErrorOf f) f (TypeOf f) (ValueOf f)
+type CellOf f = Cell (ErrorOf f) f (TypeOf f) (ElaborationOf f) (ValueOf f)
 
-instance (Show err, Pretty f, Pretty t, Pretty v) => Show (Cell err f t v) where
+instance (Show err, Pretty f, Pretty t, Pretty e, Pretty v) => Show (Cell err f t e v) where
   show Cell{..} =
     "Cell { cell = "
       <> maybe "#ERR" showCell cell
@@ -303,7 +311,7 @@ renderPretty = renderStrict . layoutPretty defaultLayoutOptions . pretty
 prettyString :: Pretty a => a -> String
 prettyString = Text.unpack . renderPretty
 
-cellOf :: Parsed t -> Maybe (t, Maybe (TypeOf t, Maybe (ValueOf t)))
+cellOf :: Parsed t -> Maybe (t, Maybe ((TypeOf t, ElaborationOf t), Maybe (ValueOf t)))
 cellOf = \case
   Right t -> Just (t, Nothing)
   _ -> Nothing
@@ -314,19 +322,19 @@ errorOf = \case
   _ -> Nothing
 
 -- set an error
-setError :: FetchError err -> Cell err f t v -> Cell err f t v
+setError :: FetchError err -> Cell err f t e v -> Cell err f t e v
 setError err c = c{cellError = Just err}
 
 -- set type (setting value to @Nothing@) when a term is stored
-setType :: (t, f) -> Cell err f t v -> Cell err f t v
+setType :: (t, e) -> Cell err f t e v -> Cell err f t e v
 setType (typ, term) c =
   c
-    { cell = second (fmap (const (term, Just (typ, Nothing)))) <$> cell c
+    { cell = second (fmap (second (const (Just ((typ, term), Nothing))))) <$> cell c
     , cellError = Nothing
     }
 
 -- set value when a term and type are stored
-setValue :: v -> Cell err f t v -> Cell err f t v
+setValue :: v -> Cell err f t e v -> Cell err f t e v
 setValue val c =
   c
     { cell = second (fmap (second ((,Just val) . fst <$>))) <$> cell c
@@ -335,9 +343,9 @@ setValue val c =
 
 alterCell
   :: CellRef
-  -> (Maybe (Cell err f t v) -> Maybe (Cell err f t v))
-  -> DocumentStore err f t v
-  -> DocumentStore err f t v
+  -> (Maybe (Cell err f t e v) -> Maybe (Cell err f t e v))
+  -> DocumentStore err f t e v
+  -> DocumentStore err f t e v
 alterCell ((uri, sheetName), ca) f = (`Map.update` uri) $ \doc ->
   Just
     doc
@@ -345,42 +353,39 @@ alterCell ((uri, sheetName), ca) f = (`Map.update` uri) $ \doc ->
           Just (Map.alter f ca sheet)
       }
 
-lookupCell :: CellRef -> DocumentStore err f t v -> Maybe (Cell err f t v)
+mapCell :: (Cell err f t e v -> Cell err f t e v) -> CellRef -> Endo (DocumentStore err f t e v)
+mapCell setter ref = Endo (alterCell ref (Just . setter =<<))
+
+lookupCell :: CellRef -> DocumentStore err f t e v -> Maybe (Cell err f t e v)
 lookupCell ((uri, sheetName), ca) =
   Map.lookup ca <=< Map.lookup sheetName . sheets <=< Map.lookup uri
 
-lookupCellTerm :: CellRef -> DocumentStore err f t v -> Maybe (f, CellType)
+lookupComputed :: CellRef -> DocumentStore err f t e v -> Maybe (t, e, v)
+lookupComputed ref ds =
+  lookupCell ref ds >>= \case
+    Cell{cell = Just (_, Just (_f, Just ((t, e), Just v)))} ->
+      Just (t, e, v)
+    _ -> Nothing
+
+-- lookup term
+lookupCellTerm :: CellRef -> DocumentStore err f t e v -> Maybe (f, CellType)
 lookupCellTerm ref ds = do
   (ct, x) <- fmap (first snd) . cell =<< lookupCell ref ds
   (,ct) . fst <$> x
 
-lookupCellType :: CellRef -> DocumentStore err f t v -> Maybe t
-lookupCellType ref =
-  fmap fst . snd <=< snd <=< cell <=< lookupCell ref
-
-lookupCellTermType :: CellRef -> DocumentStore err f t v -> Maybe (t, f)
-lookupCellTermType ref ds = do
-  (f, _) <- lookupCellTerm ref ds
-  (,f) <$> lookupCellType ref ds
-
-lookupCellValue :: CellRef -> DocumentStore err f t v -> Maybe v
-lookupCellValue ref ds = case lookupCellError ref ds of
-  Just _ -> Nothing
-  _ -> snd =<< snd =<< snd =<< cell =<< lookupCell ref ds
-
-lookupCellError :: CellRef -> DocumentStore err f t v -> Maybe (FetchError err)
+lookupCellError :: CellRef -> DocumentStore err f t e v -> Maybe (FetchError err)
 lookupCellError ref ds = cellError =<< lookupCell ref ds
 
-data EngineState env err f t v = EngineState
+data EngineState env err f t e v = EngineState
   { engineEnv :: !env
   , _engineChain :: !(Chain Ix)
-  , engineDocs :: !(DocumentStore err f t v)
+  , engineDocs :: !(DocumentStore err f t e v)
   , engineDeps :: !(Slow CellRef)
   }
 
-type EngineStateOf t = EngineState (EnvOf t) (ErrorOf t) t (TypeOf t) (ValueOf t)
+type EngineStateOf f = EngineState (EnvOf f) (ErrorOf f) f (TypeOf f) (ElaborationOf f) (ValueOf f)
 
-instance (Show err, Pretty f, Pretty t, Pretty v) => Show (EngineState env err f t v) where
+instance (Show err, Pretty f, Pretty t, Pretty e, Pretty v) => Show (EngineState env err f t e v) where
   show EngineState{engineDocs = docs} = "EngineState {" <> show (showKeys docs) <> "}"
    where
     -- make sure URIs show with quotes
@@ -388,22 +393,22 @@ instance (Show err, Pretty f, Pretty t, Pretty v) => Show (EngineState env err f
 
 -- | create a new engine state. the engine state is completely empty, no handles on
 -- any documents.
-newEngineState :: env -> EngineState env err f t v
+newEngineState :: env -> EngineState env err f t e v
 newEngineState env = EngineState env [] mempty Deps.empty
 
 -- | modify the custom environment
-mapEnv :: (env -> env) -> EngineState env err f t v -> EngineState env err f t v
+mapEnv :: (env -> env) -> EngineState env err f t e v -> EngineState env err f t e v
 mapEnv f st = st{engineEnv = f (engineEnv st)}
 
 -- | modify the document store
 mapDocs
-  :: (DocumentStore err f t v -> DocumentStore err f t v)
-  -> EngineState env err f t v
-  -> EngineState env err f t v
+  :: (DocumentStore err f t e v -> DocumentStore err f t e v)
+  -> EngineState env err f t e v
+  -> EngineState env err f t e v
 mapDocs f st = st{engineDocs = f (engineDocs st)}
 
 -- | delete a whole sheet by its id from the dependency graph (useful when renaming a sheet)
-deleteSheetId :: SheetId -> EngineState env err f t v -> EngineState env err f t v
+deleteSheetId :: SheetId -> EngineState env err f t e v -> EngineState env err f t e v
 deleteSheetId sheetId st = st{engineDeps = Deps.deleteSheetId sheetId (engineDeps st)}
 
 -- | inputs are given by the location, maybe an input (and its type), and meta data
@@ -420,7 +425,7 @@ type ResultsOf t = [(CellRef, CellOf t)]
 -- or return the cycle if there is a dependency cycle.
 recalcAll
   :: forall t
-   . Recalc t
+   . (Recalc t, Show (ErrorOf t))
   => EngineStateOf t
   -> (Either (CycleOf t) (ResultsOf t), EngineStateOf t)
 recalcAll es@EngineState{engineDocs} =
@@ -442,7 +447,7 @@ recalcAll es@EngineState{engineDocs} =
 -- or return the cycle if there is a dependency cycle.
 recalc
   :: forall f
-   . Recalc f
+   . (Recalc f, Show (ErrorOf f))
   => Inputs
   -> EngineStateOf f
   -> (Either (CycleOf f) (ResultsOf f), EngineStateOf f)
@@ -518,97 +523,80 @@ runFetch env (Fetch x) f = runExceptT $ runReaderT x (ExceptT . f, env)
 type Spreadsheets a = Tasks Monad Ix a
 
 spreadsheetsOf
-  :: Recalc f
+  :: forall f
+   . Recalc f
   => EnvOf f
   -> DocumentStoreOf f
-  -> Spreadsheets (Either (FetchError (ErrorOf f)) (Either (TypeOf f, f) (ValueOf f)))
+  -> Spreadsheets (Either (FetchError (ErrorOf f)) (TypeOf f, ElaborationOf f, ValueOf f))
 spreadsheetsOf env ds =
   (runFetch env <$>) . \case
-    CellIx k ref -> alg k . fst <$> lookupCellTerm ref ds
-    VolatileIx -> Just (throwError RefError)
- where
-  alg = \case
-    Type -> fmap Left . inferElaborate
-    Value -> fmap Right . eval
+    CellIx ref -> computeCell . fst <$> lookupCellTerm ref ds
+    VolatileIx -> Just (throwError (traceShow @String "VolatileIx ~> RefError" RefError))
+
+computeCell :: forall f. Recalc f => f -> FetchOf f (TypeOf f, ElaborationOf f, ValueOf f)
+computeCell x = do
+  (t, e) <- inferElaborate x
+  (t,e,) <$> eval @f e
 
 type BuildStore err v = Store (Ix -> Bool, Chain Ix) Ix (Either (FetchError err) v)
-type BuildStoreOf t = BuildStore (ErrorOf t) (Either (TypeOf t, t) (ValueOf t))
 
 getChain :: BuildStore err v -> Chain Ix
 getChain = snd . getInfo
 
 -- | get new values (by "Kind") in "BuildStore", partitioned into @(errors, new)@
-getValues :: Kind -> [CellRef] -> BuildStore err v -> ([(CellRef, FetchError err)], [(CellRef, v)])
-getValues kind refs store =
+getValues :: [CellRef] -> BuildStore err v -> ([(CellRef, FetchError err)], [(CellRef, v)])
+getValues refs store =
   partitionEithers
-    [bimap (ref,) (ref,) (getValue (CellIx kind ref) store) | ref <- refs]
+    [bimap (ref,) (ref,) (getValue (CellIx ref) store) | ref <- refs]
 
 recalc'
   :: forall t
-   . Recalc t
+   . (Recalc t, Show (ErrorOf t))
   => [CellRef]
   -> EngineStateOf t
   -> (ResultsOf t, EngineStateOf t)
 recalc' dirty (EngineState env chain docs deps) =
   let
-    build ds = restarting dirtyBitRebuilder (spreadsheetsOf env ds)
+    {- recalculate dirty cells -}
 
-    typecheck, run :: DocumentStoreOf t -> BuildStoreOf t -> [CellRef] -> BuildStoreOf t
-    typecheck ds = foldr (build ds . CellIx Type)
-    run ds = foldr (build ds . CellIx Value)
+    build = restarting dirtyBitRebuilder (spreadsheetsOf env docs)
 
-    ix ds = \case
-      CellIx kind ref
-        | let
-            lookupCell' = case kind of
-              Type -> (fmap Left .) . lookupCellTermType
-              Value -> (fmap Right .) . lookupCellValue
-        , Just result <- lookupCell' ref ds ->
+    store = initialise (setDirty dirty, chain) $ \case
+      CellIx ref
+        | Just result <- lookupComputed ref docs ->
             pure result
         -- if the value cannot be found it may be invalid
-        | Just err <- lookupCellError ref ds -> throwError err
+        | Just err <- lookupCellError ref docs -> throwError err
         -- if there is no entry at all, it's a reference error
-        | otherwise -> throwError RefError
+        | otherwise ->
+            throwError (traceShow @String ("ix " ++ show (showExcel26 (snd ref)) ++ " ~> RefError") RefError)
       VolatileIx -> error "not implemented"
 
-    {- recompute -}
+    store' = foldr (build . CellIx) store dirty
 
-    -- typecheck
-    store' = typecheck docs (initialise (setDirty dirty, chain) (ix docs)) dirty
+    {- extract new EngineState (recalculation does not affect env nor deps) -}
 
-    (typeErrors, newTypes) = second (map (second projectLeft)) (getValues Type dirty store')
+    chain'' = getChain store'
 
-    -- evaluate well-typed terms
-    wellTyped = map fst newTypes
+    (errors, successes) = getValues dirty store'
 
-    -- propagate elaborated terms
-    docs' = appEndo (foldMap (mapCell setType) newTypes) docs
+    -- update types, elaborated terms, and values followed by errors
+    docs' =
+      (`appEndo` docs)
+        $ foldMap (\(ref, e) -> mapCell (setError e) ref) errors
+          <> foldMap
+            (\(ref, (t, e, v)) -> mapCell (setValue v . setType (t, e)) ref)
+            successes
 
-    store'' = run docs' (initialise (setDirty wellTyped, []) (ix docs')) wellTyped
+    engineState = EngineState env chain'' docs' deps
 
-    (runtimeErrors, newValues) = second (map (second projectRight)) (getValues Value wellTyped store'')
-
-    {- calculate new EngineState (recalculation of dirty cells does not affect deps!) -}
-    chain' = getChain store''
-
-    -- set a result (error, type, or value)
-    mapCell setter (ref, x) = Endo (alterCell ref (Just . setter x =<<))
-
-    -- already updated types + elaborated terms, now do values followed by errors
-    docs'' =
-      (`appEndo` docs')
-        $ foldMap (mapCell setError) (typeErrors ++ runtimeErrors)
-          <> foldMap (mapCell setValue) newValues
-
-    engineState = EngineState env chain' docs'' deps
-
-    -- return all recalculated cells
-    results = catMaybes [(ref,) <$> lookupCell ref docs'' | ref <- dirty]
+    -- return all recalculated cells (should get them from above)
+    results = catMaybes [(ref,) <$> lookupCell ref docs' | ref <- dirty]
   in
     (results, engineState)
  where
   setDirty cs = \case
-    CellIx _kind ref -> ref `elem` cs
+    CellIx ref -> ref `elem` cs
     VolatileIx{} -> True
 
 -- | Given a location + its old and new dependencies, update the dependency map accordingly
@@ -642,13 +630,3 @@ parseTerm (sheetId@(uri, sheetName), ca) (str, ct) = parse (runReaderT (parseCel
 
 isn't :: Meta -> Bool
 isn't _ = True
-
-{- only used for extracting results from type checking @Left@ and evaluation @Right@): -}
-
-projectLeft :: Either a b -> a
-projectLeft (Left a) = a
-projectLeft _ = error "the impossible happened (Left)"
-
-projectRight :: Either a b -> b
-projectRight (Right b) = b
-projectRight _ = error "the impossible happened (Right)"

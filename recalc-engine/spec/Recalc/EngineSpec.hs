@@ -61,7 +61,7 @@ evalSheetKeepErrors =
     . fst
     . run
  where
-  unpack :: Cell () Term () Int -> Result Int
+  unpack :: CellOf Term -> Result Int
   unpack c = case (cell c, cellError c) of
     (_, Just err) -> Left err
     (Just (_, Just (_, Just (_, Just q))), _) -> Right q
@@ -261,12 +261,12 @@ instance Recalc Term where
   eval :: Term -> FetchOf Term Int
   eval = \case
     Num n -> pure n
-    Add x y -> (+) <$> eval x <*> eval y
-    Ref sheetRef ref -> fetchValue (sheetId sheetRef, ref)
+    Add x y -> (+) <$> eval @Term x <*> eval @Term y
+    Ref sheetRef ref -> fetchValue @Term (sheetId sheetRef, ref)
     Sum sheetRef (start, end) ->
       sum
         <$> sequence
-          [ fetchValue (sheetId sheetRef, (i, j))
+          [ fetchValue @Term (sheetId sheetRef, (i, j))
           | i <- [row start .. row end]
           , j <- [column start .. column end]
           ]

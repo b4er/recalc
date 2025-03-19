@@ -137,6 +137,8 @@ resolve = go []
     Tensor td -> Tensor (goTensor env td)
     TensorOf td arr -> TensorOf (goTensor env td) (go env <$> arr)
     x `App` (arg, y) -> go env x `App` (arg, go env y)
+    -- not used (just to make GHC happy)
+    Elaborate x -> Elaborate (go env x)
 
   goTensor env (TensorDescriptor base vdims) =
     TensorDescriptor (go env base) vdims

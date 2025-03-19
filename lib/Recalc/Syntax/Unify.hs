@@ -105,6 +105,7 @@ implicitVars = go mempty
     TensorOf td arr -> foldl' go (goTensor vars td) arr
     f `App` (_, y) -> go (go vars f) y
     Free (Implicit k) -> Set.insert k vars
+    Elaborate x -> go vars x -- should not be used
     _ -> vars
 
   goTensor vars (TensorDescriptor base dims) =
@@ -122,6 +123,7 @@ apply = (`go` 0)
     Tensor td -> Tensor (goTensor s i td)
     TensorOf td arr -> TensorOf (goTensor s i td) (go s i <$> arr)
     x `App` (eps, y) -> go s i x `App` (eps, go s i y)
+    Elaborate x -> Elaborate (go s i x)
     Free (Implicit k)
       | Just x <- Map.lookup k s ->
           x

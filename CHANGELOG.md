@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 0.9.3.0 -- 2025-03-18
+## 0.9.4.0 -- 2025-03-19
 
 * Initial version: project skeleton for recalculation engine + test suite
 * First implementation: minimal recalculation engine for generic language
@@ -48,3 +48,7 @@
 * Implement implicit arguments (recalc), evaluation requires work.
 * Extend `Recalc` interface (recalc-engine) and allow `inferElaborate` to allow
   type inference with term elaboration.
+* Generalize the `Recalc` interface to allow different type for elaborated term,
+  fix some bugs. Do recomputation in one phase (per cell first type inference and
+  elaboration, then evaluation of the elaborated term). Add some tests to prevent
+  such bugs. Adapt driver to not send elaborated terms for type annotations.
