@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               recalc
-version:            0.9.4.0
+version:            1.0.0.0
 synopsis:           functional spreadsheet programming
 description:        A functional programming language embedded in a spreadsheet environment.
 license:            MIT
@@ -37,11 +37,10 @@ library
   build-depends:
     base,
     containers,
-    hmatrix,
+    massiv,
     megaparsec,
     mtl,
     network-uri,
-    orthotope,
     parser-combinators,
     prettyprinter,
     recalc-engine,
@@ -70,7 +69,6 @@ test-suite recalc-spec
   build-tool-depends: hspec-discover:hspec-discover == 2.*
 
   other-modules:
-    Recalc.ArraySpec
     Recalc.SemanticsSpec
     Recalc.Syntax.Arbitrary
     Recalc.Syntax.FixitySpec
@@ -88,9 +86,9 @@ test-suite recalc-spec
   build-depends:
     base,
     containers,
-    hmatrix,
     hspec >= 2.7,
     hspec-megaparsec,
+    massiv,
     megaparsec,
     mtl,
     network-uri,

@@ -2,7 +2,6 @@
 
 module Recalc.Syntax.UnifySpec where
 
-import Data.Array.Dynamic qualified as Array
 import Data.Map.Strict qualified as Map
 import Test.Hspec
 
@@ -56,12 +55,12 @@ unifySpec = describe "unification" $ do
     let td = TensorDescriptor (Free (Implicit 0)) [Inf (intOf 2)]
     unify
       ( Inf (Tensor td)
-      , Inf (TensorOf td (Array.fromList [2] (map (Inf . intOf) [0, 1])))
+      , Inf (TensorOf td (map (Inf . intOf) [0, 1]))
       )
       `shouldSatisfy` match
     unify
-      ( Inf (TensorOf td (Array.fromList [2] (map (Inf . intOf) [1, 0])))
-      , Inf (TensorOf td (Array.fromList [2] (map (Inf . intOf) [0, 0])))
+      ( Inf (TensorOf td (map (Inf . intOf) [1, 0]))
+      , Inf (TensorOf td (map (Inf . intOf) [0, 0]))
       )
       `shouldSatisfy` match
 

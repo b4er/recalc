@@ -54,12 +54,12 @@ module Recalc.Language
 
 import Control.Monad (unless, void, when)
 import Control.Monad.Reader.Class (MonadReader (ask))
-import Data.Array.Dynamic (Array, ShapeL)
-import Data.Array.Dynamic qualified as Array
 import Data.Function (on)
 import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Massiv.Array qualified as Array
+import Data.Massiv.Array.Numeric ((!><!))
 import Data.Maybe (isNothing)
 import Data.Set (Set)
 import Data.Set qualified as Set
@@ -69,7 +69,7 @@ import GHC.Generics (Generic)
 import Prettyprinter hiding (column)
 import Prettyprinter.Render.Text (renderStrict)
 
-import Recalc.Array (tensorContract)
+import Recalc.Array
 import Recalc.Engine
   ( CellAddr
   , CellRange
@@ -88,7 +88,7 @@ import Recalc.Engine
 import Recalc.Syntax.Parser (formulaP, valueP)
 import Recalc.Syntax.Term
 import Recalc.Syntax.Unify
-import Recalc.Univer
+import Recalc.Univer (Annotation (..), UniverRecalc (..))
 
 -- | all semantic errors that can occur during type checking or evaluation
 data SemanticError
@@ -151,6 +151,7 @@ data Value
     VTensorOf VTensorDescriptor (Array Value)
   | -- | stuck terms
     VNeutral !Neutral
+  deriving (Generic)
 
 instance Eq Value where
   (==) = (==) `on` quote
@@ -217,10 +218,6 @@ vtensor
   -> Value
 vtensor base = VTensor . VTensorDescriptor base
 
--- | tensor values (see 'vtensor' for arguments)
-vtensorOf :: Value -> [Value] -> Array Value -> Value
-vtensorOf value = VTensorOf . VTensorDescriptor value
-
 cellRangeAddrs :: CellRange -> [CellAddr]
 cellRangeAddrs (start, end) = [(i, j) | i <- [row start .. row end], j <- [column start .. column end]]
 
@@ -254,7 +251,7 @@ deps' = go mempty
     Lit{} -> acc
     LitOf{} -> acc
     Tensor td -> goTensor acc td
-    TensorOf td arr -> Array.foldrA (flip go) (goTensor acc td) arr
+    TensorOf td arr -> foldr (flip go) (goTensor acc td) arr
     f `App` (_arg, x) -> go (go acc f) x
     -- should not be used (just to make GHC happy)
     Elaborate x -> go acc x
@@ -281,7 +278,7 @@ quote = go 0
     VLit lit -> Inf (Lit lit)
     VLitOf val -> Inf (LitOf val)
     VTensor td -> Inf (Tensor (goTensor i td))
-    VTensorOf td arr -> Inf (TensorOf (goTensor i td) (go i <$> arr))
+    VTensorOf td arr -> Inf (TensorOf (goTensor i td) (go i <$> toList arr))
     VNeutral n -> Inf (goNeutral i n)
 
   goNeutral i = \case
@@ -507,7 +504,7 @@ eval' ctxt = \case
           (`cellRangeDescriptor'` cr) <$> fetchType @(Term Infer) (sheetId, start)
         vdims' <- evalShape vdims -- make sure they are integers
         -- evaluate each position in the referenced range
-        VTensorOf vtd . Array.fromList vdims'
+        VTensorOf vtd . fromList vdims'
           <$> concatMapM (\ca -> flattenTensor <$> fetchValue @(Term Infer) (sheetId, ca)) addrs
   Free name -> do
     Env{globals} <- ask
@@ -518,8 +515,14 @@ eval' ctxt = \case
   LitOf val -> pure (VLitOf val)
   -- simple (should not be called)
   Tensor td -> uncurry vtensor <$> evalTensor' ctxt td
-  TensorOf td arr ->
-    uncurry vtensorOf <$> evalTensor' ctxt td <*> mapM (eval' ctxt) arr
+  TensorOf td xs -> do
+    (vbase, vdims) <- evalTensor' ctxt td
+    idims <- mapM evalInt vdims
+    vs <- mapM (eval' ctxt) xs
+    let
+      vtd = VTensorDescriptor vbase vdims
+      arr = fromList idims vs
+    pure (VTensorOf vtd arr)
   f `App` (_arg, x) -> do
     f' <- eval' ctxt f
     x' <- eval' ctxt x
@@ -529,7 +532,7 @@ eval' ctxt = \case
 evalTensor' :: [Value] -> TensorDescriptor -> Spreadsheet (Value, [Value])
 evalTensor' ctxt (TensorDescriptor base dims) = (,) <$> eval' ctxt base <*> mapM (eval' ctxt) dims
 
-evalShape :: [Value] -> Spreadsheet ShapeL
+evalShape :: [Value] -> Spreadsheet [Int]
 evalShape = mapM evalInt
 
 evalInt :: Value -> Spreadsheet Int
@@ -543,7 +546,7 @@ concatMapM f xs = concat <$> mapM f xs
 
 flattenTensor :: Value -> [Value]
 flattenTensor = \case
-  VTensorOf _ arr -> Array.toList arr
+  VTensorOf _ arr -> toList arr
   v -> [v]
 
 {- language semantics -}
@@ -677,17 +680,17 @@ prelude =
     $ \[m, n, k] -> vtensor vint [m, n] `vfun` vtensor vint [n, k] `vfun` vtensor vint [m, k]
 
   mmultImpl =
-    vlam IArg (Just (CaseInsensitive "m")) $ \_ ->
-      vlam EArg (Just (CaseInsensitive "n")) $ \_ ->
-        vlam IArg (Just (CaseInsensitive "k")) $ \_ ->
+    vlam IArg (Just (CaseInsensitive "m")) $ \(VLitOf (IntOf m)) ->
+      vlam EArg (Just (CaseInsensitive "n")) $ \(VLitOf (IntOf n)) ->
+        vlam IArg (Just (CaseInsensitive "k")) $ \(VLitOf (IntOf k)) ->
           vlam EArg (Just (CaseInsensitive "u")) $ \u ->
             VLam EArg (Just (CaseInsensitive "v")) $ \v ->
               case (u, v) of
-                (VTensorOf _ arr, VTensorOf _ arr') -> do
-                  iarr <- sequence (Array.mapA (fmap int2Double . evalInt) arr)
-                  iarr' <- sequence (Array.mapA (fmap int2Double . evalInt) arr')
+                (VTensorOf _ (Array _ arr), VTensorOf _ (Array _ arr')) -> do
+                  iarr <- Array.resize' (Array.Sz2 m n) <$> mapM (fmap int2Double . evalInt) arr
+                  iarr' <- Array.resize' (Array.Sz2 n k) <$> mapM (fmap int2Double . evalInt) arr'
                   let
-                    multArr = tensorContract [1] [0] iarr iarr'
-                    vtd = VTensorDescriptor vint (vintOf <$> Array.shapeL multArr)
-                  pure (VTensorOf vtd (vintOf . round <$> multArr))
+                    multArr = Array.resize' (Array.Sz1 (m * k)) (iarr !><! iarr')
+                    vtd = VTensorDescriptor vint (vintOf <$> [m, k])
+                  pure (VTensorOf vtd (vintOf . round @Double <$> Array [m, k] multArr))
                 _ -> pure . VNeutral $ NApp EArg (NApp EArg (NFree "mmult") u) v

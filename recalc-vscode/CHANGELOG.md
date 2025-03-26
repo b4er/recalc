@@ -1,45 +1,28 @@
 # Revision history for recalc-vscode
 
-## 0.0.24 -- 2025-03-07
+## 1.0.0 -- 2025-03-26
 
-* Initial version: create project structure for a custom editor.
-* Add generic rpc implementation, client implementation and logging facilities.
-* Integrate type-safe JSON-RPC communication between client and server.
-* Add simple UI code using [Univer core/sheet-api][univer-sheet-api].
-* Add test suite runner, package the extension with Nix.
-* Implement JSON-RPC tests.
-* Add client test: connect to server, send "open" message and check response.
-* Implement file handling and basic tests for `.rc` files, update publish workflow
-  and fix workflows.
-* Add custom Univer plugin, add RPC-controller, customize UI a bit and add webview
-  logging functionality.
-* Add JSON-RPC server-side error handling, finish the RPC-controller (handling of
-  all messages).
-* Add hover controller and cell diagnostics UI (highlight cells with parse-errors,
-  type errors or eval errors), merged cell diagnostics not supported.
-* Implement description service (single hard-coded description), UI fixes.
-* Bump version for publishing the statically built version.
-* Add menu UI for sheet-defined functions.
-* Implement the sheet-defined function editor side panel: accepts description,
-  re-orderable inputs (name+range selection), and output (range selection).
-
-  The [`RangeSelector`](./src/frontend/views/components/RangeSelector.tsx) does not
-  allow range selection due to issues with Univer's `RefSelectionsRenderService`,
-  and the built-in `RangeSelector` causes other issues.
-* Fix configuration and add `logLevel` setting, defaults to Info, add call for
-  defining the function.
-* Trace rpc messages, improve cell diagnostics when hovering.
-* Implement simple end-to-end tests (resolve references, test type error
-  diagnostics etc.)
-* Extend cell diagnostics to show but not highlight info level diagnostics
-  (for type annotations).
-* Implement reference inference (infers as them [m,n] tensors), disable built-in
-  spilling.
-* Add more end-to-end tests covering cell ranges.
-* Match new version of recalc + more tests.
-* Implement sheet-defined functions and description service (some fields are
-  still missing).
-
-<!-- References -->
-
-  [univer-sheet-api]: https://docs.univer.ai/en-US/guides/sheets/features/core/sheet-api
+* Server-side implementation used by the TypeScript frontend, handling:
+  * JSON-RPC communication for value ranges, sheet insertion, sheet removal,
+    worksheet order, worksheet name, and sheet-defined functions (dummy
+handler)
+  * Cell diagnostics for parse errors, type errors, inferred types, and
+    sheet-defined function editor.
+* Added custom Univer plugin, RPC-controller, and webview logging
+  functionality.
+* Implemented sheet-defined function editor side panel (description,
+  re-orderable inputs, and output).
+* Full test suite runner, including JSON-RPC and end-to-end tests.
+* Static builds and project packaging with Nix for `.vsix`.
+* Improved UI for diagnostics, function editor, and added configuration options
+  (`logLevel`).
+* Enhanced RPC message tracing and cell diagnostics on hover.
+* Configurable values for the extension:
+  * `recalc-vscode.locale`: Sets the locale for the spreadsheet editor
+    (options: `EN_US`, `ZH_CN`, default: `EN_US`).
+  * `recalc-vscode.serverUri`: Specifies the URI for the spreadsheet server
+    (resolved via `@cabal list-bin@` if empty).
+  * `recalc-vscode.logLevel`: Controls the log verbosity
+    (`debug`, `info`, `warning`, `error`, default: `info`).
+  * `recalc-vscode.serverMaxRestartCount`: Defines the maximum attempts to
+    restart the server (default: `5`).

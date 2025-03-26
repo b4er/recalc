@@ -1,65 +1,43 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 {-|
 Module      : Recalc.Array
 Description : Core array operations.
 
 This module provides a few core operations on multi-dimensional arrays.
 -}
-module Recalc.Array
-  ( tensorContract
+module Recalc.Array (Array, Array' (..), shape, fromList, toList, toMassiv) where
 
-    -- ** re-exports
-  , Array
-  , Data.Array.Dynamic.fromList
-  ) where
+import Data.Massiv.Array (B, Ix1)
+import Data.Massiv.Array qualified as Array
 
-import Data.Array.Convert (convert)
-import Data.Array.Dynamic (Array, fromList)
-import Data.Array.DynamicS qualified as ArrayS
-import Numeric.LinearAlgebra as N hiding (Convert)
-import Prelude hiding ((<>))
+data Array' r a = Array [Int] (Array.Array r Ix1 a)
 
--- |
---
--- Tensor contraction along provided x-axis and y-axis. Essentially,
--- performs a generalized dot-product by summing over the specified
--- contraction dimensions of the input tensors.
---
--- The resulting tensor
--- retains the remaining dimensions of both inputs in their original
--- order, excluding the contracted ones.
---
--- === Parameters:
--- - @xAxes@: indices in the first tensor to contract over
--- - @yAxes@: indices in the second tensor to contract over corresponding to xAxes
--- - @x@: input tensor of shape @[m1, ..., mM]@
--- - @y@: input tensor of shape @[n1, ..., nN]@
---
--- The result is a tensor of shape [c1, ..., cC], where the shape is
--- derived by removing the contracted dimensions from both inputs.
---
--- Example: Contracting a @[3, 4, 5]@ tensor with a @[5, 6, 7]@ tensor
--- along the last dimension of the first and the first dimension of
--- the second results in a @[3, 4, 6, 7]@ tensor.
-tensorContract :: (Numeric a) => [Int] -> [Int] -> Array a -> Array a -> Array a
-tensorContract xAxes yAxes x y =
-  let
-    (x', xShape) = (convert x, ArrayS.shapeL x')
-    (y', yShape) = (convert y, ArrayS.shapeL y')
+deriving instance Eq (Array.Array r Ix1 a) => Eq (Array' r a)
+deriving instance Show (Array.Array r Ix1 a) => Show (Array' r a)
 
-    -- new tensor shape
-    (xIxs, xDims) = unzip [(i, d) | (i, d) <- zip [0 ..] xShape, i `notElem` xAxes]
-    (yIxs, yDims) = unzip [(j, d) | (j, d) <- zip [0 ..] yShape, j `notElem` yAxes]
+instance Functor (Array.Array r Ix1) => Functor (Array' r) where
+  fmap f (Array dims arr) = Array dims (f <$> arr)
 
-    shape = xDims ++ yDims
+instance Foldable (Array.Array r Ix1) => Foldable (Array' r) where
+  foldMap f (Array _dims arr) = foldMap f arr
 
-    -- prepare matrix-multiplication: align contraction dims, reshape into matrices
-    xPermuted = ArrayS.transpose (xIxs ++ xAxes) x'
-    yPermuted = ArrayS.transpose (yAxes ++ yIxs) y'
+instance Traversable (Array.Array r Ix1) => Traversable (Array' r) where
+  traverse f (Array dims arr) = Array dims <$> traverse f arr
 
-    xMat = N.reshape (product (map (xShape !!) xAxes)) (ArrayS.toVector xPermuted)
-    yMat = N.reshape (product yDims) (ArrayS.toVector yPermuted)
+type Array = Array' B
 
-    -- contract
-    result = flatten (xMat <> yMat)
-  in
-    convert $ ArrayS.fromVector shape result
+shape :: Array' r a -> [Int]
+shape (Array dims _) = dims
+
+fromList :: [Int] -> [a] -> Array a
+fromList dims = Array dims . Array.fromList Array.Seq
+
+toList :: Array a -> [a]
+toList (Array _ arr) = Array.toList arr
+
+toMassiv :: Array.Size r => Array' r e -> IO (Array.Array r Int e)
+toMassiv (Array dims arr) = do
+  sz <- Array.mkSzM @_ @IO (length dims)
+  Array.resizeM sz arr

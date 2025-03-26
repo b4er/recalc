@@ -1,0 +1,5 @@
+:set -fno-warn-missing-home-modules
+:set -fno-warn-unused-imports
+:set -fno-warn-unused-local-binds
+:set -fno-warn-unused-matches
+:set -fno-warn-unused-top-binds

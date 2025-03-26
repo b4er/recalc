@@ -10,11 +10,11 @@ module Recalc.SemanticsSpec where
 
 import Control.Monad (void, (<=<))
 import Control.Monad.Except (throwError)
-import Data.Array.Dynamic qualified as Array
 import Data.Map qualified as Map
 import Test.Hspec (Spec, describe, it, shouldBe, shouldNotBe)
 import Test.Hspec.QuickCheck (prop)
 
+import Recalc.Array
 import Recalc.Engine
 import Recalc.Language
 import Recalc.Syntax.Arbitrary (Set0 (..))
@@ -205,7 +205,7 @@ spec = do
     it "does matrix multiplication" $ do
       let
         vtd s = VTensorDescriptor (VLit Int) (map (VLitOf . IntOf) s)
-        matrix s vs = VTensorOf (vtd s) (Array.fromList s (map (VLitOf . IntOf) vs))
+        matrix s vs = VTensorOf (vtd s) (fromList s (map (VLitOf . IntOf) vs))
         decl (sx, x) = Decl (VTensor (vtd sx)) (Just (matrix sx x))
 
         mmult a b =

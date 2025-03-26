@@ -1,54 +1,38 @@
 # Revision history for recalc
 
-## 0.9.4.0 -- 2025-03-19
+## 1.0.0.0 -- 2025-03-26
 
-* Initial version: project skeleton for recalculation engine + test suite
-* First implementation: minimal recalculation engine for generic language
-  implementation based on "Build systems à la carte". Includes a simple
-  example language as part of the test-suite.
+* Minimal recalculation engine based on "Build systems à la carte", the engine
+  supports
+  * type inference,
+  * type-directed elaboration,
+  * evaluation,
+  * handling of dependencies,
+  * custom errors, values etc.
+* `Recalc.Repl` for running single-sheet experiments in GHCi, and/or tests.
+* Small functional language built on top of with
+  * variables, lambda abstractions, applications
+  * implicit arguments
+  * cell references (ranges have tensor types)
+  * hierarchy of types (sound)
+  * annotations
+  * dependent functions
+  * minimal prelude: `not`, `and`, `or`, `mmult`
+  * literals (Boolean values and numbers)
 
-  Add [`README.md`](./README.md) and document the project organisation a bit.
-* Add Syntax for the term language (simple dependently typed lambda calculus).
-* Add support for operators with precedences.
-* Prepare TypeScript code generation.
-* Add server implementation that is used as backend by the TypeScript frontend.
-* Generates type-safe routing for TypeScript from Servant-like named protocols,
-  implements a generic server based on the reactor pattern (single thread reads
-  JSON-RPC messages and queues new jobs, multiple workers handle jobs).
-* Send "ok" from , gracefully terminate when the client disconnects (by eof).
-* Add more rpc routes for spreadsheet operations (set value ranges,
-  sheet insertion, sheet removal, worksheet order, work sheet name).
-* Implement all sheet operations on server side (recompute and sheet operations),
-  deal with server-side errors forwards. Hook up a mock language interpreter.
-* Add a rough implementation for the Language, fix merging meta data, hook it
-  up to the server.
-* Adjust project structure and add static builds for building the .vsix
-* More tests for Recalc.Semantics and some bugfixes.
-* Implement simple cell references (no ranges due to current typing).
-* Add route for sheet-defined functions to protocol and implement dummy handler.
-* Add literals (Boolean values and integers) to core language, add integral
-  tensors.
-* Implement value parser for constants and integers, make references refer to
-  whole cell-ranges and adapt parser. Implement some test cases and a few
-  bugfixes.
-* Bugfixes: sheet operations should behave now (the `DocumentStore` was not
-  properly updated before), keep the `subUnitId` business with Univer/frontend
-  (essentially fixes simple cell references).
-* Add errors to documentstore, finish typing for values (match parser).
-* Add module `Recalc.Repl` for quickly running single-sheet experiments with
-  GHCi.
-* Add GitHub pages and documentation, make naming more uniform.
-* Extend cell diagnostics (show inferred types at info level), fix bug in Repl.
-* Implement tensor types for cell ranges.
-* Fix some bugs to catch up with end-to-end tests (cell ranges and cell updates).
-* Librarize the project (recalc-engine, recalc-server, recalc-univer and recalc),
-  simplify many things (eg. type checking, recalculation engine, tests by adding
-  `Recalc.Repl`) fix more bugs, add tests. Add hmatrix and deps.
-* Implement sheet-defined functions.
-* Implement implicit arguments (recalc), evaluation requires work.
-* Extend `Recalc` interface (recalc-engine) and allow `inferElaborate` to allow
-  type inference with term elaboration.
-* Generalize the `Recalc` interface to allow different type for elaborated term,
-  fix some bugs. Do recomputation in one phase (per cell first type inference and
-  elaboration, then evaluation of the elaborated term). Add some tests to prevent
-  such bugs. Adapt driver to not send elaborated terms for type annotations.
+  The language is bi-directionally type checked and does term elaboration
+  (inserting witnesses for implicit arguments).
+
+  It also provides a simple, HOAS interpreter.
+* Type-safe routing for TypeScript from Servant-like protocols; implemented
+  generic server using the reactor pattern.
+* Server-side implementation used by the TypeScript frontend that handles rpc:
+  value ranges, sheet insertion, sheet removal, worksheet order, worksheet name,
+  and sheet-defined functions (dummy handler).
+
+  The frontend provides (in addition to Univer functionality):
+  * cell-diagnostics for errors (parse, typing..) and inferred types, and
+  * sheet-defined function editor.
+* Full test suite (cabal and npm, including end-to-end tests).
+* Static builds for `.vsix` packaging and project structure adjustments.
+* CI/CD, GitHub Pages documentation ..

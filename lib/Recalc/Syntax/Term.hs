@@ -12,8 +12,6 @@ Types definitions for a very basic dependently typed lambda calculus based on
 -}
 module Recalc.Syntax.Term where
 
-import Data.Array.Dynamic (Array)
-import Data.Array.Dynamic qualified as Array
 import Data.Char (isAlphaNum)
 import Data.Function (on)
 import Data.Maybe (fromMaybe)
@@ -121,7 +119,7 @@ data Term (m :: Mode) where
   -- | tensor type (only for quoting)
   Tensor :: !TensorDescriptor -> Term Infer
   -- | tensor value (represented as a multi-dimensional array, only for quoting)
-  TensorOf :: !TensorDescriptor -> !(Array (Term Check)) -> Term Infer
+  TensorOf :: !TensorDescriptor -> ![Term Check] -> Term Infer
   -- | application
   App :: !(Term Infer) -> !(Arg, Term Check) -> Term Infer
   -- | elaborated terms (do not use before typechecking!)
@@ -264,7 +262,7 @@ instance Pretty (Term m) where
               enclose "'" "'"
           | otherwise = id
       Tensor td -> prTensor env td
-      TensorOf _ arr -> list (map (pr env 0) (Array.toList arr))
+      TensorOf _ xs -> list (map (pr env 0) xs)
       app@App{} ->
         let
           (y, ys) = splitApp app

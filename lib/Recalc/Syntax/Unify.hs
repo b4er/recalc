@@ -20,8 +20,6 @@ module Recalc.Syntax.Unify
   ) where
 
 import Control.Monad.Error.Class (MonadError (throwError))
-import Data.Array.Dynamic qualified as Array
-import Data.Function (on)
 import Data.List (foldl')
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -64,9 +62,9 @@ unifyI (lhs, rhs) s = case (apply s lhs, apply s rhs) of
   (Ref ref _ cr, Ref ref' _ cr') | ref == ref', cr == cr' -> pure s
   (Tensor td, Tensor td') -> unifyTensor (td, td') s
   (TensorOf td arr, TensorOf td' arr')
-    | ((==) `on` Array.shapeL) arr arr' ->
-        Array.foldrA ((=<<) . unifyC) (unifyTensor (td, td') s)
-          $ Array.zipWithA (,) arr arr'
+    | td == td' ->
+        foldr ((=<<) . unifyC) (unifyTensor (td, td') s)
+          $ zip arr arr'
   (f `App` (eps, x), g `App` (eps', y))
     | eps == eps' -> do
         unifyC (x, y) =<< unifyI (f, g) s
