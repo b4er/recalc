@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 1.0.0.0 -- 2025-03-26
+## 1.1.0.0 -- 2025-03-27
 
 * Minimal recalculation engine based on "Build systems à la carte", the engine
   supports

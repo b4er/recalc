@@ -59,18 +59,16 @@ module Recalc.Server.Generic
   , namedHandlers
   , (:>)
   , (:<|>) (..)
-  , sendIO
   ) where
 
-import Control.Concurrent (MVar, newMVar, withMVar)
 import Control.Exception (SomeException, displayException, try)
 import Data.Aeson (Options (..))
 import Data.Aeson qualified as Json
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KeyMap
-import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LB
 import Data.Data (Typeable, typeRep)
+import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Data.List
 import Data.Proxy
@@ -79,7 +77,6 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Data.Word
 import GHC.Generics
-import GHC.IO qualified as Unsafe (unsafePerformIO)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 
 import Recalc.Server.Json (aesonOptions)
@@ -151,31 +148,11 @@ instance Json.ToJSON JsonRpcError where
 jsonRpcError :: Maybe Id -> String -> JsonRpcError
 jsonRpcError xId = JsonRpcError xId . JsonRpcErrorObject (-32001) . Text.pack
 
-{-# NOINLINE stdoutLock #-}
-stdoutLock :: MVar ()
-stdoutLock = Unsafe.unsafePerformIO (newMVar ())
-
-putLbs :: LB.ByteString -> IO ()
-putLbs lbs = withMVar stdoutLock $ \_ -> BS.putStr (BS.toStrict lbs)
-
--- | send JSON-RPC message on stdout (locked to prevent interleaving)
-sendIO :: Json.ToJSON a => a -> IO ()
-sendIO = putLbs . toRpc . Json.encode
- where
-  toRpc bs =
-    LB.concat
-      [ "Content-Length: " <> showLB (LB.length bs)
-      , "\r\n\r\n"
-      , bs
-      ]
-
-  showLB = LB.fromStrict . Text.encodeUtf8 . Text.pack . show
-
 type Segment = String
 class HasHandler api where
   type HandlerT api (m :: Type -> Type)
   handle'
-    :: (JsonRpcRequest Json.Value, [Segment]) -> Handler api -> Either String (IO ())
+    :: (JsonRpcRequest Json.Value, [Segment]) -> Handler api -> Either String (IO Json.Value)
   hoist :: (forall x. m x -> n x) -> HandlerT api m -> HandlerT api n
 
 handle
@@ -183,7 +160,7 @@ handle
    . HasHandler api
   => JsonRpcRequest Json.Value
   -> Handler api
-  -> Either String (IO ())
+  -> Either String (IO Json.Value)
 handle = handle' @api . (,[])
 
 type Handler api = HandlerT api IO
@@ -220,9 +197,10 @@ instance
     | methodMatches
     , Json.Success params' <- Json.fromJSON @params request'params =
         Right
-          $ try @SomeException (f (request'id, params')) >>= \case
-            Left err -> sendIO (jsonRpcError request'id (displayException err))
-            Right res -> sendIO (JsonRpcResult request'id res)
+          $ try @SomeException (f (request'id, params'))
+          <&> \case
+            Left err -> Json.toJSON (jsonRpcError request'id (displayException err))
+            Right res -> Json.toJSON (JsonRpcResult request'id res)
     | methodMatches =
         Left
           $ "handler for method '"

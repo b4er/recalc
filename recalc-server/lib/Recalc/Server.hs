@@ -33,6 +33,7 @@ main = runHandler @Api initialState $ \state ->
 module Recalc.Server
   ( Handler
   , liftEngine
+  , sendIO
   , debug
   , dumpEngineState
   , scheduleJob
@@ -49,7 +50,11 @@ import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.State.Strict qualified as State
 import Data.Aeson qualified as Json
+import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LB
+import Data.Text qualified as Text
+import Data.Text.Encoding qualified as Text
+import GHC.IO qualified as Unsafe (unsafePerformIO)
 import System.Exit (exitFailure, exitSuccess)
 import System.IO
 import System.IO.Error (isEOFError)
@@ -109,7 +114,7 @@ runHandler engine0 handlers = (`Exception.catches` failureHandlers) $ do
         reqRaw <- LB.hGet stdin k
         case do x <- Json.eitherDecode reqRaw; handle @api x (handlers state) of
           Left err -> hPutStrLn stderr err
-          Right io -> atomically . writeTChan (jobs state) $ Job (liftIO io)
+          Right io -> atomically . writeTChan (jobs state) $ Job (liftIO (io >>= sendIO))
       _ -> do
         hPutStrLn stderr ("unexpected inputs: " <> ln0 <> ln1)
  where
@@ -123,3 +128,23 @@ runHandler engine0 handlers = (`Exception.catches` failureHandlers) $ do
       err
         | isEOFError err -> exitSuccess
         | otherwise -> exitFailure
+
+{-# NOINLINE stdoutLock #-}
+stdoutLock :: MVar ()
+stdoutLock = Unsafe.unsafePerformIO (newMVar ())
+
+putLbs :: LB.ByteString -> IO ()
+putLbs lbs = withMVar stdoutLock $ \_ -> BS.putStr (BS.toStrict lbs)
+
+-- | send JSON-RPC message on stdout (locked to prevent interleaving)
+sendIO :: Json.ToJSON a => a -> IO ()
+sendIO = putLbs . toRpc . Json.encode
+ where
+  toRpc bs =
+    LB.concat
+      [ "Content-Length: " <> showLB (LB.length bs)
+      , "\r\n\r\n"
+      , bs
+      ]
+
+  showLB = LB.fromStrict . Text.encodeUtf8 . Text.pack . show
