@@ -37,7 +37,9 @@ import Text.Megaparsec.Char qualified as Char
 import Text.Megaparsec.Char.Lexer qualified as Lexer
 
 import Recalc.Engine
+import Recalc.Syntax.Fixity
 import Recalc.Syntax.Term
+import Text.Megaparsec.Char (symbolChar)
 
 -- | simple parser keeps the "SheetId" as state
 type Parser = ReaderT SheetId (Parsec Void String)
@@ -130,6 +132,8 @@ resolve = go []
     Set k -> Set k
     Pi arg n x y -> Pi arg n (go env x) (go ((Global <$> n) : env) y)
     Bound i -> Bound (i + length env)
+    Op1 op1 x -> Op1 op1 (go env x)
+    Op op x y -> Op op (go env x) (go env y)
     v@(Free n) -> maybe v Bound $ elemIndex (Just n) env
     ref@Ref{} -> ref
     Lit lit -> Lit lit
@@ -139,9 +143,15 @@ resolve = go []
     x `App` (arg, y) -> go env x `App` (arg, go env y)
     -- not used (just to make GHC happy)
     Elaborate x -> Elaborate (go env x)
+    PrimOp prim -> PrimOp prim
+    Empty -> Empty
+    Sigma xn x y -> Sigma xn (go env x) (go ((Global <$> xn) : env) y)
+    Nil -> Nil
+    Pair xn x y -> Pair xn (go env x) (go env y)
+    Proj l x -> Proj l (go env x)
 
   goTensor env (TensorDescriptor base vdims) =
-    TensorDescriptor (go env base) vdims
+    TensorDescriptor (go env base) (map (go env) vdims)
 
 termI :: Parser (Term Infer)
 termI =
@@ -168,7 +178,13 @@ termI =
       <$> lambda
       <*> (symbol "->" *> termC)
 
-  ops = app <|> parens termI
+  ops =
+    makeOpsParser
+      (try . (*> notFollowedBy symbolChar) . symbol)
+      (app <|> parens termI)
+      Op1
+      Op
+      operators
 
   app = do
     t0 <- atom

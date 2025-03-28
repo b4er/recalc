@@ -7,8 +7,7 @@
 Module      : Recalc.Syntax.Term
 Description : Terms and Values.
 
-Types definitions for a very basic dependently typed lambda calculus based on
-"A tutorial implementation of a dependently typed lambda calculus".
+Type definitions for the typed lambda calculus implemented in "Recalc.Language".
 -}
 module Recalc.Syntax.Term where
 
@@ -24,6 +23,7 @@ import Numeric
 import Prettyprinter
 
 import Recalc.Engine (CellAddr, CellRange)
+import Recalc.Syntax.Fixity
 import Recalc.Univer.Protocol (quotientOn)
 
 -- * Terms
@@ -87,6 +87,25 @@ data LitOf
   | IntOf !Int
   deriving (Eq, Show)
 
+-- | unary operators
+data Op1 = Negate | LogicalNegate
+  deriving (Eq, Bounded, Enum, Show)
+
+-- | binary operators
+data Op = Mult | Plus | Minus
+  deriving (Eq, Bounded, Enum, Show)
+
+-- | overloaded operators
+data PrimOp = PrimPlus | PrimMult | PrimMinus
+  deriving (Eq, Show)
+
+operators :: [[Fixity Op1 Op]]
+operators =
+  [ [Prefix "-" Negate, Prefix "~" LogicalNegate]
+  , [Infixl "*" Mult]
+  , [Infixl "+" Plus, Infixl "-" Minus]
+  ]
+
 -- | a tensor (type) is described by the number of dimensions
 -- of each component
 data TensorDescriptor = TensorDescriptor
@@ -106,8 +125,22 @@ data Term (m :: Mode) where
   Set :: !Int -> Term Infer
   -- | dependent function (Π)
   Pi :: !Arg -> !(Maybe CaseInsensitive) -> !(Term Check) -> !(Term Check) -> Term Infer
+  -- | empty product type
+  Empty :: Term Infer
+  -- | dependent product (Σv:t. _)
+  Sigma :: !(Maybe CaseInsensitive) -> !(Term Check) -> !(Term Check) -> Term Infer
+  -- | empty product value
+  Nil :: Term Infer
+  -- | dependent product intro
+  Pair :: !(Maybe CaseInsensitive) -> !(Term Check) -> !(Term Check) -> Term Check
+  -- | projection
+  Proj :: !CaseInsensitive -> !(Term Infer) -> Term Infer
   -- | bound variable
   Bound :: !Int -> Term Infer
+  -- | unary operators (prefix or postfix)
+  Op1 :: Op1 -> Term Infer -> Term Infer
+  -- | binary operators
+  Op :: Op -> Term Infer -> Term Infer -> Term Infer
   -- | free variable
   Free :: !Name -> Term Infer
   -- | cell references
@@ -124,6 +157,8 @@ data Term (m :: Mode) where
   App :: !(Term Infer) -> !(Arg, Term Check) -> Term Infer
   -- | elaborated terms (do not use before typechecking!)
   Elaborate :: !(Term Check) -> Term Infer
+  -- | elaborated, monomorph prim-ops
+  PrimOp :: PrimOp -> Term Infer
 
 pattern (:$) :: Term Infer -> Term Check -> Term Infer
 pattern f :$ x = f `App` (EArg, x)
@@ -141,7 +176,13 @@ instance Eq (Term m) where
   Ann x t == Ann y v = x == y && t == v
   Set m == Set n = n == m
   Pi arg _ dom range == Pi arg' _ dom' range' = arg == arg' && dom == dom' && range == range'
+  Empty == Empty = True
+  Sigma n x y == Sigma n' x' y' = n == n' && x == x' && y == y'
+  Nil == Nil = True
+  Pair n x y == Pair n' x' y' = n == n' && x == x' && y == y'
   Bound i == Bound j = i == j
+  Op1 op1 x == Op1 op1' x' = op1 == op1' && x == x'
+  Op op x y == Op op' x' y' = op == op' && x == x' && y == y'
   Free name == Free name' = name == name'
   Ref sheetId _ cr == Ref sheetId' _ cr' = sheetId == sheetId' && cr == cr'
   Lit lit == Lit lit' = lit == lit'
@@ -152,6 +193,7 @@ instance Eq (Term m) where
   App f (IArg, _x) == App g (IArg, _y) = f == g
   App{} == App{} = False
   Elaborate x == Elaborate y = x == y
+  PrimOp prim == PrimOp prim' = prim == prim'
   _ == _ = False
 
 boolOf :: Bool -> Term Infer
@@ -163,12 +205,32 @@ intOf = LitOf . IntOf
 lam :: Arg -> CaseInsensitive -> Term Check -> Term Check
 lam arg = Lam arg . Just
 
+record :: [(Text, Term Check)] -> Term Check
+record = foldr (\(n, x) -> Pair (Just (CaseInsensitive n)) x) (Inf Nil)
+
 splitApp :: Term Infer -> (Term Infer, [(Arg, Term Check)])
 splitApp = go []
  where
   go :: [(Arg, Term Check)] -> Term Infer -> (Term Infer, [(Arg, Term Check)])
   go acc (App x y) = go (y : acc) x
   go acc x = (x, acc)
+
+splitPair
+  :: [(Maybe CaseInsensitive, Term Check)]
+  -> Term Check
+  -> ([(Maybe CaseInsensitive, Term Check)], Term Check)
+splitPair acc (Pair n x y) = splitPair ((n, x) : acc) y
+splitPair acc y = (reverse acc, y)
+
+splitSigma :: Term Infer -> ([(Maybe CaseInsensitive, Term Check)], Term Infer)
+splitSigma = go []
+ where
+  go
+    :: [(Maybe CaseInsensitive, Term Check)]
+    -> Term Infer
+    -> ([(Maybe CaseInsensitive, Term Check)], Term Infer)
+  go acc (Sigma n x (Inf y)) = go ((n, x) : acc) y
+  go acc y = (reverse acc, y)
 
 -- ** Substitutions
 
@@ -179,9 +241,16 @@ subst i r = \case
   Ann e t -> Ann (subst i r e) (subst i r t)
   Set k -> Set k
   Pi arg xn x y -> Pi arg xn (subst i r x) (subst (i + 1) r y)
+  Empty -> Empty
+  Sigma n x y -> Sigma n (subst i r x) (subst (i + 1) r y)
+  Nil -> Nil
+  Pair n x y -> Pair n (subst i r x) (subst i r y)
+  Proj l x -> Proj l (subst i r x)
   Bound j
     | i == j -> r
     | otherwise -> Bound j
+  Op1 op1 x -> Op1 op1 (subst i r x)
+  Op op x y -> Op op (subst i r x) (subst i r y)
   Free n -> Free n
   Ref sheetId refInfo cr -> Ref sheetId refInfo cr
   Lit lit -> Lit lit
@@ -190,6 +259,7 @@ subst i r = \case
   TensorOf td arr -> TensorOf (substTensor i r td) (subst i r <$> arr)
   x `App` (arg, y) -> subst i r x `App` (arg, subst i r y)
   Elaborate x -> Elaborate (subst i r x)
+  PrimOp prim -> PrimOp prim
 
 substTensor :: Int -> Term Infer -> TensorDescriptor -> TensorDescriptor
 substTensor i r (TensorDescriptor base dims) =
@@ -223,6 +293,14 @@ showExcel26 (r, c) = row <> show (r + 1)
  where
   row = concatMap sequence (tail $ iterate (['A' .. 'Z'] :) []) !! c
 
+-- instance Pretty Op1 where
+--  pretty = \case
+--    Neg -> "-"
+--
+-- instance Pretty Op where
+--  pretty = \case
+--    Add -> "+"
+
 instance Pretty (Term m) where
   pretty = pr [] 0
    where
@@ -246,7 +324,18 @@ instance Pretty (Term m) where
         in
           parensIf (i > funP)
             $ annotateArg arg xn (pr env prec a) <+> "->" <+> pr (v : env) funP b
+      Empty -> "record {}"
+      sigma@Sigma{} -> prettySigma env sigma
+      Nil -> "{}"
+      pair@Pair{} -> prettyPair env pair
+      Proj l x -> pr env 0 x <> "." <> pretty l
       Bound j -> pretty (env !! j)
+      Op1 op1 x -> ppOp1 (pr env) op1 x
+      Op op x y@(Op op' _ _)
+        | op == op', right op -> ppRightOp2 (pr env) op x y
+      Op op x y
+        | left op -> ppLeftOp2 (pr env) op x y
+        | otherwise -> ppOp2 (pr env) op x y
       Free (Quote n) -> pretty (env !! n) -- not necessary?
       Free n -> pretty n
       Lit lit -> pretty lit
@@ -276,6 +365,31 @@ instance Pretty (Term m) where
                 | (arg, ys') <- quotientOn fst ys
                 ]
       Elaborate x -> pretty x
+      PrimOp prim -> "#" <> viaShow prim
+     where
+      (left, right, ppOp1, ppRightOp2, ppLeftOp2, ppOp2) =
+        ppHelpers
+          @Op1
+          @Op
+          @(Term Infer)
+          @ann
+          @(Term Infer)
+          @(Term Infer)
+          @(Term Infer)
+          operators
+          i
+
+    prettySigma env sigma = case splitSigma sigma of
+      (fs, Empty) -> align (braced $ map prettyField fs)
+      (fs, t) -> align (braced $ map prettyField (fs ++ [(Nothing, Inf t)]))
+     where
+      prettyField (f, t) = pretty f <> ":" <+> pr env 0 t
+
+    prettyPair env pair = case splitPair [] pair of
+      (fs, Inf Nil) -> align (braced $ map prettyField fs)
+      (fs, t) -> align (braced $ map prettyField (fs ++ [(Nothing, t)]))
+     where
+      prettyField (f, t) = pretty f <+> "=" <+> pr env 0 t
 
     prTensor env (TensorDescriptor base dims) =
       align
@@ -289,6 +403,8 @@ instance Pretty (Term m) where
       | otherwise = prettyCellAddr start <> ":" <> prettyCellAddr end
 
     prettyCellAddr = pretty . Text.pack . showExcel26
+
+    -- auxiliary functions
 
     requireQuotes =
       Text.any
@@ -343,10 +459,17 @@ sub k i = \case
   Ann e t -> Ann (sub k i e) (sub k i t)
   Set k' -> Set k'
   Pi arg xn x y -> Pi arg xn (sub k i x) (sub k (i + 1) y)
+  Empty -> Empty
+  Sigma n x y -> Sigma n (sub k i x) (sub k (i + 1) y)
+  Nil -> Nil
+  Pair n x y -> Pair n (sub k i x) (sub k i y)
+  Proj l x -> Proj l (sub k i x)
   -- shift the variables by +1 (lift)
   Bound j
     | i <= j -> Bound (j + 1)
     | otherwise -> Bound j
+  Op1 op1 x -> Op1 op1 (sub k i x)
+  Op op1 x y -> Op op1 (sub k i x) (sub k i y)
   -- replace @Implicit k@ with newly bound variable
   Free (Implicit k') | k == k' -> Bound i
   Free n -> Free n
@@ -357,6 +480,7 @@ sub k i = \case
   TensorOf td arr -> TensorOf (subTensor k i td) (sub k i <$> arr)
   x `App` (arg, y) -> sub k i x `App` (arg, sub k i y)
   Elaborate x -> Elaborate (sub k i x)
+  PrimOp prim -> PrimOp prim
 
 subTensor :: Int -> Int -> TensorDescriptor -> TensorDescriptor
 subTensor k i (TensorDescriptor base dims) =

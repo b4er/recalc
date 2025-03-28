@@ -1,6 +1,6 @@
 # Revision history for recalc
 
-## 1.1.0.0 -- 2025-03-27
+## 1.2.0.0 -- 2025-03-28
 
 * Minimal recalculation engine based on "Build systems à la carte", the engine
   supports
@@ -17,6 +17,8 @@
   * hierarchy of types (sound)
   * annotations
   * dependent functions
+  * dependent products
+  * operators (unary `~`, `-`, and overloaded binary `*`, `+`, `-`)
   * minimal prelude: `not`, `and`, `or`, `mmult`
   * literals (Boolean values and numbers)
 

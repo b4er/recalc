@@ -118,6 +118,13 @@ apply = (`go` 0)
     Lam eps n x -> Lam eps n (go s (i + 1) x)
     Ann e t -> Ann (go s i e) (go s i t)
     Pi eps xn x y -> Pi eps xn (go s i x) (go s (i + 1) y)
+    Empty -> Empty
+    Sigma xn x y -> Sigma xn (go s i x) (go s (i + 1) y)
+    Nil -> Nil
+    Pair xn x y -> Pair xn (go s i x) (go s i y)
+    Proj l x -> Proj l (go s i x)
+    Op1 op1 x -> Op1 op1 (go s i x)
+    Op op x y -> Op op (go s i x) (go s i y)
     Tensor td -> Tensor (goTensor s i td)
     TensorOf td arr -> TensorOf (goTensor s i td) (go s i <$> arr)
     x `App` (eps, y) -> go s i x `App` (eps, go s i y)
@@ -132,6 +139,7 @@ apply = (`go` 0)
     Ref sheetId refInfo cr -> Ref sheetId refInfo cr
     Lit lit -> Lit lit
     LitOf val -> LitOf val
+    PrimOp prim -> PrimOp prim
 
   goTensor s i (TensorDescriptor base dims) =
     TensorDescriptor (go s i base) (map (go s i) dims)

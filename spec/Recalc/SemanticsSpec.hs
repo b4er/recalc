@@ -8,15 +8,17 @@ Description : Test the core language's evaluation, type checking
 -}
 module Recalc.SemanticsSpec where
 
-import Control.Monad (void, (<=<))
+import Control.Monad (forM_, void, (<=<))
 import Control.Monad.Except (throwError)
 import Data.Map qualified as Map
 import Test.Hspec (Spec, describe, it, shouldBe, shouldNotBe)
 import Test.Hspec.QuickCheck (prop)
 
+import Data.String (IsString (fromString))
 import Recalc.Array
 import Recalc.Engine
 import Recalc.Language
+import Recalc.Repl (parseFormula)
 import Recalc.Syntax.Arbitrary (Set0 (..))
 import Recalc.Syntax.Term
 import Recalc.Syntax.Unify (UnificationError (UnifyMismatchI))
@@ -230,6 +232,54 @@ spec = do
 
       ([2, 2], [-1, 2, 3, -4]) `mmult` ([2, 2], [0, 0, 0, 0])
         `shouldBe` Right (matrix [2, 2] [0, 0, 0, 0])
+
+    let
+      test input expected =
+        (runEval' [] . snd =<< runInfer [] =<< parseFormula @(Term Infer) ('=' : input))
+          `shouldBe` Right (VLitOf (IntOf expected))
+
+    it "evaluates arithmetic terms (1)" $ do
+      test "0" 0
+      test "1+ 2" 3
+      test "3-4" (-1)
+      test "5 *6 " 30
+
+    it "evaluates arithmetic terms (2)" $ do
+      test "2 + 3 * 4" 14
+      test "(2 + 3) * 4" 20
+      test "10 - 3 - 2" 5
+      test "8 * 2 + 3" 19
+      test "5 + 4 * 2 - 1" 12
+      test "6 * (2 + 3)" 30
+
+    it "evaluates arithmetic terms (3)" $ do
+      test "-1 + 2" 1
+      test "-3 * -4" 12
+      test "-(5 + 2)" (-7)
+      test "-4 - -3" (-1)
+
+    it "evaluates arithmetic terms (4)" $ do
+      test "0 * 5" 0
+      test "7 - 7" 0
+      test "1+(2*(3-1) )" 5
+      test "(8 - 3) * (2 + 4)" 30
+
+    it "evaluates arithmetic terms (5)" $ do
+      test "1 -2-3" (-4)
+      test "4 * 5 * 6" 120
+      test "10 - (3 - 2)" 9
+      test "(4 * 5) * 6" 120
+      test "2 * 3 + 4 * 5" 26
+      test "2 + 3 * 4 + 5" 19
+
+  describe "operators" $ do
+    let lookup_ = void . (`Map.lookup` prelude)
+    forM_ [minBound @Op1 ..] $ \op ->
+      it ("should declare " <> show op) $ do
+        lookup_ (fromString (show op)) `shouldBe` Just ()
+    forM_ [minBound @Op ..] $ \op ->
+      it ("should declare " <> show op) $ do
+        lookup_ (fromString (show op)) `shouldBe` Just ()
 
 type Result = Either (FetchError SemanticError)
 

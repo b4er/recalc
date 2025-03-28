@@ -119,8 +119,8 @@ spec = do
     parseTest formulaP "=* " (Set 0)
     parseTest formulaP "=0" (intOf 0)
     parseTest formulaP "= 1 " (intOf 1)
-    parseTest formulaP "= -3 " (intOf (-3))
-    parseTest formulaP "=- 12" (intOf (-12))
+    parseTest formulaP "= -3 " (Op1 Negate (intOf 3))
+    parseTest formulaP "=- 12" (Op1 Negate (intOf 12))
 
   describe "termP" . it "parses Π-types" $ do
     parseTest formulaP "=* -> *" (Pi EArg (pat "x") (Inf (Set 0)) (Inf (Set 0)))

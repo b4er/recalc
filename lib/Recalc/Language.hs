@@ -18,6 +18,31 @@ The original implementation of the core calculus is based on
 This extension lifts the calculus to spreadsheets and adds homogeneous tensor
 types which can be constructed using cell-references.
 
+Furthermore it extends it by the following primitives:
+
+- sigma types (dependent products): 'Empty', 'Sigma', 'Nil', 'Pair' and 'Proj'
+- implicit arguments (handled simultaneously with regular arguments): 'IArg'
+- tensor types with dependent indices (not part of surface language, just for
+  types of cell references): 'Tensor' and 'TensorOf'
+- elaboration: 'Elaborate', 'PrimOp'
+
+Type checking expects that the term is 'desugar'ed.
+
+The evaluation phase expects that the term successfully type checked and the
+resulting elaborated term is used.
+
+Implicit function arguments are attempted to be resolved when an argument
+is applied: first all types inferred using unification, then remaining
+ones are attempted to be 'materialize'd.
+
+This is used to implement light-weight "type classes":
+
+> Plus: {t} -> {{plus: t -> t -> t}} -> t -> t -> t
+
+When @Plus(1)@ is inferred @t@ is resolved by unification, the remaining
+implicit argument becomes @{plus: int -> int -> int}@ and materialization
+is expected to solve this constraint.
+
 __References:__
   Andres Löh, Conor McBride, Wouter Swierstra.
   [A Tutorial Implementation of a Dependently Typed Lambda Calculus](https://dl.acm.org/doi/10.5555/1883634.1883637).
@@ -60,9 +85,10 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Massiv.Array qualified as Array
 import Data.Massiv.Array.Numeric ((!><!))
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, mapMaybe)
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Data.String (fromString)
 import Data.Text (Text)
 import GHC.Float (int2Double)
 import GHC.Generics (Generic)
@@ -100,8 +126,11 @@ data SemanticError
   | IllegalApplication Type
   | IllegalImplicitApplication Type
   | IllegalArrayType [(CellAddr, Type)]
+  | IllegalProjection CaseInsensitive Type
   | UnknownIdentifier Name
   | UnificationError UnificationError
+  | LabelMismatch (Maybe CaseInsensitive) (Maybe CaseInsensitive)
+  | TypeMismatchSigma (Term Check) Type
   deriving (Eq, Show)
 
 -- | a global variable must declare its 'Type' but not necessarily its 'Value'
@@ -125,6 +154,7 @@ data Neutral
   = NFree !Name
   | NRef !SheetId !CellRange
   | NApp !Arg !Neutral !Value
+  | NProj !CaseInsensitive !Neutral
   deriving (Generic)
 
 data VTensorDescriptor = VTensorDescriptor Value [Value]
@@ -141,10 +171,20 @@ data Value
     VSet !Int
   | -- | dependent function
     VPi !Arg !(Maybe CaseInsensitive) !Value !(Value -> Spreadsheet Value)
+  | -- | empty record type
+    VEmpty
+  | -- | sigma type
+    VSigma !(Maybe CaseInsensitive) !Value !(Value -> Spreadsheet Value)
+  | -- | empty record
+    VNil
+  | -- | pair
+    VPair !(Maybe CaseInsensitive) !Value !Value
   | -- | type literal
     VLit Lit
   | -- | value literal
     VLitOf LitOf
+  | -- | builtin operations (monomorph)
+    VPrimOp PrimOp
   | -- | tensor type
     VTensor VTensorDescriptor
   | -- | tensor value
@@ -190,6 +230,10 @@ vpis doms range =
   in
     foldr go (range . reverse) doms []
 
+-- | non-dependent record
+vrecord :: [(Text, Value)] -> Value
+vrecord = foldr (\(n, t) -> VSigma (Just (CaseInsensitive n)) t . const . pure) VEmpty
+
 -- | application (must be able to fail)
 vapp :: Value -> Value -> Spreadsheet Value
 vapp (VLam _arg _n f) v = f v
@@ -218,6 +262,20 @@ vtensor
   -> Value
 vtensor base = VTensor . VTensorDescriptor base
 
+splitVPair :: Value -> ([(Maybe CaseInsensitive, Value)], Value)
+splitVPair = go []
+ where
+  go acc (VPair n x y) = go ((n, x) : acc) y
+  go acc y = (reverse acc, y)
+
+vproj :: CaseInsensitive -> Value -> Value
+vproj l = \case
+  pair@VPair{}
+    | Just v <- lookup (Just l) . fst $ splitVPair pair ->
+        v
+  VNeutral n -> VNeutral (NProj l n)
+  _ -> error "vproj"
+
 cellRangeAddrs :: CellRange -> [CellAddr]
 cellRangeAddrs (start, end) = [(i, j) | i <- [row start .. row end], j <- [column start .. column end]]
 
@@ -245,7 +303,14 @@ deps' = go mempty
     Ann x ty -> go (go acc x) ty
     Set{} -> acc
     Pi _ _ ty1 ty2 -> go (go acc ty1) ty2
+    Empty -> acc
+    Sigma _ x y -> go (go acc x) y
+    Nil -> acc
+    Proj _ x -> go acc x
+    Pair _ x y -> go (go acc x) y
     Bound{} -> acc
+    Op1 _ x -> go acc x
+    Op _ x y -> go (go acc x) y
     Free{} -> acc
     Ref sheetId _ cr -> Set.singleton (sheetId, cr)
     Lit{} -> acc
@@ -255,6 +320,7 @@ deps' = go mempty
     f `App` (_arg, x) -> go (go acc f) x
     -- should not be used (just to make GHC happy)
     Elaborate x -> go acc x
+    PrimOp{} -> acc
 
   goTensor acc (TensorDescriptor base _dims) = go acc base
 
@@ -275,8 +341,17 @@ quote = go 0
         range' = quoteAbs $ range (vfree (Quote i))
       in
         Inf $ Pi arg vname (go i dom) (go (i + 1) range')
+    VEmpty -> Inf Empty
+    VSigma n x y ->
+      let
+        y' = quoteAbs $ y (vfree (Quote i))
+      in
+        Inf $ Sigma n (go i x) (go (i + 1) y')
+    VNil -> Inf Nil
+    VPair n x y -> Pair n (go i x) (go i y)
     VLit lit -> Inf (Lit lit)
     VLitOf val -> Inf (LitOf val)
+    VPrimOp prim -> Inf (PrimOp prim)
     VTensor td -> Inf (Tensor (goTensor i td))
     VTensorOf td arr -> Inf (TensorOf (goTensor i td) (go i <$> toList arr))
     VNeutral n -> Inf (goNeutral i n)
@@ -284,8 +359,9 @@ quote = go 0
   goNeutral i = \case
     NFree (Quote k) -> Bound (i - k - 1)
     NFree n -> Free n
-    NRef sheetId cr -> Ref sheetId FullySpecified cr
+    NRef sheetId cr -> Ref sheetId Unspecified cr
     NApp arg n v -> goNeutral i n `App` (arg, go i v)
+    NProj l n -> Proj l (goNeutral i n)
 
   goTensor i (VTensorDescriptor base vdims) =
     TensorDescriptor (case go i base of Inf x -> x; _ -> damn) (map (go i) vdims)
@@ -295,7 +371,13 @@ quote = go 0
     either (error . show) id
       . runFetchWith
         (Env prelude)
-        (\(sheetId, ca) -> pure (damn, damn, VNeutral (NRef sheetId (ca, ca))))
+        ( \(sheetId, ca) ->
+            pure
+              ( VNeutral (NRef sheetId (ca, ca))
+              , Ref sheetId Unspecified (ca, ca)
+              , VNeutral (NRef sheetId (ca, ca))
+              )
+        )
 
   damn = error "quote: this shouldn't happen"
 
@@ -314,6 +396,16 @@ check' ctxt ty = \case
       t'' <- t' t
       Lam arg n <$> check' (t : ctxt) t'' body
     ty' -> throwSemanticError (TypeMismatchPi x ty')
+  pair@(Pair n x y) -> case ty of
+    -- normalize sigma.. this does not allow re-ordering independent fields
+    VSigma n' xT yT -> do
+      when (n /= n')
+        $ throwSemanticError (LabelMismatch n n')
+      x' <- check' ctxt xT x
+      yT' <- yT xT
+      y' <- check' (xT : ctxt) yT' y
+      pure (Pair n x' y')
+    _ -> throwSemanticError (TypeMismatchSigma pair ty)
 
 -- . traceShowWith ("check'"::String,ctxt,ty,)
 
@@ -332,7 +424,23 @@ infer' ctxt = \case
     -- range
     (n, range') <- inferUniverse' (dom'' : ctxt) range
     pure (VSet (max m n), Pi arg p (Inf dom') (Inf range'))
+  Empty -> pure (VSet 0, Empty)
+  Sigma p x y -> do
+    (m, x') <- inferUniverse' ctxt x
+    xT <- eval' ctxt x
+    (n, y') <- inferUniverse' (xT : ctxt) y
+    pure (VSet (max m n), Sigma p (Inf x') (Inf y'))
+  Nil -> pure (VEmpty, Nil)
+  Proj l x ->
+    infer' ctxt x >>= \case
+      (sigma@VSigma{}, x')
+        | Inf e <- quote sigma
+        , Just t <- lookup (Just l) . fst $ splitSigma e ->
+            (,Proj l x') <$> eval' ctxt t
+      (ty, _) -> throwSemanticError (IllegalProjection l ty)
   Bound i -> pure (ctxt !! i, Bound i)
+  Op1{} -> error "op1 is syntax sugar"
+  Op{} -> error "op is syntax sugar"
   Free name -> do
     Env{globals} <- ask
     case Map.lookup name globals of
@@ -376,6 +484,11 @@ infer' ctxt = \case
     resolveImplicits ctxt x =<< infer' ctxt f
   -- we never infer elaborated terms..
   Elaborate _ -> error "the impossible happened"
+  p@(PrimOp prim) ->
+    (,p) <$> case prim of
+      PrimPlus -> pure (vint `vfun` vint `vfun` vint)
+      PrimMinus -> pure (vint `vfun` vint `vfun` vint)
+      PrimMult -> pure (vint `vfun` vint `vfun` vint)
 
 -- . traceShowWith ("infer'"::String,ctxt,)
 
@@ -392,21 +505,29 @@ resolveImplicits ctxt x (fnTy, fnTerm) = do
             Left err -> throwSemanticError (UnificationError err)
             Right s -> do
               let
-                -- unknown implicit arguments
-                implicits' =
-                  [ (k, n, quote d)
+                -- unknown (from unification) implicit arguments
+                notUnified =
+                  [ (k, (n, apply s (quote d)))
                   | (k, (n, d)) <- zip [0 ..] implicits
                   , isNothing (Map.lookup k s)
                   ]
 
+              -- evaluate types and try materialize
+              impls <-
+                Map.fromList . mapMaybe (\(k, ty) -> (k,) <$> materialize ty)
+                  <$> mapM (\(k, (_, d)) -> (k,) <$> eval' ctxt d) notUnified
+
+              let
+                -- left over implicits: neither solved by unification nor materialization
+                implicits' = filter ((`Map.notMember` impls) . fst) notUnified
+
                 -- pi over implicits that were not inferred
                 piImplicits y =
-                  foldr (\(k, n, d) -> Inf . Pi IArg n d . sub k 0) y implicits'
+                  foldr (\(k, (n, d)) -> Inf . Pi IArg n d . sub k 0) y implicits'
 
                 -- lambda over implicits that were not inferred
                 lamImplicits y =
-                  foldr (\(k, n, _) -> Lam IArg n . sub k 0) y implicits'
-                -- foldr (\(k, n, d) -> Inf . Pi IArg n d . sub k 0) y implicits'
+                  foldr (\(k, (n, _)) -> Lam IArg n . sub k 0) y implicits'
 
                 -- apply all inferred implicits to term (elaboration)
                 fnTerm' =
@@ -414,11 +535,13 @@ resolveImplicits ctxt x (fnTy, fnTerm) = do
                     . Inf
                     . (`App` (EArg, Inf xTerm))
                     $ foldl'
-                      (\fn i -> fn `App` (IArg, Inf i))
+                      (\fn i -> fn `App` (IArg, i))
                       fnTerm
                       [ case Map.lookup k s of
-                        Just v -> v
-                        Nothing -> Free (Implicit k)
+                        Just v -> Inf v
+                        Nothing
+                          | Just v <- Map.lookup k impls -> v
+                          | otherwise -> Inf (Free (Implicit k))
                       | (k, _) <- zip [0 ..] implicits
                       ]
 
@@ -456,6 +579,16 @@ resolveImplicits ctxt x (fnTy, fnTerm) = do
     VPi EArg _ t t' -> pure (Just (reverse acc, t, t'))
     _ -> pure Nothing
 
+materialize :: Value -> Maybe (Term Check)
+materialize ty
+  | ty == vrecord [("plus", vint `vfun` vint `vfun` vint)] =
+      Just $ record [("plus", Inf (PrimOp PrimPlus))]
+  | ty == vrecord [("minus", vint `vfun` vint `vfun` vint)] =
+      Just $ record [("minus", Inf (PrimOp PrimMinus))]
+  | ty == vrecord [("mult", vint `vfun` vint `vfun` vint)] =
+      Just $ record [("mult", Inf (PrimOp PrimMult))]
+  | otherwise = Nothing
+
 inferLiteral :: LitOf -> Type
 inferLiteral =
   VLit . \case
@@ -484,6 +617,7 @@ inferUniverse' ctxt = \case
 
 -- * Evaluation
 
+-- the error calls below are ruled out by the type checker
 eval' :: [Value] -> Term m -> Spreadsheet Value
 eval' ctxt = \case
   Inf x -> eval' ctxt x
@@ -493,7 +627,16 @@ eval' ctxt = \case
   Pi arg p dom range -> do
     dom' <- eval' ctxt dom
     pure $ VPi arg p dom' (\v -> eval' (v : ctxt) range)
+  Empty -> pure VEmpty
+  Sigma n x y -> do
+    x' <- eval' ctxt x
+    pure . VSigma n x' $ \v -> eval' (v : ctxt) y
+  Nil -> pure VNil
+  Pair n x y -> VPair n <$> eval' ctxt x <*> eval' ctxt y
+  Proj l x -> vproj l <$> eval' ctxt x
   Bound i -> pure (ctxt !! i)
+  Op1{} -> error "op1 is syntax sugar"
+  Op{} -> error "op is syntax sugar"
   Ref sheetId _ cr@(start, end)
     -- if it's a single reference: just the value there
     | start == end -> fetchValue @(Term Infer) (sheetId, start)
@@ -528,6 +671,10 @@ eval' ctxt = \case
     x' <- eval' ctxt x
     vapp f' x'
   Elaborate x -> eval' ctxt x
+  PrimOp prim -> pure $ case prim of
+    PrimPlus -> intOp (+)
+    PrimMinus -> intOp (-)
+    PrimMult -> intOp (*)
 
 evalTensor' :: [Value] -> TensorDescriptor -> Spreadsheet (Value, [Value])
 evalTensor' ctxt (TensorDescriptor base dims) = (,) <$> eval' ctxt base <*> mapM (eval' ctxt) dims
@@ -561,7 +708,7 @@ instance Recalc (Term Infer) where
 
   parseCell = \case
     CellValue -> valueP
-    CellFormula -> formulaP
+    CellFormula -> fmap desugar formulaP
 
   depsOf = deps'
 
@@ -635,6 +782,15 @@ instance UniverRecalc (Term Infer) where
         , hsep . punctuate comma
             $ map (\(ca, ty) -> "‘" <> pretty ty <> "’ at" <+> pretty (showExcel26 ca)) locs
         ]
+    IllegalProjection l ty ->
+      annotation
+        "Illegal Projection"
+        [ "Label ‘"
+        , pretty l
+        , "’ does not exist on type‘"
+        , pretty ty
+        , "’."
+        ]
     UnknownIdentifier name ->
       annotation
         "Unknown Identifier"
@@ -643,10 +799,54 @@ instance UniverRecalc (Term Infer) where
         , "’."
         ]
     UnificationError err -> unificationErrorAnnotation err
+    LabelMismatch l l' ->
+      annotation
+        "Type Mismatch"
+        [ "Product types cannot be matched, the labels ‘"
+        , pretty l
+        , "‘ and ‘"
+        , pretty l'
+        , "‘ differ."
+        ]
+    TypeMismatchSigma x ty ->
+      annotation
+        "Type Mismatch"
+        [ "Product type ‘"
+        , pretty x
+        , "‘ cannot be matched with ‘"
+        , pretty ty
+        , "‘, expected Σ-type."
+        ]
    where
     annotation title docs = Annotation title (render (cat docs))
 
-    render = renderStrict . layoutPretty defaultLayoutOptions
+render :: Doc ann -> Text
+render = renderStrict . layoutPretty defaultLayoutOptions
+
+{- Syntactic Sugar -}
+
+-- | desugaring terms: resolve operators to globals
+desugar :: Term Infer -> Term Infer
+desugar = go
+ where
+  go :: forall m. Term m -> Term m
+  go = \case
+    Op1 op1 x -> Free (fromString (show op1)) :$ Inf (go x)
+    Op op x y -> Free (fromString (show op)) :$ Inf (go x) :$ Inf (go y)
+    -- recurse
+    Inf x -> Inf (go x)
+    Lam arg n x -> Lam arg n (go x)
+    Ann e t -> Ann (go e) (go t)
+    Set k -> Set k
+    Pi arg n x y -> Pi arg n (go x) (go y)
+    Tensor td -> Tensor (goTensor td)
+    TensorOf td arr -> TensorOf (goTensor td) (go <$> arr)
+    x `App` (arg, y) -> go x `App` (arg, go y)
+    -- leaves
+    x -> x
+
+  goTensor (TensorDescriptor base vdims) =
+    TensorDescriptor (go base) (map go vdims)
 
 {- Prelude -}
 
@@ -657,6 +857,30 @@ prelude =
     , ("and", Decl (vbool `vfun` vbool `vfun` vbool) (Just andImpl))
     , ("or", Decl (vbool `vfun` vbool `vfun` vbool) (Just orImpl))
     , ("mmult", Decl mmultT (Just mmultImpl))
+    , -- operators
+      ("LogicalNegate", Decl (vbool `vfun` vbool) (Just notImpl))
+    , ("Negate", Decl (vint `vfun` vint) (Just negateImpl))
+    ,
+      ( "Mult"
+      , classDecl
+          "mult"
+          (\t -> t `vfun` t `vfun` t)
+          (\impl -> binOp $ \x y -> (`vapp` y) =<< impl `vapp` x)
+      )
+    ,
+      ( "Plus"
+      , classDecl
+          "plus"
+          (\t -> t `vfun` t `vfun` t)
+          (\impl -> binOp $ \x y -> (`vapp` y) =<< impl `vapp` x)
+      )
+    ,
+      ( "Minus"
+      , classDecl
+          "minus"
+          (\t -> t `vfun` t `vfun` t)
+          (\impl -> binOp $ \x y -> (`vapp` y) =<< impl `vapp` x)
+      )
     ]
  where
   notImpl =
@@ -694,3 +918,39 @@ prelude =
                     vtd = VTensorDescriptor vint (vintOf <$> [m, k])
                   pure (VTensorOf vtd (vintOf . round @Double <$> Array [m, k] multArr))
                 _ -> pure . VNeutral $ NApp EArg (NApp EArg (NFree "mmult") u) v
+
+  negateImpl = unOp negate
+
+unOp :: (Int -> Int) -> Value
+unOp op =
+  VLam IArg (Just (CaseInsensitive "x")) $ \(VLitOf (IntOf x)) ->
+    pure (VLitOf (IntOf (op x)))
+
+binOp :: (Value -> Value -> Spreadsheet Value) -> Value
+binOp f =
+  vlam EArg (Just (CaseInsensitive "x"))
+    $ VLam EArg (Just (CaseInsensitive "y")) . f
+
+-- assume implementation record
+assume :: Text -> (Value -> Value) -> Value
+assume f t = vpi IArg (Just (CaseInsensitive "t")) (VSet 0) $ \a ->
+  VPi IArg Nothing (VSigma (Just (CaseInsensitive f)) (t a) (const (pure VEmpty)))
+    . const
+    $ pure (t a)
+
+-- pass implementation record
+implement :: Text -> (Value -> Value) -> Value
+implement f v =
+  vlam IArg (Just (CaseInsensitive "t")) $ \_t ->
+    vlam IArg (Just (CaseInsensitive "impl")) $ \impl ->
+      v (vproj (CaseInsensitive f) impl)
+
+-- declare a light-weigth class
+classDecl :: Text -> (Value -> Value) -> (Value -> Value) -> Decl
+classDecl c t = Decl (assume c t) . Just . implement c
+
+intOp :: (Int -> Int -> Int) -> Value
+intOp op =
+  vlam EArg (Just (CaseInsensitive "x")) $ \(VLitOf (IntOf x)) ->
+    VLam EArg (Just (CaseInsensitive "y")) $ \(VLitOf (IntOf y)) ->
+      pure (VLitOf (IntOf (x `op` y)))
