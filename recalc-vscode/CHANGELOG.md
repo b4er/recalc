@@ -1,6 +1,6 @@
 # Revision history for recalc-vscode
 
-## 1.0.0 -- 2025-03-26
+## 1.1.0 -- 2025-03-28
 
 * Server-side implementation used by the TypeScript frontend, handling:
   * JSON-RPC communication for value ranges, sheet insertion, sheet removal,
