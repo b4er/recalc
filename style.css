@@ -1,0 +1,58 @@
+.menu-item:not([href="#"]) {
+  height: 0;
+  visibility: hidden;
+}
+
+#terminal-mkdocs-footer-copyright-info {
+  font-size: 0.750rem;
+}
+
+#terminal-mkdocs-side-panel > hr {
+  margin-bottom: 0;
+}
+
+/* this only behaves if the markdown files have
+ * proper titles (checked with markdownlint)
+ */
+#terminal-mkdocs-side-panel > nav:nth-child(3) {
+  height: 0;
+  visibility: hidden;
+}
+
+.admonition{
+  padding: 15px 20px;
+  width: 95%;
+  padding-bottom: 0 !important;
+  margin-bottom: 20px;
+  border: 1px solid black;
+  border-radius: 8px;
+  box-shadow: 2px 2px 2px #8B8000;
+  color: #222222;
+}
+
+.admonition-title {
+  font-weight: bold;
+  padding: 10px 20px;
+  margin: -15px 0 0 -20px;
+  border-radius: 8px 8px 0 0;
+}
+
+.terminal h1 {
+  font-size: 14pt;
+}
+
+.terminal h2 {
+  font-size: 13pt;
+}
+
+h2::before {
+  content: "* ";
+}
+
+.terminal h3 {
+  font-size: 12pt;
+}
+
+h3::before {
+  content: "** ";
+}
